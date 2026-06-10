@@ -1,0 +1,89 @@
+.btn-nova-tag {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.btn-nova-tag:hover {
+  background: #2563eb;
+}
+
+.tags-section {
+  margin: 24px 0;
+}
+
+.modal-content-tags {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+}
+
+.tags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.tag-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  color: white;
+  font-size: 14px;
+}
+
+.cores-selecao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.cor-opcao {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.cor-opcao.selected {
+  outline: 2px solid black;
+}
+
+.tags-vinculadas-container {
+  margin: 16px 0;
+}
+
+.tags-vinculadas-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-btn {
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-weight: 500;
+  border: 2px dashed #888;
+  background: #f3f4f6;
+  color: #222;
+  transition: all 0.2s;
+}
+
+.tag-btn.ativa {
+  color: #fff;
+  border: 2px solid #222;
+  box-shadow: 0 0 4px #2224;
+}
+
+.tag-btn:hover {
+  transform: scale(1.05);
+}

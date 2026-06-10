@@ -1,0 +1,93 @@
+.filters-container {
+  margin-bottom: 24px;
+}
+
+.filters-card {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+
+.filters-grid-custom {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Desktop bonito */
+  gap: 16px;
+  align-items: end;
+}
+
+.filters-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filters-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+
+.filters-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filters-group select:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px #eff6ff;
+}
+
+
+.btn-filter-primary {
+  height: 40px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-filter-primary:hover {
+  background: #2563eb;
+}
+
+/* ORDENAR (CINZA) */
+.btn-filter-secondary {
+  height: 40px;
+  background: #e2e8f0;
+  color: #1e293b;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-filter-secondary:hover {
+  background: #cbd5e1;
+}
+
+@media (max-width: 1024px) {
+  .filters-grid-custom {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Celular */
+@media (max-width: 640px) {
+  .filters-grid-custom {
+    grid-template-columns: 1fr;
+  }
+}

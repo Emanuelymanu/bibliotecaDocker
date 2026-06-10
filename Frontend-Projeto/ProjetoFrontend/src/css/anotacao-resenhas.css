@@ -1,0 +1,191 @@
+.resenhas-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.resenha-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s;
+}
+
+.resenha-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.resenha-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    cursor: pointer;
+    background: #f9fafb;
+    transition: background 0.2s;
+}
+
+.resenha-header:hover {
+    background: #f3f4f6;
+}
+
+.resenha-capa {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.resenha-info {
+    flex: 1;
+}
+
+.resenha-info h3 {
+    margin: 0 0 4px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.resenha-info .autor {
+    margin: 0 0 8px 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.resenha-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.avaliacao {
+    color: #fbbf24;
+    font-size: 0.85rem;
+}
+
+.data-leitura {
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 8px;
+}
+
+.resenha-body {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+}
+
+.resenha-section {
+    margin-bottom: 20px;
+}
+
+.resenha-section h4,
+.anotacoes-section h4 {
+    margin: 0 0 12px 0;
+    color: #374151;
+    font-size: 0.95rem;
+    border-left: 3px solid #3b82f6;
+    padding-left: 10px;
+}
+
+.resenha-texto {
+    color: #4b5563;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 0;
+}
+
+.anotacoes-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.anotacao-item {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.anotacao-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.anotacao-titulo {
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.anotacao-pagina {
+    color: #6b7280;
+    font-size: 0.75rem;
+    background: #e5e7eb;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.anotacao-conteudo {
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.4;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+}
+
+.sem-anotacoes {
+    color: #9ca3af;
+    font-style: italic;
+    margin: 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    color: #6b7280;
+}
+
+.empty-state p:first-child {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h1 {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+}
+
+.page-header p {
+    margin: 0;
+    color: #6b7280;
+}

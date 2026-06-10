@@ -1,0 +1,205 @@
+.modal-content-large {
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.modal-header {
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  margin: 0 0 8px 0;
+  color: #1f2937;
+}
+
+.progress-section {
+  background: #f3f4f6;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.progress-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.progress-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.progress-controls input[type="range"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.progress-controls button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.anotacoes-section {
+  margin-bottom: 24px;
+}
+
+.anotacoes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.anotacoes-header h3 {
+  margin: 0;
+}
+
+.pagina-navegacao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagina-navegacao button {
+  background: #e5e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pagina-navegacao button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.anotacoes-lista {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.anotacao-item {
+  background: #f9fafb;
+  border-left: 4px solid #3b82f6;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+}
+
+.anotacao-item h4 {
+  margin: 0 0 8px 0;
+  color: #1f2937;
+}
+
+.anotacao-item p {
+  margin: 0 0 8px 0;
+  color: #4b5563;
+  white-space: pre-wrap;
+}
+
+.anotacao-item small {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.anotacao-botoes {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.anotacao-botoes button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.anotacao-botoes button:hover {
+  color: #3b82f6;
+}
+
+.sem-anotacoes {
+  color: #9ca3af;
+  text-align: center;
+  padding: 20px;
+}
+
+.btn-nova-anotacao {
+  width: 100%;
+  padding: 12px;
+  background: #e5e7eb;
+  border: 2px dashed #9ca3af;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.btn-nova-anotacao:hover {
+  background: #d1d5db;
+}
+
+.nova-anotacao-form {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.nova-anotacao-form h4 {
+  margin: 0 0 12px 0;
+}
+
+.nova-anotacao-form input,
+.nova-anotacao-form textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.anotacao-edicao input,
+.anotacao-edicao textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-footer button {
+  background: #9ca3af;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
