@@ -15,7 +15,7 @@ ENV NODE_ENV=production
 ENV HUSKY=0
 
 COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 
