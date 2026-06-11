@@ -53,8 +53,6 @@ src/migrations/
 src/seeders/
 
 
-src/models-auto/
-
 package-lock.json
 yarn.lock   
 package.json
