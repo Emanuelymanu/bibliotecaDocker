@@ -6,6 +6,8 @@
     "sweetalert2": "^11.26.24"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@types/node": "^25.3.0"
-  }
+  },
+  "scripts": {}
 }
