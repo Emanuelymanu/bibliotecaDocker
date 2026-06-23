@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
-echo "Pre-commit hook: validating changes..."
-# npm --prefix Backend-Projeto run build
+
+echo "[husky] pre-commit: validando build do backend..."
+npm --prefix Backend-Projeto run build
