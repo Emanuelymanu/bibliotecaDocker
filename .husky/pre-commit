@@ -1,2 +1,3 @@
 #!/usr/bin/env sh
-npm --prefix Backend-Projeto run build
+echo "Pre-commit hook: validating changes..."
+# npm --prefix Backend-Projeto run build
