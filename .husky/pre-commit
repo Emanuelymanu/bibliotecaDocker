@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+echo "[husky] pre-commit: validando build do backend..."
+npm --prefix Backend-Projeto run build
