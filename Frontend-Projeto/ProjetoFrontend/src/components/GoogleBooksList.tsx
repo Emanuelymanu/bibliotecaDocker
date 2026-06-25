@@ -1,143 +1,346 @@
-import Swal from "sweetalert2";
-// Função para adicionar livro à biblioteca
-import { useNavigate } from "react-router-dom";
-
-const adicionarLivro = async (livro: any, navigate?: (path: string) => void) => {
-    try {
-        // Monta o objeto esperado pelo backend (LivroInput)
-        const livroParaCadastro = {
-            id_google: livro.id_google || livro.id, // Garante o envio do id_google
-            titulo: livro.titulo,
-            autor: livro.autor,
-            genero: livro.genero || "",
-            tipo_obra: livro.tipo_obra,
-            num_paginas: String(livro.num_paginas || ""),
-            subtitulo: livro.subtitulo || "",
-            nome_serie: livro.nome_serie || "",
-            ano_publicacao: livro.ano_publicacao ? String(livro.ano_publicacao) : "",
-            editora: livro.editora || "",
-            status: "Quero Ler" as "Quero Ler",
-            avaliacao: 0,
-            capa: livro.capa || ""
-        };
-        await LivroService.criar(livroParaCadastro);
-        await Swal.fire({
-            title: "Sucesso!",
-            text: "Livro adicionado à sua biblioteca!",
-            icon: "success",
-            confirmButtonText: "Ir para a biblioteca",
-            confirmButtonColor: "#3b82f6"
-        });
-        if (navigate) navigate("/biblioteca");
-    } catch (err: any) {
-        if (err?.response?.status === 409) {
-            Swal.fire("Atenção", err?.response?.data?.message || "Este livro já está na sua estante!", "info");
-        } else {
-            Swal.fire("Erro", err?.response?.data?.message || "Erro ao adicionar livro.", "error");
-        }
-    }
-};
-// Gera um id numérico a partir do id string do Google Books
-function stringToNumberId(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
-        hash |= 0;
-    }
-    return Math.abs(hash);
-}
 import React, { useState } from "react";
+
+import LivroDetalhesModal from "../components/LivroDetalhesModal";
 import LivroService from "../services/livroService";
 import { LivroCard } from "../components/LivroCard";
+
 import "../css/LivroCard.css";
 
 import type { Livro } from "../types/livro";
 
+function stringToNumberId(str: string): number {
+    let hash = 0;
+
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+
+    return Math.abs(hash);
+}
 
 export default function GoogleBooksList() {
-    const [query, setQuery] = useState(""); // campo vazio por padrão
+    const [query, setQuery] = useState("");
     const [books, setBooks] = useState<Livro[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+
+    const [livroSelecionado, setLivroSelecionado] = useState<any>(null);
+
+    const [paginaAtual, setPaginaAtual] = useState(1);
+
+    const livrosPorPagina = 8;
+
+    const totalPaginas = Math.ceil(books.length / livrosPorPagina);
+
+    const indiceInicial = (paginaAtual - 1) * livrosPorPagina;
+    const indiceFinal = indiceInicial + livrosPorPagina;
+
+    const livrosDaPagina = books.slice(indiceInicial, indiceFinal);
 
     const searchBooks = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!query) return;
+        if (e) {
+            e.preventDefault();
+        }
+
+        if (!query.trim()) {
+            return;
+        }
+
         setError(null);
+        setLoading(true);
+
         try {
             const livros = await LivroService.buscarGoogleBooks(query);
-            console.log('Livros recebidos do backend:', livros);
+
+            console.log("Livros recebidos do backend:", livros);
+
             setBooks(livros);
+
+           setPaginaAtual(1);
         } catch (err) {
+            console.error("Erro ao buscar livros:", err);
+
             setError("Erro ao buscar livros no backend.");
             setBooks([]);
+            setPaginaAtual(1);
+        } finally {
+            setLoading(false);
         }
     };
 
+    const irParaPaginaAnterior = () => {
+        setPaginaAtual((pagina) => Math.max(pagina - 1, 1));
+    };
+
+    const irParaProximaPagina = () => {
+        setPaginaAtual((pagina) =>
+            Math.min(pagina + 1, totalPaginas)
+        );
+    };
+
     return (
-        <div style={{ border: '2px solid #007bff', borderRadius: 8, padding: 16, background: '#f8f9fa' }}>
-            <div style={{ marginBottom: 12, color: '#007bff', fontWeight: 'bold' }}>
-                Digite um termo e clique em Buscar para ver livros do Google Books abaixo.
+        <div
+            style={{
+                border: "2px solid #007bff",
+                borderRadius: 8,
+                padding: 16,
+                background: "#f8f9fa",
+                width: "100%",
+                boxSizing: "border-box"
+            }}
+        >
+            <div
+                style={{
+                    marginBottom: 12,
+                    color: "#007bff",
+                    fontWeight: "bold"
+                }}
+            >
+                Digite um termo e clique em Buscar para ver livros abaixo.
             </div>
-            <form onSubmit={searchBooks} style={{ marginBottom: 24 }}>
+
+            <form
+                onSubmit={searchBooks}
+                style={{
+                    marginBottom: 24,
+                    display: "flex",
+                    gap: 8,
+                    flexWrap: "wrap"
+                }}
+            >
                 <input
                     type="text"
                     value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    placeholder="Buscar livros no Google Books..."
-                    style={{ padding: 8, width: 300 }}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar livros..."
+                    style={{
+                        padding: 8,
+                        width: 300,
+                        border: "1px solid #d1d5db",
+                        borderRadius: 6
+                    }}
                 />
-                <button type="submit" style={{ marginLeft: 8, padding: 8 }}>
-                    Buscar
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                        padding: "8px 16px",
+                        border: "none",
+                        borderRadius: 6,
+                        background: "#007bff",
+                        color: "#ffffff",
+                        fontWeight: "bold",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        opacity: loading ? 0.7 : 1
+                    }}
+                >
+                    {loading ? "Buscando..." : "Buscar"}
                 </button>
             </form>
+
             {error && (
-                <div style={{ color: 'red', marginBottom: 16 }}>
+                <div
+                    style={{
+                        color: "red",
+                        marginBottom: 16
+                    }}
+                >
                     {error}
                 </div>
             )}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-                {books.map((livro, idx) => {
-                    // Se vier no formato Google Books, faz o mapeamento
+
+            {!loading && books.length === 0 && !error && (
+                <p
+                    style={{
+                        color: "#6b7280"
+                    }}
+                >
+                    Faça uma busca para encontrar livros.
+                </p>
+            )}
+
+            <div
+                style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "stretch",
+                    gap: 24,
+                    width: "100%"
+                }}
+            >
+                {livrosDaPagina.map((livro, idx) => {
                     const info = (livro as any).volumeInfo || {};
+
+                    const indiceReal = indiceInicial + idx;
+
                     const livroCorrigido = {
-                        id_livro: (livro as any).id ? stringToNumberId((livro as any).id) : idx,
-                        id_google: (livro as any).id || undefined,
+                        id_livro: (livro as any).id
+                            ? stringToNumberId((livro as any).id)
+                            : indiceReal,
+
+                        id_google: (livro as any).id || "",
+
                         titulo: info.title || "Sem título",
-                        autor: info.authors ? info.authors.join(", ") : "",
-                        capa: info.imageLinks?.thumbnail,
+
+                        autor: info.authors
+                            ? info.authors.join(", ")
+                            : "Autor não informado",
+
+                        capa: info.imageLinks?.thumbnail || "",
+
                         tipo_obra: "unico" as const,
+
                         num_paginas: info.pageCount || 0,
+
                         editora: info.publisher || "",
-                        genero: info.categories ? info.categories.join(", ") : "",
+
+                        genero: info.categories
+                            ? info.categories.join(", ")
+                            : "",
+
+                        subtitulo: info.subtitle || "",
+
+                        ano_publicacao: info.publishedDate || "",
+
+                        nome_serie: "",
+
+                        descricao: info.description || ""
                     };
+
                     return (
-                        <div key={livroCorrigido.id_livro} style={{ position: "relative" }}>
+                        <div
+                            key={
+                                livroCorrigido.id_google ||
+                                livroCorrigido.id_livro
+                            }
+                            style={{
+                                width: 220,
+                                display: "flex",
+                                flexDirection: "column"
+                            }}
+                        >
                             <LivroCard
                                 livro={livroCorrigido}
-                                onClick={() => { }}
-                            />
-                            <button
-                                style={{
-                                    position: "absolute",
-                                    bottom: 8,
-                                    right: 8,
-                                    background: "#007bff",
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: 4,
-                                    padding: "6px 12px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold"
+                                onClick={() => {
+                                    setLivroSelecionado(livroCorrigido);
                                 }}
-                                onClick={() => adicionarLivro(livroCorrigido, navigate)}
-                            >
-                                Adicionar à biblioteca
-                            </button>
+                            />
                         </div>
                     );
                 })}
             </div>
+
+            {/* Paginação */}
+            {books.length > 0 && totalPaginas > 1 && (
+                <div
+                    style={{
+                        marginTop: 30,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap"
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={irParaPaginaAnterior}
+                        disabled={paginaAtual === 1}
+                        style={{
+                            padding: "8px 14px",
+                            border: "none",
+                            borderRadius: 6,
+                            background:
+                                paginaAtual === 1
+                                    ? "#d1d5db"
+                                    : "#007bff",
+                            color: "#ffffff",
+                            cursor:
+                                paginaAtual === 1
+                                    ? "not-allowed"
+                                    : "pointer"
+                        }}
+                    >
+                        Anterior
+                    </button>
+
+                    {Array.from(
+                        { length: totalPaginas },
+                        (_, index) => index + 1
+                    ).map((numeroPagina) => (
+                        <button
+                            key={numeroPagina}
+                            type="button"
+                            onClick={() => setPaginaAtual(numeroPagina)}
+                            style={{
+                                width: 38,
+                                height: 38,
+                                border: "none",
+                                borderRadius: 6,
+                                background:
+                                    paginaAtual === numeroPagina
+                                        ? "#0056b3"
+                                        : "#e5e7eb",
+                                color:
+                                    paginaAtual === numeroPagina
+                                        ? "#ffffff"
+                                        : "#1f2937",
+                                fontWeight: "bold",
+                                cursor: "pointer"
+                            }}
+                        >
+                            {numeroPagina}
+                        </button>
+                    ))}
+
+                    <button
+                        type="button"
+                        onClick={irParaProximaPagina}
+                        disabled={paginaAtual === totalPaginas}
+                        style={{
+                            padding: "8px 14px",
+                            border: "none",
+                            borderRadius: 6,
+                            background:
+                                paginaAtual === totalPaginas
+                                    ? "#d1d5db"
+                                    : "#007bff",
+                            color: "#ffffff",
+                            cursor:
+                                paginaAtual === totalPaginas
+                                    ? "not-allowed"
+                                    : "pointer"
+                        }}
+                    >
+                        Próxima
+                    </button>
+                </div>
+            )}
+
+            {books.length > 0 && (
+                <p
+                    style={{
+                        marginTop: 16,
+                        textAlign: "center",
+                        color: "#6b7280",
+                        fontSize: 14
+                    }}
+                >
+                    Mostrando {indiceInicial + 1} até{" "}
+                    {Math.min(indiceFinal, books.length)} de{" "}
+                    {books.length} livros
+                </p>
+            )}
+
+            {livroSelecionado && (
+                <LivroDetalhesModal
+                    livro={livroSelecionado}
+                    onClose={() => setLivroSelecionado(null)}
+                />
+            )}
         </div>
     );
 }
