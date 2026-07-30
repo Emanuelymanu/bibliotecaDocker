@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { livros } from '../models-auto/livros';
 import { leituras } from '../models-auto/leituras';
+import { generos } from '../models-auto/generos';
+import { editoras } from '../models-auto/editoras';
+import { autores } from '../models-auto/autores';
 import { Op, Sequelize } from 'sequelize';
 import { ListarLivrosQuery, LivroResponse } from '../types/livroTypes';
 import { fetchFromGoogle } from '../services/googleBooksService';
@@ -9,39 +12,36 @@ export class FiltroLivros {
     async obterOpcoesFiltro(req: Request<{}, {}, {}, ListarLivrosQuery>, res: Response): Promise<Response> {
         try {
 
-            const generos = await livros.findAll({
-                attributes: ['genero'],
+            const listaGeneros = await generos.findAll({
+                attributes: ['nome'],
                 where: {
-                    genero: { [Op.not]: null }
+                    nome: { [Op.not]: null }
                 },
-                group: ['genero'],
-                order: [['genero', 'ASC']]
+                order: [['nome', 'ASC']]
             });
 
-            const editoras = await livros.findAll({
-                attributes: ['editora'],
+            const listaEditoras = await editoras.findAll({
+                attributes: ['nome'],
                 where: {
-                    editora: { [Op.not]: null }
+                    nome: { [Op.not]: null }
                 },
-                group: ['editora'],
-                order: [['editora', 'ASC']]
+                order: [['nome', 'ASC']]
             });
 
 
-            const autores = await livros.findAll({
-                attributes: ['autor'],
+            const listaAutores = await autores.findAll({
+                attributes: ['nome'],
                 where: {
-                    autor: { [Op.not]: null }
+                    nome: { [Op.not]: null }
                 },
-                group: ['autor'],
-                order: [['autor', 'ASC']],
+                order: [['nome', 'ASC']],
                 limit: 50
             });
 
             return res.json({
-                generos: generos.map(g => g.genero).filter(Boolean),
-                editoras: editoras.map(e => e.editora).filter(Boolean),
-                autores: autores.map(a => a.autor).filter(Boolean),
+                generos: listaGeneros.map(g => g.nome).filter(Boolean),
+                editoras: listaEditoras.map(e => e.nome).filter(Boolean),
+                autores: listaAutores.map(a => a.nome).filter(Boolean),
                 tipos_obra: ['unico', 'trilogia', 'serie', 'colecao'],
                 avaliacoes: {
                     min: 0,
@@ -128,17 +128,25 @@ export class FiltroLivros {
             const offset = (pagina - 1) * limite;
 
             const { count, rows } = await livros.findAndCountAll({
-                where: {
-                    genero: { [Op.like]: `%${genero}%` }
-                },
+                include: [{
+                    model: generos,
+                    as: 'generos',
+                    attributes: ['nome'],
+                    through: { attributes: [] },
+                    where: {
+                        nome: { [Op.like]: `%${genero}%` }
+                    },
+                    required: true
+                }],
                 limit: limite,
                 offset,
                 order: [['titulo', 'ASC']],
-                attributes: { exclude: ['created_at', 'updated_at'] }
+                attributes: { exclude: ['created_at', 'updated_at'] },
+                distinct: true
             });
 
-            let livrosResponse = rows;
-            
+            let livrosResponse: any[] = rows.map((livro) => livro.get({ plain: true }));
+
             if (livrosResponse.length === 0) {
                 try {
                     if (Array.isArray(genero)) genero = genero[0];
@@ -201,16 +209,24 @@ export class FiltroLivros {
             const offset = (pagina - 1) * limite;
 
             const { count, rows } = await livros.findAndCountAll({
-                where: {
-                    autor: { [Op.like]: `%${autor}%` }
-                },
+                include: [{
+                    model: autores,
+                    as: 'autores',
+                    attributes: ['nome'],
+                    through: { attributes: [] },
+                    where: {
+                        nome: { [Op.like]: `%${autor}%` }
+                    },
+                    required: true
+                }],
                 limit: limite,
                 offset,
                 order: [['titulo', 'ASC']],
-                attributes: { exclude: ['created_at', 'updated_at'] }
+                attributes: { exclude: ['created_at', 'updated_at'] },
+                distinct: true
             });
 
-            let livrosResponse = rows;
+            let livrosResponse: any[] = rows.map((livro) => livro.get({ plain: true }));
             // Se não houver resultados locais, busca na Google Books API
             if (livrosResponse.length === 0) {
                 try {
@@ -263,9 +279,13 @@ export class FiltroLivros {
 
             const livrosDaSerie = await livros.findAll({
                 where: {
-                    nome_serie: nome_serie
+                    tipo_obra: 'serie',
+                    [Op.or]: [
+                        { titulo: { [Op.like]: `%${nome_serie}%` } },
+                        { subtitulo: { [Op.like]: `%${nome_serie}%` } }
+                    ]
                 },
-                order: [['nome_serie', 'ASC']],
+                order: [['titulo', 'ASC']],
                 attributes: { exclude: ['created_at', 'updated_at'] }
             });
 

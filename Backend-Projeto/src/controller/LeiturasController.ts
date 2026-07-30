@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
+import { autores } from '../models-auto/autores';
 import { StatusLeitura, CriarLeituraDTO, LeituraResponse, ListarLeiturasQuery } from '../types/leituraTypes';
 import { Op } from 'sequelize';
 import { anotacoes } from '../models-auto/anotacoes';
@@ -32,7 +33,6 @@ export class LeiturasController {
                defaults: {
                   id_google,
                   titulo: titulo || 'Título Desconhecido',
-                  autor: autor || 'Autor Desconhecido',
                   num_paginas: num_paginas ? Number(num_paginas) : null,
                   capa: capa || null
                }
@@ -85,7 +85,7 @@ export class LeiturasController {
 
       // Validação dinâmica do limite de páginas: Prioriza o banco, se estiver nulo, usa o enviado pela API
       const numPaginasMax = livro.num_paginas ? Number(livro.num_paginas) : (numPaginasExterno ? Number(numPaginasExterno) : null);
-      
+
       if (numPaginasMax && paginaAtualNum !== undefined && (paginaAtualNum < 0 || paginaAtualNum > numPaginasMax)) {
          return res.status(400).json({
             erro: `Página atual deve estar entre 0 e ${numPaginasMax}`
@@ -113,7 +113,13 @@ export class LeiturasController {
       const leituraCompleta = await leituras.findByPk(id_leitura, {
          include: [{
             model: livros,
-            as: 'id_livro_livro'
+            as: 'id_livro_livro',
+            include: [{
+               model: autores,
+               as: 'autores',
+               attributes: ['nome'],
+               through: { attributes: [] }
+            }]
          }]
       });
 
@@ -131,7 +137,7 @@ export class LeiturasController {
          livro: leituraCompleta!.id_livro_livro ? {
             id_livro: leituraCompleta!.id_livro_livro.id_livro,
             titulo: leituraCompleta!.id_livro_livro.titulo,
-            autor: leituraCompleta!.id_livro_livro.autor,
+            autor: leituraCompleta!.id_livro_livro.autores?.map((a) => a.nome).join(', ') || null,
             num_paginas: leituraCompleta!.id_livro_livro.num_paginas,
             capa: leituraCompleta!.id_livro_livro.capa
          } : undefined
@@ -197,7 +203,16 @@ export class LeiturasController {
             limit: limite,
             offset,
             order: [['data_inicio', 'DESC']],
-            include: [{ model: livros, as: 'id_livro_livro' }]
+            include: [{
+               model: livros,
+               as: 'id_livro_livro',
+               include: [{
+                  model: autores,
+                  as: 'autores',
+                  attributes: ['nome'],
+                  through: { attributes: [] }
+               }]
+            }]
          });
 
          const leiturasResponse: LeituraResponse[] = rows.map(leitura => ({
@@ -214,7 +229,7 @@ export class LeiturasController {
             livro: leitura.id_livro_livro ? {
                id_livro: leitura.id_livro_livro.id_livro,
                titulo: leitura.id_livro_livro.titulo,
-               autor: leitura.id_livro_livro.autor,
+               autor: leitura.id_livro_livro.autores?.map((a) => a.nome).join(', ') || null,
                num_paginas: leitura.id_livro_livro.num_paginas,
                capa: leitura.id_livro_livro.capa
             } : undefined
