@@ -7,10 +7,16 @@ if (!JWT_SECRET) {
     throw new Error('JWT_SECRET não configurado');
 }
 
+export interface UsuarioAutenticado {
+    id: number;
+    email: string;
+    nome: string;
+}
+
 declare global {
     namespace Express {
         interface Request {
-            usuario?: any;
+            usuario?: UsuarioAutenticado;
         }
     }
 }
@@ -51,7 +57,7 @@ export const authMiddleware = (
                 })
             }
 
-            req.usuario = decoded;
+            req.usuario = decoded as UsuarioAutenticado;
             return next();
         })
     } catch (error) {

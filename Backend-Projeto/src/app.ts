@@ -8,10 +8,13 @@ import authRoutes from './routes/authRoutes';
 import livrosRoutes from './routes/livrosRoutes';
 import leiturasRoutes from './routes/leiturasRoutes';
 import anotacoesRoutes from './routes/anotacoesRoutes';
-
 import perfilRoutes from './routes/perfilRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import sessoesLeituraRoutes from './routes/sessoesLeituraRoutes';
+import metasLeituraRoutes from './routes/metasLeituraRoutes';
+import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
+import conquistasRoutes from './routes/conquistasRoutes';
 
 const app = express();
 
@@ -21,7 +24,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://estantedigital.local',
-  'https://estantedigital.local'
+  
 ];
 
 app.use(cors({
@@ -43,13 +46,16 @@ app.use(cors({
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
-app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa'))); // Corrigido caminho físico para servir imagens de capas
+app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa'))); 
 app.use('/api/livros', livrosRoutes);
 app.use('/api/leituras', leiturasRoutes);
 app.use('/api/anotacoes', anotacoesRoutes);
-
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/conquistas', conquistasRoutes);
+app.use('/api/sessoes', sessoesLeituraRoutes);
+app.use('/api/metas', metasLeituraRoutes);
+app.use('/api/lista-desejos', listaDesejosRoutes);
 
 sequelize.authenticate()
   .then(() => {

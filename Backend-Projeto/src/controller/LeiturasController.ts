@@ -5,8 +5,9 @@ import { autores } from '../models-auto/autores';
 import { StatusLeitura, CriarLeituraDTO, LeituraResponse, ListarLeiturasQuery } from '../types/leituraTypes';
 import { Op } from 'sequelize';
 import { anotacoes } from '../models-auto/anotacoes';
+import { normalizarLista } from '../utils/normalizadores';
 
-
+// Interface estendida para aceitar dados vindos do front baseados na API do Google
 interface CriarLeituraGoogleDTO extends CriarLeituraDTO {
    id_google?: string;
    titulo?: string;
@@ -16,6 +17,30 @@ interface CriarLeituraGoogleDTO extends CriarLeituraDTO {
 }
 
 export class LeiturasController {
+   private async vincularAutoresAoLivro(livro: livros, autor?: string): Promise<void> {
+      const nomesAutores = normalizarLista(autor);
+
+      for (const nome of nomesAutores) {
+         const [autorLocal] = await autores.findOrCreate({
+            where: { nome },
+            defaults: { nome }
+         });
+
+         await livro.addAutor(autorLocal);
+      }
+   }
+
+   private formatarAutoresLivro(livro?: livros): string {
+      if (!livro?.autores?.length) {
+         return 'Autor Desconhecido';
+      }
+
+      return livro.autores
+         .map((autorItem) => autorItem.nome)
+         .filter(Boolean)
+         .join(', ');
+   }
+
    async iniciarLeitura(req: Request<{}, {}, CriarLeituraGoogleDTO>, res: Response): Promise<Response> {
       try {
          if (!req.usuario) {
@@ -25,17 +50,23 @@ export class LeiturasController {
          const { id_livro, id_google, titulo, autor, num_paginas, capa } = req.body;
          let livroIdFinal = id_livro;
 
-       
+         // ALTERAÇÃO: Se o livro veio direto da busca da API e não tem ID local ainda,
+         // nós garantimos a criação ou localização dele usando findOrCreate.
          if (!livroIdFinal && id_google) {
-            const [livroLocal] = await livros.findOrCreate({
+            const [livroLocal, livroCriado] = await livros.findOrCreate({
                where: { id_google },
                defaults: {
                   id_google,
                   titulo: titulo || 'Título Desconhecido',
-                  num_paginas: num_paginas ? Number(num_paginas) : null,
+                  num_paginas: num_paginas ? Number(num_paginas) : 0,
                   capa: capa || null
                }
             });
+
+            if (livroCriado) {
+               await this.vincularAutoresAoLivro(livroLocal, autor);
+            }
+
             livroIdFinal = livroLocal.id_livro;
          }
 
@@ -65,7 +96,7 @@ export class LeiturasController {
    private async validarIniciarLeitura(req: Request<{}, {}, CriarLeituraGoogleDTO>, res: Response, numPaginasExterno?: number) {
       const { id_livro, status, pagina_atual } = req.body;
       const paginaAtualNum = pagina_atual !== undefined ? Number(pagina_atual) : undefined;
-      const usuarioId = req.usuario!.id || req.usuario!.id_usuario;
+      const usuarioId = req.usuario!.id;
 
       const livro = await livros.findByPk(id_livro);
       if (!livro) {
@@ -96,7 +127,7 @@ export class LeiturasController {
    private async criarLeituraNoBanco(req: Request<{}, {}, CriarLeituraGoogleDTO>) {
       const { id_livro, status, pagina_atual } = req.body;
       const paginaAtualNum = pagina_atual !== undefined ? Number(pagina_atual) : undefined;
-      const usuarioId = req.usuario!.id || req.usuario!.id_usuario;
+      const usuarioId = req.usuario!.id;
 
       return await leituras.create({
          id_usuario: usuarioId,
@@ -113,12 +144,7 @@ export class LeiturasController {
          include: [{
             model: livros,
             as: 'id_livro_livro',
-            include: [{
-               model: autores,
-               as: 'autores',
-               attributes: ['nome'],
-               through: { attributes: [] }
-            }]
+            include: [{ model: autores, as: 'autores', attributes: ['nome'], through: { attributes: [] } }]
          }]
       });
 
@@ -136,7 +162,7 @@ export class LeiturasController {
          livro: leituraCompleta!.id_livro_livro ? {
             id_livro: leituraCompleta!.id_livro_livro.id_livro,
             titulo: leituraCompleta!.id_livro_livro.titulo,
-            autor: leituraCompleta!.id_livro_livro.autores?.map((a) => a.nome).join(', ') || null,
+            autor: this.formatarAutoresLivro(leituraCompleta!.id_livro_livro),
             num_paginas: leituraCompleta!.id_livro_livro.num_paginas,
             capa: leituraCompleta!.id_livro_livro.capa
          } : undefined
@@ -145,7 +171,7 @@ export class LeiturasController {
 
    async buscarLeitura(req: Request, res: Response): Promise<Response> {
       try {
-         const usuarioId = req.usuario!.id || req.usuario!.id_usuario;
+         const usuarioId = req.usuario!.id;
          const id = Number(req.params.id);
 
          if (isNaN(id)) {
@@ -177,7 +203,7 @@ export class LeiturasController {
             return res.status(401).json({ erro: 'Usuário não autenticado' });
          }
 
-         const usuarioId = req.usuario.id || req.usuario.id_usuario;
+         const usuarioId = req.usuario.id;
          const { status, page = 1, limit = 10 } = req.query;
 
          const pagina = Number(page);
@@ -205,12 +231,7 @@ export class LeiturasController {
             include: [{
                model: livros,
                as: 'id_livro_livro',
-               include: [{
-                  model: autores,
-                  as: 'autores',
-                  attributes: ['nome'],
-                  through: { attributes: [] }
-               }]
+               include: [{ model: autores, as: 'autores', attributes: ['nome'], through: { attributes: [] } }]
             }]
          });
 
@@ -228,7 +249,7 @@ export class LeiturasController {
             livro: leitura.id_livro_livro ? {
                id_livro: leitura.id_livro_livro.id_livro,
                titulo: leitura.id_livro_livro.titulo,
-               autor: leitura.id_livro_livro.autores?.map((a) => a.nome).join(', ') || null,
+               autor: this.formatarAutoresLivro(leitura.id_livro_livro),
                num_paginas: leitura.id_livro_livro.num_paginas,
                capa: leitura.id_livro_livro.capa
             } : undefined
@@ -251,7 +272,7 @@ export class LeiturasController {
          if (!req.usuario) {
             return res.status(401).json({ erro: 'Usuário não autenticado' });
          }
-         const usuarioId = req.usuario.id || req.usuario.id_usuario;
+         const usuarioId = req.usuario.id;
          const id = Number(req.params.id);
 
          if (isNaN(id)) {

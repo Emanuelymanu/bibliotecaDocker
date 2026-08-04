@@ -1,66 +1,68 @@
 import { Request, Response } from 'express';
 import { livros } from '../models-auto/livros';
 import { leituras } from '../models-auto/leituras';
-import { generos } from '../models-auto/generos';
-import { editoras } from '../models-auto/editoras';
 import { autores } from '../models-auto/autores';
-import { Op, Sequelize } from 'sequelize';
-import { ListarLivrosQuery, LivroResponse } from '../types/livroTypes';
+import { editoras } from '../models-auto/editoras';
+import { generos } from '../models-auto/generos';
+import { Op } from 'sequelize';
 import { fetchFromGoogle } from '../services/googleBooksService';
 
+function formatarLivro(livro: any) {
+    const dados = livro.get ? livro.get({ plain: true }) : livro;
+    return {
+        ...dados,
+        autores: (dados.autores || []).map((a: any) => a.nome),
+        generos: (dados.generos || []).map((g: any) => g.nome),
+        editora: dados.editora?.nome ?? null
+    };
+}
+
+function formatarItemGoogle(item: any) {
+    const info = item.volumeInfo;
+    return {
+        id_livro: null,
+        id_google: item.id,
+        titulo: info.title,
+        subtitulo: info.subtitle || null,
+        autores: info.authors || [],
+        tipo_obra: 'unico',
+        ano_publicacao: info.publishedDate ? parseInt(info.publishedDate.substring(0, 4)) : null,
+        num_paginas: info.pageCount || 0,
+        editora: info.publisher || null,
+        generos: info.categories ? info.categories.flatMap((c: string) => c.split('/').map((s) => s.trim())) : [],
+        capa: info.imageLinks?.thumbnail || null
+    };
+}
+
 export class FiltroLivros {
-    async obterOpcoesFiltro(req: Request<{}, {}, {}, ListarLivrosQuery>, res: Response): Promise<Response> {
+
+    /** Agora que autor/editora/genero são tabelas próprias, as opções de filtro
+     *  vêm direto delas, em vez de um GROUP BY em cima de texto solto em livros. */
+    async obterOpcoesFiltro(req: Request, res: Response): Promise<Response> {
         try {
-
-            const listaGeneros = await generos.findAll({
-                attributes: ['nome'],
-                where: {
-                    nome: { [Op.not]: null }
-                },
-                order: [['nome', 'ASC']]
-            });
-
-            const listaEditoras = await editoras.findAll({
-                attributes: ['nome'],
-                where: {
-                    nome: { [Op.not]: null }
-                },
-                order: [['nome', 'ASC']]
-            });
-
-
-            const listaAutores = await autores.findAll({
-                attributes: ['nome'],
-                where: {
-                    nome: { [Op.not]: null }
-                },
-                order: [['nome', 'ASC']],
-                limit: 50
-            });
+            const [listaGeneros, listaEditoras, listaAutores] = await Promise.all([
+                generos.findAll({ attributes: ['nome'], order: [['nome', 'ASC']] }),
+                editoras.findAll({ attributes: ['nome'], order: [['nome', 'ASC']] }),
+                autores.findAll({ attributes: ['nome'], order: [['nome', 'ASC']], limit: 50 })
+            ]);
 
             return res.json({
-                generos: listaGeneros.map(g => g.nome).filter(Boolean),
-                editoras: listaEditoras.map(e => e.nome).filter(Boolean),
-                autores: listaAutores.map(a => a.nome).filter(Boolean),
+                generos: listaGeneros.map(g => g.nome),
+                editoras: listaEditoras.map(e => e.nome),
+                autores: listaAutores.map(a => a.nome),
                 tipos_obra: ['unico', 'trilogia', 'serie', 'colecao'],
-                avaliacoes: {
-                    min: 0,
-                    max: 5,
-                    step: 0.5
-                },
+                avaliacoes: { min: 0, max: 5, step: 0.5 },
                 ordenacao: {
-                    campos: ['titulo', 'autor', 'ano_publicacao', 'num_paginas'],
+                    campos: ['titulo', 'ano_publicacao', 'num_paginas'],
                     direcoes: ['ASC', 'DESC']
                 }
             });
-
         } catch (error) {
             console.error('Erro ao obter opções:', error);
-            return res.status(500).json({
-                erro: 'Erro interno ao carregar opções'
-            });
+            return res.status(500).json({ erro: 'Erro interno ao carregar opções' });
         }
     }
+
     async buscarPorStatusLeitura(req: Request, res: Response): Promise<Response> {
         try {
             if (!req.usuario) {
@@ -82,10 +84,7 @@ export class FiltroLivros {
                 include: [{
                     model: leituras,
                     as: 'leituras',
-                    where: {
-                        id_usuario: usuarioId,
-                        ...(status && { status })
-                    },
+                    where: { id_usuario: usuarioId, ...(status && { status }) },
                     required: true,
                     attributes: ['status', 'avaliacao', 'pagina_atual', 'data_inicio', 'data_conclusao']
                 }],
@@ -101,12 +100,9 @@ export class FiltroLivros {
                 status_filtrado: status || 'todos',
                 livros: rows
             });
-
         } catch (error) {
             console.error('Erro ao buscar por status:', error);
-            return res.status(500).json({
-                erro: 'Erro interno ao buscar livros'
-            });
+            return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
 
@@ -114,30 +110,20 @@ export class FiltroLivros {
         try {
             let { genero } = req.params;
             const { page = 1, limit = 10 } = req.query;
-
             const pagina = Number(page);
             const limite = Number(limit);
 
-            if (isNaN(pagina) || pagina < 1) {
-                return res.status(400).json({ erro: 'Página inválida' });
-            }
-            if (isNaN(limite) || limite < 1 || limite > 100) {
-                return res.status(400).json({ erro: 'Limite inválido' });
-            }
+            if (isNaN(pagina) || pagina < 1) return res.status(400).json({ erro: 'Página inválida' });
+            if (isNaN(limite) || limite < 1 || limite > 100) return res.status(400).json({ erro: 'Limite inválido' });
 
             const offset = (pagina - 1) * limite;
 
             const { count, rows } = await livros.findAndCountAll({
-                include: [{
-                    model: generos,
-                    as: 'generos',
-                    attributes: ['nome'],
-                    through: { attributes: [] },
-                    where: {
-                        nome: { [Op.like]: `%${genero}%` }
-                    },
-                    required: true
-                }],
+                include: [
+                    { model: generos, as: 'generos', where: { nome: { [Op.like]: `%${genero}%` } }, required: true },
+                    { model: autores, as: 'autores', attributes: ['nome'] },
+                    { model: editoras, as: 'editora', attributes: ['nome'] }
+                ],
                 limit: limite,
                 offset,
                 order: [['titulo', 'ASC']],
@@ -145,46 +131,21 @@ export class FiltroLivros {
                 distinct: true
             });
 
-            let livrosResponse: any[] = rows.map((livro) => livro.get({ plain: true }));
+            let livrosResponse: any[] = rows.map(formatarLivro);
 
             if (livrosResponse.length === 0) {
                 try {
                     if (Array.isArray(genero)) genero = genero[0];
                     const items = await fetchFromGoogle(genero);
                     if (items && items.length > 0) {
-                        livrosResponse = items.map((item: any) => {
-                            const info = item.volumeInfo;
-                            return {
-                                id_livro: null,
-                                id_google: item.id,
-                                titulo: info.title,
-                                subtitulo: info.subtitle || null,
-                                autor: info.authors ? info.authors.join(', ') : '',
-                                tipo_obra: 'unico',
-                                nome_serie: null,
-                                volume: null,
-                                total_volumes: null,
-                                ano_publicacao: info.publishedDate ? parseInt(info.publishedDate.substring(0, 4)) : null,
-                                num_paginas: info.pageCount || 0,
-                                editora: info.publisher || null,
-                                genero: info.categories ? info.categories.join(', ') : null,
-                                capa: info.imageLinks?.thumbnail || null
-                            };
-                        });
+                        livrosResponse = items.map(formatarItemGoogle);
                     }
                 } catch (err) {
                     console.error('Erro ao buscar na Google Books API:', err);
                 }
             }
 
-            return res.json({
-                genero,
-                total: count,
-                pagina,
-                totalPaginas: Math.ceil(count / limite),
-                livros: livrosResponse
-            });
-
+            return res.json({ genero, total: count, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
             console.error('Erro ao buscar por gênero:', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
@@ -195,30 +156,20 @@ export class FiltroLivros {
         try {
             let { autor } = req.params;
             const { page = 1, limit = 10 } = req.query;
-
             const pagina = Number(page);
             const limite = Number(limit);
 
-            if (isNaN(pagina) || pagina < 1) {
-                return res.status(400).json({ erro: 'Página inválida' });
-            }
-            if (isNaN(limite) || limite < 1 || limite > 100) {
-                return res.status(400).json({ erro: 'Limite inválido' });
-            }
+            if (isNaN(pagina) || pagina < 1) return res.status(400).json({ erro: 'Página inválida' });
+            if (isNaN(limite) || limite < 1 || limite > 100) return res.status(400).json({ erro: 'Limite inválido' });
 
             const offset = (pagina - 1) * limite;
 
             const { count, rows } = await livros.findAndCountAll({
-                include: [{
-                    model: autores,
-                    as: 'autores',
-                    attributes: ['nome'],
-                    through: { attributes: [] },
-                    where: {
-                        nome: { [Op.like]: `%${autor}%` }
-                    },
-                    required: true
-                }],
+                include: [
+                    { model: autores, as: 'autores', where: { nome: { [Op.like]: `%${autor}%` } }, required: true },
+                    { model: editoras, as: 'editora', attributes: ['nome'] },
+                    { model: generos, as: 'generos', attributes: ['nome'] }
+                ],
                 limit: limite,
                 offset,
                 order: [['titulo', 'ASC']],
@@ -226,84 +177,24 @@ export class FiltroLivros {
                 distinct: true
             });
 
-            let livrosResponse: any[] = rows.map((livro) => livro.get({ plain: true }));
-            // Se não houver resultados locais, busca na Google Books API
+            let livrosResponse: any[] = rows.map(formatarLivro);
+
             if (livrosResponse.length === 0) {
                 try {
                     if (Array.isArray(autor)) autor = autor[0];
                     const items = await fetchFromGoogle(autor);
                     if (items && items.length > 0) {
-                        livrosResponse = items.map((item: any) => {
-                            const info = item.volumeInfo;
-                            return {
-                                id_livro: null,
-                                id_google: item.id,
-                                titulo: info.title,
-                                subtitulo: info.subtitle || null,
-                                autor: info.authors ? info.authors.join(', ') : '',
-                                tipo_obra: 'unico',
-                                nome_serie: null,
-                                volume: null,
-                                total_volumes: null,
-                                ano_publicacao: info.publishedDate ? parseInt(info.publishedDate.substring(0, 4)) : null,
-                                num_paginas: info.pageCount || 0,
-                                editora: info.publisher || null,
-                                genero: info.categories ? info.categories.join(', ') : null,
-                                capa: info.imageLinks?.thumbnail || null
-                            };
-                        });
+                        livrosResponse = items.map(formatarItemGoogle);
                     }
                 } catch (err) {
                     console.error('Erro ao buscar na Google Books API:', err);
                 }
             }
 
-            return res.json({
-                autor,
-                total: count,
-                pagina,
-                totalPaginas: Math.ceil(count / limite),
-                livros: livrosResponse
-            });
-
+            return res.json({ autor, total: count, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
             console.error('Erro ao buscar por autor:', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
-
     }
-
-    async buscarSerie(req: Request, res: Response): Promise<Response> {
-        try {
-            const { nome_serie } = req.params;
-
-            const livrosDaSerie = await livros.findAll({
-                where: {
-                    tipo_obra: 'serie',
-                    [Op.or]: [
-                        { titulo: { [Op.like]: `%${nome_serie}%` } },
-                        { subtitulo: { [Op.like]: `%${nome_serie}%` } }
-                    ]
-                },
-                order: [['titulo', 'ASC']],
-                attributes: { exclude: ['created_at', 'updated_at'] }
-            });
-
-            if (livrosDaSerie.length === 0) {
-                return res.status(404).json({ erro: 'Série não encontrada' });
-            }
-
-            const tipo = livrosDaSerie[0]?.tipo_obra || 'serie';
-            return res.json({
-                nome_serie,
-                tipo,
-                livros: livrosDaSerie
-            });
-
-        } catch (error) {
-            console.error('Erro ao buscar série:', error);
-            return res.status(500).json({ erro: 'Erro interno ao buscar série' });
-        }
-    }
-
 }

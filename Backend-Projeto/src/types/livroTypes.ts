@@ -3,66 +3,58 @@ export interface Livro {
     id_google: string;
     titulo: string;
     subtitulo?: string | null;
-    autor: string;
     tipo_obra: 'unico' | 'trilogia' | 'serie' | 'colecao';
-    nome_serie?: string | null;
-    volume?: number | null;
-    total_volumes?: number | null;
     ano_publicacao?: number | null;
     num_paginas: number;
-    editora?: string | null;
-    genero?: string | null;
+    id_editora?: number | null;
     capa?: string | null;
+    avaliacao_media?: number | null;
+    total_avaliacoes?: number | null;
     created_at?: Date;
     updated_at?: Date;
 }
 
+/** DTO de entrada para cadastro. autores/generos chegam como nomes (string);
+ *  o controller resolve para id via findOrCreate nas tabelas normalizadas. */
 export interface CriarLivroDTO {
     id_google: string;
     titulo: string;
     subtitulo?: string;
-    autor: string;
+    autores: string[];
     tipo_obra: 'unico' | 'trilogia' | 'serie' | 'colecao';
-    nome_serie?: string;
-    volume?: number;
-    total_volumes?: number;
     ano_publicacao?: number;
     num_paginas: number;
     editora?: string;
-    genero?: string;
+    generos?: string[];
     capa?: string;
 }
 
 export interface AtualizarLivroDTO {
     id_google?: string;
     titulo?: string;
-    subtitulo?: string;
-    autor?: string;
+    subtitulo?: string | null;
+    autores?: string[];
     tipo_obra?: 'unico' | 'trilogia' | 'serie' | 'colecao';
-    nome_serie?: string;
-    volume?: number;
-    total_volumes?: number;
-    ano_publicacao?: number;
+    ano_publicacao?: number | null;
     num_paginas?: number;
-    editora?: string;
-    genero?: string;
+    editora?: string | null;
+    generos?: string[];
     capa?: string;
 }
 
+/** Formato de resposta ao frontend: autores/generos já vêm "achatados"
+ *  em nome (o frontend não precisa saber dos ids internos pra exibir). */
 export interface LivroResponse {
     id_livro: number;
     id_google: string;
     titulo: string;
     subtitulo?: string | null;
-    autor: string;
+    autores: string[];
     tipo_obra: string;
-    nome_serie?: string | null;
-    volume?: number | null;
-    total_volumes?: number | null;
     ano_publicacao?: number | null;
     num_paginas: number;
     editora?: string | null;
-    genero?: string | null;
+    generos: string[];
     capa?: string | null;
 }
 
@@ -73,9 +65,9 @@ export interface ListarLivrosQuery {
     genero?: string;
     editora?: string;
     tipo_obra?: string;
-    nome_serie?: string;
+    autor?: string;
     avaliacao_min?: number;
     avaliacao_max?: number;
-    ordenar_por?: 'titulo' | 'autor' | 'ano_publicacao' | 'num_paginas' | 'created_at';
+    ordenar_por?: 'titulo' | 'ano_publicacao' | 'num_paginas' | 'created_at';
     ordem?: 'ASC' | 'DESC';
 }
