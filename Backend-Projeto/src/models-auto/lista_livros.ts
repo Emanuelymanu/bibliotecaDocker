@@ -1,26 +1,29 @@
 import * as Sequelize from 'sequelize';
 import { DataTypes, Model, Optional } from 'sequelize';
+import type { usuarios, usuariosId } from './usuarios';
 import type { livros, livrosId } from './livros';
 
+/** Lista de desejos pessoal: "quero ler esse livro". Cada linha é um livro
+ *  que um usuário marcou como desejado, com a data em que adicionou. */
 export interface lista_livrosAttributes {
-  id_lista: number;
+  id_usuario: number;
   id_livro: number;
   data_adicao?: string;
 }
 
-export type lista_livrosPk = "id_lista" | "id_livro";
+export type lista_livrosPk = "id_usuario" | "id_livro";
 export type lista_livrosId = lista_livros[lista_livrosPk];
 export type lista_livrosOptionalAttributes = "data_adicao";
 export type lista_livrosCreationAttributes = Optional<lista_livrosAttributes, lista_livrosOptionalAttributes>;
 
 export class lista_livros extends Model<lista_livrosAttributes, lista_livrosCreationAttributes> implements lista_livrosAttributes {
-  id_lista!: number;
+  id_usuario!: number;
   id_livro!: number;
   data_adicao?: string;
 
-  lista!: any;
-  getLista!: Sequelize.BelongsToGetAssociationMixin<any>;
-  setLista!: Sequelize.BelongsToSetAssociationMixin<any, number>;
+  usuario!: usuarios;
+  getUsuario!: Sequelize.BelongsToGetAssociationMixin<usuarios>;
+  setUsuario!: Sequelize.BelongsToSetAssociationMixin<usuarios, usuariosId>;
 
   livro!: livros;
   getLivro!: Sequelize.BelongsToGetAssociationMixin<livros>;
@@ -28,13 +31,13 @@ export class lista_livros extends Model<lista_livrosAttributes, lista_livrosCrea
 
   static initModel(sequelize: Sequelize.Sequelize): typeof lista_livros {
     return lista_livros.init({
-      id_lista: {
+      id_usuario: {
         type: DataTypes.INTEGER,
         allowNull: false,
         primaryKey: true,
         references: {
-          model: 'listas_leituras',
-          key: 'id_lista'
+          model: 'usuarios',
+          key: 'id_usuario'
         }
       },
       id_livro: {
@@ -59,7 +62,7 @@ export class lista_livros extends Model<lista_livrosAttributes, lista_livrosCrea
           name: "PRIMARY",
           unique: true,
           using: "BTREE",
-          fields: [{ name: "id_lista" }, { name: "id_livro" }]
+          fields: [{ name: "id_usuario" }, { name: "id_livro" }]
         },
       ]
     });

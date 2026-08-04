@@ -9,7 +9,7 @@ export interface LivroInfo {
   capa?: string;
 }
 
-import type { Tag } from "./tags";
+
 
 export interface Leitura {
   id_leitura: number;
@@ -23,7 +23,7 @@ export interface Leitura {
   pagina_atual: number;
   vezes_lido: number;
   livro?: LivroInfo;
-  tags?: Tag[];
+ 
 }
 export interface CriarLeituraDTO {
   id_livro: number;

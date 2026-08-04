@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { livros } from '../models-auto/livros';
 import { leituras } from '../models-auto/leituras';
 import { anotacoes } from '../models-auto/anotacoes';
-import { leitura_tags } from '../models-auto/leitura_tags';
+
 import { sequelize } from '../models-auto';
 import fs from 'fs';
 import path from 'path';
@@ -198,10 +198,7 @@ export class EditarLivrosController {
                         transaction
                     });
 
-                    await leitura_tags.destroy({
-                        where: { id_leitura: idsLeituras },
-                        transaction
-                    });
+                    
 
                     await leituras.destroy({
                         where: { id_livro: id },

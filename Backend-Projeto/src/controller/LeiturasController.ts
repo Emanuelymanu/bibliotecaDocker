@@ -6,7 +6,7 @@ import { StatusLeitura, CriarLeituraDTO, LeituraResponse, ListarLeiturasQuery } 
 import { Op } from 'sequelize';
 import { anotacoes } from '../models-auto/anotacoes';
 
-// Interface estendida para aceitar dados vindos do front baseados na API do Google
+
 interface CriarLeituraGoogleDTO extends CriarLeituraDTO {
    id_google?: string;
    titulo?: string;
@@ -25,8 +25,7 @@ export class LeiturasController {
          const { id_livro, id_google, titulo, autor, num_paginas, capa } = req.body;
          let livroIdFinal = id_livro;
 
-         // ALTERAÇÃO: Se o livro veio direto da busca da API e não tem ID local ainda,
-         // nós garantimos a criação ou localização dele usando findOrCreate.
+       
          if (!livroIdFinal && id_google) {
             const [livroLocal] = await livros.findOrCreate({
                where: { id_google },

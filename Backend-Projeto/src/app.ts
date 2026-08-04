@@ -8,7 +8,7 @@ import authRoutes from './routes/authRoutes';
 import livrosRoutes from './routes/livrosRoutes';
 import leiturasRoutes from './routes/leiturasRoutes';
 import anotacoesRoutes from './routes/anotacoesRoutes';
-import tagsRoutes from './routes/tagsRoutes';
+
 import perfilRoutes from './routes/perfilRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import { Sequelize } from 'sequelize';
@@ -47,7 +47,7 @@ app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa')));
 app.use('/api/livros', livrosRoutes);
 app.use('/api/leituras', leiturasRoutes);
 app.use('/api/anotacoes', anotacoesRoutes);
-app.use('/api/tags', tagsRoutes);
+
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 

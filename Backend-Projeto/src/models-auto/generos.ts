@@ -1,6 +1,7 @@
 import * as Sequelize from 'sequelize';
 import { DataTypes, Model, Optional } from 'sequelize';
 import type { livros, livrosId } from './livros';
+import type { livro_generos } from './livro_generos';
 
 export interface generosAttributes {
   id_genero: number;

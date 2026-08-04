@@ -158,7 +158,7 @@ export class ListarLivrosController {
                 };
             }));
 
-            // Se não houver resultados locais e houver busca, tenta buscar na Google Books API
+            
             if (livrosResponse.length === 0 && busca) {
                 try {
                     const items = await fetchFromGoogle(busca);

@@ -10,15 +10,14 @@ import "../css/tags.css";
 import "../css/leitura.css";
 
 
-import { TagsManager } from "../components/TagsManager";
-import { tagService } from "../services/tagsService";
-import type { Tag } from "../types/tags";
+
+
 
 
 export default function LeiturasPage() {
   const [leituras, setLeituras] = useState<Leitura[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [mostrarModalTags, setMostrarModalTags] = useState(false);
+  
+ 
   const [loading, setLoading] = useState(true);
   // const [error, setError] = useState(""); // Removido pois não está sendo utilizado
   const [livroSelecionado, setLivroSelecionado] = useState<Leitura | null>(null);
@@ -36,13 +35,13 @@ export default function LeiturasPage() {
   const [editandoAnotacao, setEditandoAnotacao] = useState<Anotacao | null>(null);
   const [mostrarFormAnotacao, setMostrarFormAnotacao] = useState(false);
   const [carregandoAnotacoes, setCarregandoAnotacoes] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"progresso" | "anotacoes" | "tags">("progresso");
+  const [abaAtiva, setAbaAtiva] = useState<"progresso" | "anotacoes"  >("progresso");
 
 
 
   useEffect(() => {
     carregarLeituras();
-    carregarTags();
+    
   }, []);
 
   const handleLogout = () => {
@@ -50,14 +49,7 @@ export default function LeiturasPage() {
     window.location.href = "/login";
   };
 
-  const carregarTags = async () => {
-    try {
-      const response = await tagService.listarTags();
-      setTags(response.tags);
-    } catch (err: any) {
-      showErrorToast("Erro ao carregar tags");
-    }
-  };
+  
 
   const carregarLeituras = async () => {
     setLoading(true);
@@ -272,20 +264,7 @@ export default function LeiturasPage() {
 
 
 
-        <button
-          className="btn-nova-tag"
-          onClick={() => setMostrarModalTags(true)}
-        >
-          Gerenciar Tags
-        </button>
-
-        <TagsManager
-          tags={tags}
-          setTags={setTags}
-          mostrarModalTags={mostrarModalTags}
-          setMostrarModalTags={setMostrarModalTags}
-        />
-
+       
         <div className="books-grid">
           {leituras.length === 0 ? (
             <p>Nenhum livro em leitura. Comece uma nova leitura na biblioteca!</p>
@@ -322,82 +301,7 @@ export default function LeiturasPage() {
               </div>
 
 
-              <div className="tags-vinculadas-container">
-                <h4>Tags:</h4>
-                <div className="tags-vinculadas-lista">
-                  {tags.length === 0 && <span style={{ color: '#888' }}>Nenhuma tag cadastrada.</span>}
-                  {tags.map(tag => {
-                    const vinculada = !!livroSelecionado?.tags?.some((t: Tag) => t.id_tag === tag.id_tag);
-                    return (
-                      <div key={tag.id_tag} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button
-                          className="tag-badge-small"
-                          style={{ backgroundColor: tag.cor, opacity: vinculada ? 1 : 0.5, padding: '4px 10px', borderRadius: '16px', color: '#fff', fontWeight: 500, fontSize: 13, border: 'none', cursor: 'pointer' }}
-                          title={vinculada ? 'Desvincular ou vincular tag' : 'Vincular tag ao livro'}
-                          onClick={async () => {
-
-                            if (!livroSelecionado) return;
-                            console.log('tag', tag.nome, vinculada)
-                            const { value } = await import('../utils/alertUtils').then(m => m.showTagActionDialog(tag.nome, vinculada));
-
-                            if (value === 'vincular' && !vinculada) {
-                              try {
-
-                                await tagService.vincularTag(tag.id_tag, livroSelecionado.id_leitura);
-                                setLivroSelecionado({
-                                  ...livroSelecionado,
-                                  tags: [...(livroSelecionado.tags || []), tag]
-                                });
-                                showSuccessToast('Tag vinculada ao livro!');
-                              } catch (err: any) {
-                                alert(err.erro || 'Erro ao vincular tag');
-                              }
-                            } else if (value === 'desvincular' && vinculada) {
-                              try {
-
-                                await tagService.removerTag(tag.id_tag, livroSelecionado.id_leitura);
-                                setLivroSelecionado({
-                                  ...livroSelecionado,
-                                  tags: (livroSelecionado.tags || []).filter((t: Tag) => t.id_tag !== tag.id_tag)
-                                });
-                                showSuccessToast('Tag desvinculada do livro!');
-                              } catch (err: any) {
-                                alert(err.erro || 'Erro ao desvincular tag');
-                              }
-                            }
-                          }}
-                        >
-                          {tag.nome}
-                        </button>
-                        {vinculada && (
-                          <button
-                            className="btn btn-delete"
-                            style={{ padding: '0px 6px', fontSize: 10, margin: 0, height: 22, lineHeight: '18px', minWidth: 0 }}
-                            title="Desvincular tag deste livro"
-                            onClick={async () => {
-                              console.log('chamada 1')
-                              if (!livroSelecionado) return;
-                              console.log('chamada 2')
-                              try {
-                                await tagService.removerTag(tag.id_tag, livroSelecionado.id_leitura);
-                                setLivroSelecionado({
-                                  ...livroSelecionado,
-                                  tags: (livroSelecionado.tags || []).filter((t: Tag) => t.id_tag !== tag.id_tag)
-                                });
-                                setTimeout(() => showSuccessToast('Tag desvinculada do livro!'), 0);
-                              } catch (err: any) {
-                                alert(err.erro || 'Erro ao desvincular tag');
-                              }
-                            }}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              
 
               <div className="tabs">
                 <button

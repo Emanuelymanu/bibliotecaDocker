@@ -13,7 +13,7 @@ export function LeiturasCard() {
     const [paginaAtual, setPaginaAtual] = useState(0);
     const [totalPaginas, setTotalPaginas] = useState(0);
 
-    // Estados para anotações
+    
     const [anotacoes, setAnotacoes] = useState<Anotacao[]>([]);
     const [paginaSelecionada, setPaginaSelecionada] = useState<number>(1);
     const [novaAnotacao, setNovaAnotacao] = useState({ titulo: "", conteudo: "" });
