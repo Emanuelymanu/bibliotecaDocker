@@ -3,12 +3,13 @@ import { anotacoes } from '../models-auto/anotacoes';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { Op } from 'sequelize';
+import { verificarConquistas } from './ConquistasController';
 
 export class AnotacoesController {
     async criarAnotacao(req: Request, res: Response): Promise<Response> {
         try {
             // ALTERAÇÃO: Tratando as duas possíveis nomenclaturas do middleware JWT
-            const usuarioId = req.usuario?.id || req.usuario?.id_usuario;
+            const usuarioId = req.usuario?.id;
             if (!usuarioId) {
                 return res.status(401).json({
                     erro: 'Usuário não autenticado'
@@ -79,9 +80,12 @@ export class AnotacoesController {
                 }]
             });
 
+            const novasConquistas = await verificarConquistas(usuarioId);
+
             return res.status(201).json({
                 mensagem: 'Anotação criada com sucesso',
-                anotacao: anotacaoCompleta
+                anotacao: anotacaoCompleta,
+                novasConquistas
             });
         } catch (error) {
             console.error('Erro ao criar anotação:', error);
@@ -93,7 +97,7 @@ export class AnotacoesController {
 
     async buscarTodasPorLeitura(req: Request, res: Response): Promise<Response> {
         try {
-            const usuarioId = req.usuario?.id || req.usuario?.id_usuario;
+            const usuarioId = req.usuario?.id;
             const id_leitura = Number(req.params.id_leitura);
 
             if (isNaN(id_leitura)) {
@@ -128,7 +132,7 @@ export class AnotacoesController {
 
     async deletarAnotacao(req: Request, res: Response): Promise<Response> {
         try {
-            const usuarioId = req.usuario?.id || req.usuario?.id_usuario;
+            const usuarioId = req.usuario?.id;
             const id = Number(req.params.id);
 
             if (isNaN(id)) {
@@ -167,7 +171,7 @@ export class AnotacoesController {
 
     async buscarPorPagina(req: Request, res: Response): Promise<Response> {
         try {
-            const usuarioId = req.usuario?.id || req.usuario?.id_usuario;
+            const usuarioId = req.usuario?.id;
             const id_leitura = Number(req.params.id_leitura);
             const pagina = Number(req.params.pagina);
 

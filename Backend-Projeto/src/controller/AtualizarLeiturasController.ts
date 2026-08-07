@@ -3,6 +3,7 @@ import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { AtualizarLeituraDTO, LeituraResponse, StatusLeitura } from '../types/leituraTypes';
 import { Op } from 'sequelize';
+import { verificarConquistas } from './ConquistasController';
 
 export class AtualizarLeituraController {
     async atualizarProgresso(req: Request, res: Response): Promise<Response> {
@@ -13,8 +14,10 @@ export class AtualizarLeituraController {
             const leitura = await this.atualizarLeituraNoBanco(req);
             const resposta = this.montarRespostaLeitura(leitura);
 
+            const novasConquistas = await verificarConquistas(req.usuario!.id);
+
             return res.json({
-                mensagem: 'Progresso atualizado com sucesso', leitura: resposta
+                mensagem: 'Progresso atualizado com sucesso', leitura: resposta, novasConquistas
             });
         } catch (error) {
             console.error('Erro ao atualizar progresso', error);
@@ -29,7 +32,7 @@ export class AtualizarLeituraController {
             return res.status(401).json({ erro: 'Usuário não autenticado' });
         }
 
-        const usuarioId = req.usuario.id || req.usuario.id_usuario;
+        const usuarioId = req.usuario.id;
         const { id } = req.params as { id: string };
         const idNumero = Number(id);
         const { pagina_atual, status } = req.body as AtualizarLeituraDTO;
@@ -85,7 +88,7 @@ export class AtualizarLeituraController {
     }
 
     private async atualizarLeituraNoBanco(req: Request) {
-        const usuarioId = req.usuario.id || req.usuario.id_usuario;
+        const usuarioId = req.usuario.id;
         const { id } = req.params as { id: string };
         const { pagina_atual, status } = req.body as AtualizarLeituraDTO;
 
@@ -173,7 +176,7 @@ export class AtualizarLeituraController {
         if (!req.usuario) {
             return res.status(401).json({ erro: 'Usuário não autenticado' });
         }
-        const usuarioId = req.usuario.id || req.usuario.id_usuario;
+        const usuarioId = req.usuario.id;
         const id = Number(req.params.id);
         const { avaliacao } = req.body;
 
@@ -207,7 +210,7 @@ export class AtualizarLeituraController {
     }
 
     private async atualizarAvaliacaoNoBanco(req: Request) {
-        const usuarioId = req.usuario.id || req.usuario.id_usuario;
+        const usuarioId = req.usuario.id;
         const id = Number(req.params.id);
         const { avaliacao, resenha } = req.body;
         const leitura = await leituras.findOne({ where: { id_leitura: id, id_usuario: usuarioId } });

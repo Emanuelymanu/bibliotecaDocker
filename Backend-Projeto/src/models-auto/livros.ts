@@ -1,6 +1,9 @@
 import * as Sequelize from 'sequelize';
 import { DataTypes, Model, Optional } from 'sequelize';
 import type { leituras, leiturasId } from './leituras';
+import type { editoras, editorasId } from './editoras';
+import type { autores, autoresId } from './autores';
+import type { generos, generosId } from './generos';
 
 
 export interface livrosAttributes {
@@ -8,13 +11,10 @@ export interface livrosAttributes {
   id_google: string;
   titulo: string;
   subtitulo?: string;
-  autor: string;
   tipo_obra: 'unico' | 'trilogia' | 'serie' | 'colecao';
-  nome_serie?: string;
   ano_publicacao?: number;
   num_paginas: number;
-  editora?: string;
-  genero?: string;
+  id_editora?: number;
   capa?: string;
   avaliacao_media?: number; // averageRating do Google Books
   total_avaliacoes?: number; // ratingsCount do Google Books
@@ -22,7 +22,7 @@ export interface livrosAttributes {
 
 export type livrosPk = "id_livro";
 export type livrosId = livros[livrosPk];
-export type livrosOptionalAttributes = "id_livro" | "id_google" | "subtitulo" | "tipo_obra" | "nome_serie" | "ano_publicacao" | "num_paginas" | "editora" | "genero" | "capa" | "avaliacao_media" | "total_avaliacoes";
+export type livrosOptionalAttributes = "id_livro" | "id_google" | "subtitulo" | "tipo_obra" | "ano_publicacao" | "num_paginas" | "id_editora" | "capa" | "avaliacao_media" | "total_avaliacoes";
 export type livrosCreationAttributes = Optional<livrosAttributes, livrosOptionalAttributes>;
 
 export class livros extends Model<livrosAttributes, livrosCreationAttributes> implements livrosAttributes {
@@ -30,18 +30,13 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
   id_google!: string;
   titulo!: string;
   subtitulo?: string;
-  autor!: string;
   tipo_obra!: 'unico' | 'trilogia' | 'serie' | 'colecao';
-  nome_serie?: string;
   ano_publicacao?: number;
   num_paginas!: number;
-  editora?: string;
-  genero?: string;
+  id_editora?: number;
   capa?: string;
   avaliacao_media?: number;
   total_avaliacoes?: number;
-
-
 
   leituras!: leituras[];
   getLeituras!: Sequelize.HasManyGetAssociationsMixin<leituras>;
@@ -54,6 +49,28 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
   hasLeitura!: Sequelize.HasManyHasAssociationMixin<leituras, leiturasId>;
   hasLeituras!: Sequelize.HasManyHasAssociationsMixin<leituras, leiturasId>;
   countLeituras!: Sequelize.HasManyCountAssociationsMixin;
+
+  editora!: editoras;
+  getEditora!: Sequelize.BelongsToGetAssociationMixin<editoras>;
+  setEditora!: Sequelize.BelongsToSetAssociationMixin<editoras, editorasId>;
+
+  autores!: autores[];
+  getAutores!: Sequelize.BelongsToManyGetAssociationsMixin<autores>;
+  setAutores!: Sequelize.BelongsToManySetAssociationsMixin<autores, autoresId>;
+  addAutor!: Sequelize.BelongsToManyAddAssociationMixin<autores, autoresId>;
+  addAutores!: Sequelize.BelongsToManyAddAssociationsMixin<autores, autoresId>;
+  removeAutor!: Sequelize.BelongsToManyRemoveAssociationMixin<autores, autoresId>;
+  hasAutor!: Sequelize.BelongsToManyHasAssociationMixin<autores, autoresId>;
+  countAutores!: Sequelize.BelongsToManyCountAssociationsMixin;
+
+  generos!: generos[];
+  getGeneros!: Sequelize.BelongsToManyGetAssociationsMixin<generos>;
+  setGeneros!: Sequelize.BelongsToManySetAssociationsMixin<generos, generosId>;
+  addGenero!: Sequelize.BelongsToManyAddAssociationMixin<generos, generosId>;
+  addGeneros!: Sequelize.BelongsToManyAddAssociationsMixin<generos, generosId>;
+  removeGenero!: Sequelize.BelongsToManyRemoveAssociationMixin<generos, generosId>;
+  hasGenero!: Sequelize.BelongsToManyHasAssociationMixin<generos, generosId>;
+  countGeneros!: Sequelize.BelongsToManyCountAssociationsMixin;
 
   static initModel(sequelize: Sequelize.Sequelize): typeof livros {
     return livros.init({
@@ -76,10 +93,6 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
         type: DataTypes.STRING(500),
         allowNull: true
       },
-      autor: {
-        type: DataTypes.STRING(300),
-        allowNull: false
-      },
       tipo_obra: {
         type: DataTypes.ENUM('unico', 'trilogia', 'serie', 'colecao'),
         allowNull: false,
@@ -87,10 +100,6 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
         validate: {
           isIn: [['unico', 'trilogia', 'serie', 'colecao']]
         }
-      },
-      nome_serie: {
-        type: DataTypes.STRING(200),
-        allowNull: true
       },
       ano_publicacao: {
         type: DataTypes.INTEGER,
@@ -101,20 +110,28 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
         allowNull: false,
         defaultValue: 0
       },
-      editora: {
-        type: DataTypes.STRING(200),
-        allowNull: true
-      },
-      genero: {
-        type: DataTypes.STRING(100),
-        allowNull: true
+      id_editora: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'editoras',
+          key: 'id_editora'
+        }
       },
       capa: {
         type: DataTypes.STRING(500),
         allowNull: true
+      },
+      avaliacao_media: {
+        type: DataTypes.DECIMAL(3, 2),
+        allowNull: true
+      },
+      total_avaliacoes: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0
       }
     },
-
 
       {
         sequelize,
@@ -131,33 +148,10 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
             ]
           },
           {
-            name: "unique_livro",
-            unique: true,
-            using: "BTREE",
-            fields: [
-              { name: "titulo", length: 200 },
-              { name: "autor", length: 100 },
-            ]
-          },
-          {
             name: "idx_titulo",
             using: "BTREE",
             fields: [
               { name: "titulo", length: 255 },
-            ]
-          },
-          {
-            name: "idx_autor",
-            using: "BTREE",
-            fields: [
-              { name: "autor", length: 100 },
-            ]
-          },
-          {
-            name: "idx_genero",
-            using: "BTREE",
-            fields: [
-              { name: "genero" },
             ]
           },
         ]

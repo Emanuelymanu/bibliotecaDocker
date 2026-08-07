@@ -60,7 +60,7 @@ function Home() {
         <section className="google-books-section" style={{ marginTop: 32 }}>
           <div className="section-header">
             <div className="section-title">
-              <h2>Buscar Livros pelo Google Books</h2>
+              <h2>Buscar Livros</h2>
             </div>
           </div>
           <GoogleBooksList />
