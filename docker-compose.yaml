@@ -39,6 +39,8 @@ services:
     depends_on:
       banco:
         condition: service_healthy
+    ports:
+      - "3000:3000"
     expose:
       - "3000"
     networks:

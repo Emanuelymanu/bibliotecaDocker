@@ -5,7 +5,7 @@ import { verificarConquistas } from './ConquistasController';
 
 export class SessoesLeituraController {
 
-   
+
     async registrarSessao(req: Request, res: Response): Promise<Response> {
         try {
             if (!req.usuario) {
@@ -36,7 +36,7 @@ export class SessoesLeituraController {
                 duracao_minutos: duracao_minutos ?? null
             });
 
-            
+
             if (pagina_final !== undefined && Number(pagina_final) > (leitura.pagina_atual || 0)) {
                 leitura.pagina_atual = Number(pagina_final);
                 await leitura.save();
@@ -87,7 +87,38 @@ export class SessoesLeituraController {
         }
     }
 
-  
+    async listarSessoesDoUsuario(req: Request, res: Response): Promise<Response> {
+        try {
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+
+            const usuarioId = req.usuario.id;
+
+            const sessoes = await sessoes_leitura.findAll({
+                include: [{
+                    model: leituras,
+                    as: 'leitura',
+                    where: { id_usuario: usuarioId },
+                    attributes: ['id_leitura', 'id_livro', 'status', 'pagina_atual']
+                }],
+                order: [['data', 'DESC'], ['id_sessao', 'DESC']]
+            });
+
+            const totalMinutos = sessoes.reduce((soma, s) => soma + (s.duracao_minutos || 0), 0);
+
+            return res.json({
+                sessoes,
+                total_sessoes: sessoes.length,
+                total_minutos: totalMinutos
+            });
+        } catch (error) {
+            console.error('Erro ao listar sessões do usuário:', error);
+            return res.status(500).json({ erro: 'Erro interno ao listar sessões do usuário' });
+        }
+    }
+
+
     async deletarSessao(req: Request, res: Response): Promise<Response> {
         try {
             if (!req.usuario) {
