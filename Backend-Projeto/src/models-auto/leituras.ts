@@ -1,9 +1,9 @@
 import * as Sequelize from 'sequelize';
 import { DataTypes, Model, Optional } from 'sequelize';
 import type { anotacoes, anotacoesId } from './anotacoes';
-import type { leitura_tags, leitura_tagsId } from './leitura_tags';
+
 import type { livros, livrosId } from './livros';
-import type { tags, tagsId } from './tags';
+
 import type { usuarios, usuariosId } from './usuarios';
 
 export interface leiturasAttributes {
@@ -52,29 +52,8 @@ export class leituras extends Model<leiturasAttributes, leiturasCreationAttribut
   hasAnotaco!: Sequelize.HasManyHasAssociationMixin<anotacoes, anotacoesId>;
   hasAnotacos!: Sequelize.HasManyHasAssociationsMixin<anotacoes, anotacoesId>;
   countAnotacos!: Sequelize.HasManyCountAssociationsMixin;
-  leitura_tags!: leitura_tags[];
-  getLeitura_tags!: Sequelize.HasManyGetAssociationsMixin<leitura_tags>;
-  setLeitura_tags!: Sequelize.HasManySetAssociationsMixin<leitura_tags, leitura_tagsId>;
-  addLeitura_tag!: Sequelize.HasManyAddAssociationMixin<leitura_tags, leitura_tagsId>;
-  addLeitura_tags!: Sequelize.HasManyAddAssociationsMixin<leitura_tags, leitura_tagsId>;
-  createLeitura_tag!: Sequelize.HasManyCreateAssociationMixin<leitura_tags>;
-  removeLeitura_tag!: Sequelize.HasManyRemoveAssociationMixin<leitura_tags, leitura_tagsId>;
-  removeLeitura_tags!: Sequelize.HasManyRemoveAssociationsMixin<leitura_tags, leitura_tagsId>;
-  hasLeitura_tag!: Sequelize.HasManyHasAssociationMixin<leitura_tags, leitura_tagsId>;
-  hasLeitura_tags!: Sequelize.HasManyHasAssociationsMixin<leitura_tags, leitura_tagsId>;
-  countLeitura_tags!: Sequelize.HasManyCountAssociationsMixin;
-
-  id_tag_tags!: tags[];
-  getId_tag_tags!: Sequelize.BelongsToManyGetAssociationsMixin<tags>;
-  setId_tag_tags!: Sequelize.BelongsToManySetAssociationsMixin<tags, tagsId>;
-  addId_tag_tag!: Sequelize.BelongsToManyAddAssociationMixin<tags, tagsId>;
-  addId_tag_tags!: Sequelize.BelongsToManyAddAssociationsMixin<tags, tagsId>;
-  createId_tag_tag!: Sequelize.BelongsToManyCreateAssociationMixin<tags>;
-  removeId_tag_tag!: Sequelize.BelongsToManyRemoveAssociationMixin<tags, tagsId>;
-  removeId_tag_tags!: Sequelize.BelongsToManyRemoveAssociationsMixin<tags, tagsId>;
-  hasId_tag_tag!: Sequelize.BelongsToManyHasAssociationMixin<tags, tagsId>;
-  hasId_tag_tags!: Sequelize.BelongsToManyHasAssociationsMixin<tags, tagsId>;
-  countId_tag_tags!: Sequelize.BelongsToManyCountAssociationsMixin;
+ 
+ 
 
   id_livro_livro!: livros;
   getId_livro_livro!: Sequelize.BelongsToGetAssociationMixin<livros>;

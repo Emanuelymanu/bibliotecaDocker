@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { usuarios } from '../models-auto/usuarios';
 import { livros } from '../models-auto/livros';
 import { leituras } from '../models-auto/leituras';
+import { generos } from '../models-auto/generos';
 import { Op, Sequelize } from 'sequelize';
 import { DashboardEstatisticas, DashboardResponse } from '../types/dashoboardTypes';
 
@@ -15,7 +16,7 @@ export class DashboardController {
             }
             const usuarioId = req.usuario.id;
 
-            
+
             const totalUsuarios = await usuarios.count();
             const totalLivros = await livros.count();
             const totalLeituras = await leituras.count({ where: { id_usuario: usuarioId } });
@@ -39,25 +40,37 @@ export class DashboardController {
                 livros_quero_ler: livrosQueroLer
             };
 
-            
-            const generos = await leituras.findAll({
+
+            const leiturasComGeneros = await leituras.findAll({
                 where: { id_usuario: usuarioId, status: 'lido' },
-                include: [{ model: livros, as: 'id_livro_livro', attributes: ['genero'] }],
+                include: [{
+                    model: livros,
+                    as: 'id_livro_livro',
+                    attributes: ['id_livro'],
+                    include: [{
+                        model: generos,
+                        as: 'generos',
+                        attributes: ['nome'],
+                        through: { attributes: [] }
+                    }]
+                }],
                 attributes: []
             });
             const contagem: { [key: string]: number } = {};
-            generos.forEach(leitura => {
-                const genero = leitura.id_livro_livro?.genero;
-                if (genero) {
-                    contagem[genero] = (contagem[genero] || 0) + 1;
-                }
+            leiturasComGeneros.forEach(leitura => {
+                const generosLivro = leitura.id_livro_livro?.generos || [];
+                generosLivro.forEach((genero) => {
+                    if (genero.nome) {
+                        contagem[genero.nome] = (contagem[genero.nome] || 0) + 1;
+                    }
+                });
             });
             const generosMaisLidos = Object.entries(contagem)
                 .map(([genero, quantidade]) => ({ genero, quantidade }))
                 .sort((a, b) => b.quantidade - a.quantidade)
                 .slice(0, 5);
 
-           
+
             const ultimosLivros = await leituras.findAll({
                 where: { id_usuario: usuarioId, status: 'lido' },
                 include: [{ model: livros, as: 'id_livro_livro' }],
@@ -66,7 +79,7 @@ export class DashboardController {
             });
             const ultimosLivrosFormatados = ultimosLivros.map(l => l.id_livro_livro);
 
-          
+
             const avaliacaoObj = await leituras.findOne({
                 where: { id_usuario: usuarioId, status: 'lido', avaliacao: { [Op.not]: null } },
                 attributes: [[Sequelize.fn('AVG', Sequelize.col('avaliacao')), 'media']],

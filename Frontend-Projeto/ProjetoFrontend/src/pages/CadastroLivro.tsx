@@ -72,7 +72,10 @@ export function CadastroLivro() {
       setCapaFile(null);
       navigate("/Biblioteca");
     } catch (err: any) {
-      showErrorAlert("Erro ao cadastrar livro");
+      const apiMessage = err?.message || err?.erro || err?.mensagem;
+      showErrorAlert(apiMessage || "Erro ao cadastrar livro");
+    } finally {
+      setLoading(false);
     }
   };
   const handleCapaChange = (e: React.ChangeEvent<HTMLInputElement>) => {

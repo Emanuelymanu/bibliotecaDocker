@@ -8,6 +8,9 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3306:3306"
     volumes:
       - dados_mysql:/var/lib/mysql
     healthcheck:
@@ -36,6 +39,8 @@ services:
     depends_on:
       banco:
         condition: service_healthy
+    ports:
+      - "3000:3000"
     expose:
       - "3000"
     networks:

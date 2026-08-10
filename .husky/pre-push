@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+echo "[husky] pre-push: executando testes end-to-end (Playwright, chromium)..."
+npm --prefix Frontend-Projeto run test:e2e:chromium

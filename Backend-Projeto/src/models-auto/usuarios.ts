@@ -1,7 +1,7 @@
 import * as Sequelize from 'sequelize';
 import { DataTypes, Model, Optional } from 'sequelize';
 import type { leituras, leiturasId } from './leituras';
-import type { tags, tagsId } from './tags';
+
 import bcrypt from 'bcrypt';
 
 export interface usuariosAttributes {
@@ -39,17 +39,7 @@ export class usuarios extends Model<usuariosAttributes, usuariosCreationAttribut
   hasLeituras!: Sequelize.HasManyHasAssociationsMixin<leituras, leiturasId>;
   countLeituras!: Sequelize.HasManyCountAssociationsMixin;
 
-  tags!: tags[];
-  getTags!: Sequelize.HasManyGetAssociationsMixin<tags>;
-  setTags!: Sequelize.HasManySetAssociationsMixin<tags, tagsId>;
-  addTag!: Sequelize.HasManyAddAssociationMixin<tags, tagsId>;
-  addTags!: Sequelize.HasManyAddAssociationsMixin<tags, tagsId>;
-  createTag!: Sequelize.HasManyCreateAssociationMixin<tags>;
-  removeTag!: Sequelize.HasManyRemoveAssociationMixin<tags, tagsId>;
-  removeTags!: Sequelize.HasManyRemoveAssociationsMixin<tags, tagsId>;
-  hasTag!: Sequelize.HasManyHasAssociationMixin<tags, tagsId>;
-  hasTags!: Sequelize.HasManyHasAssociationsMixin<tags, tagsId>;
-  countTags!: Sequelize.HasManyCountAssociationsMixin;
+ 
 
   static initModel(sequelize: Sequelize.Sequelize): typeof usuarios {
     return usuarios.init({
