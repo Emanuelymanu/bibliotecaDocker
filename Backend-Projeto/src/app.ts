@@ -15,6 +15,7 @@ import metasLeituraRoutes from './routes/metasLeituraRoutes';
 import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
 import conquistasRoutes from './routes/conquistasRoutes';
+import  adminRoutes  from './routes/adminRoutes';
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/conquistas', conquistasRoutes);
 app.use('/api/sessoes', sessoesLeituraRoutes);
 app.use('/api/metas', metasLeituraRoutes);
 app.use('/api/lista-desejos', listaDesejosRoutes);
+app.use('/api/admin', adminRoutes);
 
 sequelize.authenticate()
   .then(() => {

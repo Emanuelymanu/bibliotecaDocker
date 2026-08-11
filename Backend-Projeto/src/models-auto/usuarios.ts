@@ -10,11 +10,12 @@ export interface usuariosAttributes {
   email: string;
   cpf: string;
   senha: string;
+  tipo_usuario: 'usuario' | 'admin';
 }
 
 export type usuariosPk = "id_usuario";
 export type usuariosId = usuarios[usuariosPk];
-export type usuariosOptionalAttributes = "nome" | "email" | "cpf" | "senha";
+export type usuariosOptionalAttributes = "nome" | "email" | "cpf" | "senha" | "tipo_usuario";
 export type usuariosCreationAttributes = Optional<usuariosAttributes, usuariosOptionalAttributes>;
 
 export class usuarios extends Model<usuariosAttributes, usuariosCreationAttributes> implements usuariosAttributes {
@@ -23,6 +24,7 @@ export class usuarios extends Model<usuariosAttributes, usuariosCreationAttribut
   email!: string;
   cpf!: string;
   senha!: string;
+  tipo_usuario!: 'usuario' | 'admin';
 
 
 
@@ -76,6 +78,11 @@ export class usuarios extends Model<usuariosAttributes, usuariosCreationAttribut
         validate: {
           len: { args: [6, 100], msg: 'A senha deve conter no mínimo 6 caracteres' },
         }
+      },
+      tipo_usuario: {
+        type: DataTypes.ENUM('usuario', 'admin'),
+        allowNull: false,
+        defaultValue: 'usuario'
       }
     }, {
       sequelize,
