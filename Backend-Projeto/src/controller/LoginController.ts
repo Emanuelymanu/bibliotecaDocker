@@ -48,7 +48,8 @@ export class LoginController {
             const token = jwt.sign({
                 id: usuario.id_usuario,
                 email: usuario.email,
-                nome: usuario.nome
+                nome: usuario.nome,
+                tipo_usuario: usuario.tipo_usuario
             },
                 JWT_SECRET,
                 {

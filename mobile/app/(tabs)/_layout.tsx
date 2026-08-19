@@ -13,10 +13,6 @@ export default function TabLayout() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'busca') {
             iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'estante') {
-            iconName = focused ? 'book' : 'book-outline';
-          } else if (route.name === 'metas') {
-            iconName = focused ? 'trophy' : 'trophy-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -39,8 +35,6 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Início' }} />
       <Tabs.Screen name="busca" options={{ title: 'Buscar' }} />
-      <Tabs.Screen name="estante" options={{ title: 'Estante' }} />
-      <Tabs.Screen name="metas" options={{ title: 'Metas' }} />
     </Tabs>
   );
 }

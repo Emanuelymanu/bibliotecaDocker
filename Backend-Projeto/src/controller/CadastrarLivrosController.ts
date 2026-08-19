@@ -9,7 +9,7 @@ import { normalizarTexto, normalizarInteiro, normalizarLista } from '../utils/no
 
 export class CadastrarLivrosController {
 
-    /** Acha ou cria a editora pelo nome e retorna o id (ou null se não informado). */
+
     private async resolverEditora(nomeEditora: string | null, transaction: any): Promise<number | null> {
         if (!nomeEditora) return null;
         const [editoraLocal] = await editoras.findOrCreate({
@@ -20,7 +20,7 @@ export class CadastrarLivrosController {
         return editoraLocal.id_editora;
     }
 
-    /** Acha ou cria cada autor pelo nome e vincula ao livro via livros_autores. */
+   
     private async vincularAutores(livroLocal: any, nomesAutores: string[], transaction: any) {
         for (const nome of nomesAutores) {
             const [autorLocal] = await autores.findOrCreate({
@@ -28,11 +28,11 @@ export class CadastrarLivrosController {
                 defaults: { nome },
                 transaction
             });
-            await livroLocal.addAutor(autorLocal, { transaction });
+            await livroLocal.addAutores(autorLocal, { transaction });
         }
     }
 
-    /** Acha ou cria cada gênero pelo nome e vincula ao livro via livro_generos. */
+   
     private async vincularGeneros(livroLocal: any, nomesGeneros: string[], transaction: any) {
         for (const nome of nomesGeneros) {
             const [generoLocal] = await generos.findOrCreate({
@@ -40,7 +40,7 @@ export class CadastrarLivrosController {
                 defaults: { nome },
                 transaction
             });
-            await livroLocal.addGenero(generoLocal, { transaction });
+            await livroLocal.addGeneros(generoLocal, { transaction });
         }
     }
 
@@ -48,12 +48,12 @@ export class CadastrarLivrosController {
         try {
             let { id_google, titulo, autor, autores: autoresBody, subtitulo, tipo_obra, ano_publicacao, num_paginas, editora, generos: generosBody, capa, avaliacao_media, total_avaliacoes } = req.body;
 
-            // Arquivo enviado via multipart tem prioridade sobre o campo capa do body
+            
             if (req.file) {
                 capa = req.file.filename;
             }
 
-            // Aceita tanto "autor" (single, vindo do form antigo/Google Books) quanto "autores" (lista)
+            
             const nomesAutores = normalizarLista(autoresBody ?? autor);
             const nomesGeneros = normalizarLista(generosBody);
             const nomeEditora = normalizarTexto(editora);
@@ -93,7 +93,7 @@ export class CadastrarLivrosController {
                     transaction
                 });
 
-                // Só vincula autores/gêneros na primeira vez que o livro é cadastrado localmente
+               
                 if (livroCriado) {
                     await this.vincularAutores(livroLocal, nomesAutores, transaction);
                     await this.vincularGeneros(livroLocal, nomesGeneros, transaction);
