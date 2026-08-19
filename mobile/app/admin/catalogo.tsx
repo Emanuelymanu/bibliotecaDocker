@@ -12,20 +12,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
-import { TipoCatalogo } from '@/src/types/admin';
+import { tipoCatalogo } from '../../src/types/adminTypes';
+import { adminTheme as t } from '@/src/constants/adminTheme';
 
 type ItemCatalogo = { nome: string; total_livros: number; [key: string]: any };
 
-const ABAS: { chave: TipoCatalogo; label: string; pk: string }[] = [
-    { chave: 'autores', label: 'Autores', pk: 'id_autor' },
-    { chave: 'editoras', label: 'Editoras', pk: 'id_editora' },
-    { chave: 'generos', label: 'Gêneros', pk: 'id_genero' },
+const ABAS: { chave: tipoCatalogo; label: string; pk: string; icone: keyof typeof Ionicons.glyphMap }[] = [
+    { chave: 'autores', label: 'Autores', pk: 'id_autor', icone: 'person' },
+    { chave: 'editoras', label: 'Editoras', pk: 'id_editora', icone: 'business' },
+    { chave: 'generos', label: 'Gêneros', pk: 'id_genero', icone: 'pricetag' },
 ];
 
 export default function AdminCatalogoScreen() {
     const router = useRouter();
-    const [abaAtiva, setAbaAtiva] = useState<TipoCatalogo>('autores');
+    const [abaAtiva, setAbaAtiva] = useState<tipoCatalogo>('autores');
     const [itens, setItens] = useState<ItemCatalogo[]>([]);
     const [carregando, setCarregando] = useState(true);
 
@@ -34,7 +36,8 @@ export default function AdminCatalogoScreen() {
 
     const [itemMesclando, setItemMesclando] = useState<ItemCatalogo | null>(null);
 
-    const pkAtual = ABAS.find((a) => a.chave === abaAtiva)!.pk;
+    const abaAtual = ABAS.find((a) => a.chave === abaAtiva)!;
+    const pkAtual = abaAtual.pk;
 
     const carregar = useCallback(async () => {
         setCarregando(true);
@@ -103,51 +106,68 @@ export default function AdminCatalogoScreen() {
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={styles.voltar}>‹ Voltar</Text>
+                <TouchableOpacity onPress={() => router.back()} style={styles.voltarBotao}>
+                    <Ionicons name="chevron-back" size={22} color={t.cor.superficie} />
+                    <Text style={styles.voltarTexto}>Voltar</Text>
                 </TouchableOpacity>
+                <Text style={styles.eyebrow}>GESTÃO DE DADOS</Text>
                 <Text style={styles.titulo}>Catálogo</Text>
             </View>
 
             <View style={styles.abas}>
-                {ABAS.map((aba) => (
-                    <TouchableOpacity
-                        key={aba.chave}
-                        style={[styles.aba, abaAtiva === aba.chave && styles.abaAtiva]}
-                        onPress={() => setAbaAtiva(aba.chave)}
-                    >
-                        <Text style={[styles.abaTexto, abaAtiva === aba.chave && styles.abaTextoAtivo]}>
-                            {aba.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+                {ABAS.map((aba) => {
+                    const ativa = abaAtiva === aba.chave;
+                    return (
+                        <TouchableOpacity
+                            key={aba.chave}
+                            style={[styles.aba, ativa && styles.abaAtiva]}
+                            onPress={() => setAbaAtiva(aba.chave)}
+                        >
+                            <Ionicons name={aba.icone} size={15} color={ativa ? t.cor.superficie : t.cor.primaria} />
+                            <Text style={[styles.abaTexto, ativa && styles.abaTextoAtivo]}>{aba.label}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
 
             {carregando ? (
-                <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+                <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={itens}
                     keyExtractor={(item) => String(item[pkAtual])}
                     contentContainerStyle={styles.lista}
-                    ListEmptyComponent={<Text style={styles.vazio}>Nada cadastrado ainda</Text>}
+                    ListEmptyComponent={
+                        <View style={styles.vazioContainer}>
+                            <Ionicons name={abaAtual.icone} size={40} color={t.cor.textoTerciario} />
+                            <Text style={styles.vazio}>Nada cadastrado ainda</Text>
+                        </View>
+                    }
                     renderItem={({ item }) => (
                         <View style={styles.item}>
+                            <View style={styles.itemFaixa} />
+                            <View style={styles.itemIconeCirculo}>
+                                <Ionicons name={abaAtual.icone} size={18} color={t.cor.primaria} />
+                            </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.itemNome}>{item.nome}</Text>
-                                <Text style={styles.itemContagem}>
-                                    {item.total_livros} livro{item.total_livros === 1 ? '' : 's'}
-                                </Text>
+                                <View style={styles.badgeContagem}>
+                                    <Text style={styles.badgeContagemTexto}>
+                                        {item.total_livros} livro{item.total_livros === 1 ? '' : 's'}
+                                    </Text>
+                                </View>
                             </View>
-                            <TouchableOpacity onPress={() => abrirEdicao(item)} style={styles.botaoAcao}>
-                                <Text style={styles.botaoAcaoTexto}>Editar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setItemMesclando(item)} style={styles.botaoAcao}>
-                                <Text style={styles.botaoAcaoTexto}>Mesclar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => confirmarExclusao(item)} style={styles.botaoAcao}>
-                                <Text style={[styles.botaoAcaoTexto, styles.botaoApagarTexto]}>Apagar</Text>
-                            </TouchableOpacity>
+                            <View style={styles.acoes}>
+                                <TouchableOpacity onPress={() => abrirEdicao(item)} style={styles.botaoIcone}>
+                                    <Ionicons name="create-outline" size={19} color={t.cor.primaria} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setItemMesclando(item)} style={styles.botaoIcone}>
+                                    <Ionicons name="git-merge-outline" size={19} color={t.cor.destaque} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => confirmarExclusao(item)} style={styles.botaoIcone}>
+                                    <Ionicons name="trash-outline" size={19} color={t.cor.perigo} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
                 />
@@ -157,42 +177,47 @@ export default function AdminCatalogoScreen() {
             <Modal visible={!!itemEditando} transparent animationType="fade" onRequestClose={() => setItemEditando(null)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
+                        <View style={styles.modalIconeCirculo}>
+                            <Ionicons name="create-outline" size={22} color={t.cor.primaria} />
+                        </View>
                         <Text style={styles.modalTitulo}>Editar nome</Text>
                         <TextInput style={styles.modalInput} value={nomeEditado} onChangeText={setNomeEditado} autoFocus />
                         <View style={styles.modalBotoes}>
                             <TouchableOpacity onPress={() => setItemEditando(null)} style={styles.modalBotaoCancelar}>
-                                <Text>Cancelar</Text>
+                                <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={salvarEdicao} style={styles.modalBotaoSalvar}>
-                                <Text style={{ color: '#fff', fontWeight: '600' }}>Salvar</Text>
+                                <Text style={styles.modalBotaoSalvarTexto}>Salvar</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            {/* Modal de mesclagem: escolher o item destino */}
+            {/* Modal de mesclagem */}
             <Modal visible={!!itemMesclando} transparent animationType="fade" onRequestClose={() => setItemMesclando(null)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
-                        <Text style={styles.modalTitulo}>
-                            Mesclar "{itemMesclando?.nome}" em qual item?
-                        </Text>
+                        <View style={[styles.modalIconeCirculo, { backgroundColor: '#FEF3C7' }]}>
+                            <Ionicons name="git-merge-outline" size={22} color={t.cor.destaque} />
+                        </View>
+                        <Text style={styles.modalTitulo}>Mesclar "{itemMesclando?.nome}"</Text>
                         <Text style={styles.modalAviso}>
-                            Todos os livros vinculados a "{itemMesclando?.nome}" passam a apontar pro item escolhido, e "{itemMesclando?.nome}" é apagado.
+                            Os livros vinculados passam pro item escolhido, e "{itemMesclando?.nome}" é apagado.
                         </Text>
                         <FlatList
-                            style={{ maxHeight: 240, marginTop: 8 }}
+                            style={{ maxHeight: 240, marginTop: t.espaco.sm }}
                             data={itens.filter((i) => i[pkAtual] !== itemMesclando?.[pkAtual])}
                             keyExtractor={(item) => String(item[pkAtual])}
                             renderItem={({ item }) => (
                                 <TouchableOpacity style={styles.opcaoMesclagem} onPress={() => confirmarMesclagem(item)}>
-                                    <Text>{item.nome}</Text>
+                                    <Text style={styles.opcaoMesclagemTexto}>{item.nome}</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={t.cor.textoTerciario} />
                                 </TouchableOpacity>
                             )}
                         />
-                        <TouchableOpacity onPress={() => setItemMesclando(null)} style={[styles.modalBotaoCancelar, { marginTop: 12 }]}>
-                            <Text>Cancelar</Text>
+                        <TouchableOpacity onPress={() => setItemMesclando(null)} style={[styles.modalBotaoCancelar, { marginTop: t.espaco.md }]}>
+                            <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -202,42 +227,85 @@ export default function AdminCatalogoScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f7f7fa' },
-    header: { paddingHorizontal: 16, paddingTop: 12 },
-    voltar: { color: '#4a3aff', fontSize: 15, marginBottom: 8 },
-    titulo: { fontSize: 22, fontWeight: 'bold', color: '#222' },
-    abas: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 16, gap: 8 },
-    aba: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#eee' },
-    abaAtiva: { backgroundColor: '#4a3aff' },
-    abaTexto: { color: '#555', fontWeight: '500' },
-    abaTextoAtivo: { color: '#fff' },
-    lista: { padding: 16 },
-    vazio: { textAlign: 'center', color: '#999', marginTop: 32 },
+    container: { flex: 1, backgroundColor: t.cor.fundo },
+    header: {
+        backgroundColor: t.cor.primariaEscura,
+        paddingHorizontal: t.espaco.lg,
+        paddingBottom: t.espaco.lg,
+    },
+    voltarBotao: { flexDirection: 'row', alignItems: 'center', marginTop: t.espaco.sm, marginBottom: t.espaco.md },
+    voltarTexto: { color: t.cor.superficie, fontSize: 15, marginLeft: 2 },
+    eyebrow: { color: '#C4B5FD', fontSize: 12, fontWeight: '700', letterSpacing: 1.2, marginBottom: 4 },
+    titulo: { color: t.cor.superficie, fontSize: 24, fontWeight: '800' },
+    abas: { flexDirection: 'row', paddingHorizontal: t.espaco.lg, marginTop: t.espaco.lg, gap: t.espaco.sm },
+    aba: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+        borderRadius: t.raio.pill,
+        backgroundColor: t.cor.superficie,
+        borderWidth: 1,
+        borderColor: t.cor.borda,
+    },
+    abaAtiva: { backgroundColor: t.cor.primaria, borderColor: t.cor.primaria },
+    abaTexto: { color: t.cor.primaria, fontWeight: '600', fontSize: 13 },
+    abaTextoAtivo: { color: t.cor.superficie },
+    lista: { padding: t.espaco.lg },
+    vazioContainer: { alignItems: 'center', marginTop: 48, gap: t.espaco.sm },
+    vazio: { textAlign: 'center', color: t.cor.textoTerciario },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 12,
-        marginBottom: 10,
-        shadowColor: '#000',
+        backgroundColor: t.cor.superficie,
+        borderRadius: t.raio.md,
+        padding: t.espaco.md,
+        marginBottom: t.espaco.sm,
+        overflow: 'hidden',
+        ...t.sombra,
         shadowOpacity: 0.05,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 1 },
         elevation: 1,
     },
-    itemNome: { fontSize: 15, fontWeight: '600', color: '#222' },
-    itemContagem: { fontSize: 12, color: '#999', marginTop: 2 },
-    botaoAcao: { marginLeft: 8 },
-    botaoAcaoTexto: { color: '#4a3aff', fontSize: 12, fontWeight: '600' },
-    botaoApagarTexto: { color: '#e33' },
-    modalFundo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
-    modalCaixa: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-    modalTitulo: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-    modalAviso: { fontSize: 12, color: '#888', marginBottom: 4 },
-    modalInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 15 },
-    modalBotoes: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },
-    modalBotaoCancelar: { paddingVertical: 10, paddingHorizontal: 16 },
-    modalBotaoSalvar: { backgroundColor: '#4a3aff', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-    opcaoMesclagem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+    itemFaixa: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: t.cor.primaria },
+    itemIconeCirculo: {
+        width: 36, height: 36, borderRadius: t.raio.sm,
+        backgroundColor: t.cor.primariaClara,
+        justifyContent: 'center', alignItems: 'center',
+        marginRight: t.espaco.md, marginLeft: t.espaco.xs,
+    },
+    itemNome: { fontSize: 15, fontWeight: '700', color: t.cor.texto },
+    badgeContagem: {
+        alignSelf: 'flex-start',
+        backgroundColor: t.cor.primariaClara,
+        borderRadius: t.raio.pill,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        marginTop: 4,
+    },
+    badgeContagemTexto: { fontSize: 11, color: t.cor.primaria, fontWeight: '600' },
+    acoes: { flexDirection: 'row', gap: 4 },
+    botaoIcone: { padding: 6 },
+    modalFundo: { flex: 1, backgroundColor: 'rgba(30,27,46,0.55)', justifyContent: 'center', padding: t.espaco.xl },
+    modalCaixa: { backgroundColor: t.cor.superficie, borderRadius: t.raio.xl, padding: t.espaco.xl },
+    modalIconeCirculo: {
+        width: 44, height: 44, borderRadius: t.raio.md, backgroundColor: t.cor.primariaClara,
+        justifyContent: 'center', alignItems: 'center', marginBottom: t.espaco.md,
+    },
+    modalTitulo: { fontSize: 17, fontWeight: '700', color: t.cor.texto, marginBottom: 8 },
+    modalAviso: { fontSize: 12.5, color: t.cor.textoSecundario, lineHeight: 18 },
+    modalInput: {
+        borderWidth: 1.5, borderColor: t.cor.borda, borderRadius: t.raio.sm,
+        padding: 12, fontSize: 15, marginTop: t.espaco.sm, color: t.cor.texto,
+    },
+    modalBotoes: { flexDirection: 'row', justifyContent: 'flex-end', gap: t.espaco.sm, marginTop: t.espaco.lg },
+    modalBotaoCancelar: { paddingVertical: 11, paddingHorizontal: 16, borderRadius: t.raio.sm },
+    modalBotaoCancelarTexto: { color: t.cor.textoSecundario, fontWeight: '600' },
+    modalBotaoSalvar: { backgroundColor: t.cor.primaria, paddingVertical: 11, paddingHorizontal: 20, borderRadius: t.raio.sm },
+    modalBotaoSalvarTexto: { color: t.cor.superficie, fontWeight: '700' },
+    opcaoMesclagem: {
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: t.cor.borda,
+    },
+    opcaoMesclagemTexto: { color: t.cor.texto, fontSize: 14.5 },
 });

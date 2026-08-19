@@ -15,7 +15,7 @@ import metasLeituraRoutes from './routes/metasLeituraRoutes';
 import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
 import conquistasRoutes from './routes/conquistasRoutes';
-import  adminRoutes  from './routes/adminRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 const app = express();
 
@@ -25,7 +25,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://estantedigital.local',
-  
+  'https://estantedigital.local',
+
 ];
 
 app.use(cors({
@@ -47,7 +48,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use('/api/auth', authRoutes);
-app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa'))); 
+app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa')));
 app.use('/api/livros', livrosRoutes);
 app.use('/api/leituras', leiturasRoutes);
 app.use('/api/anotacoes', anotacoesRoutes);

@@ -10,7 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { useAuth } from '@/src/context/AuthContext';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
@@ -27,9 +27,12 @@ export default function LoginScreen() {
         setCarregando(true);
         try {
             await login(email.trim(), senha);
-           
         } catch (error: any) {
-            const mensagem = error.response?.data?.erro || 'Email ou senha inválidos';
+            const mensagem = error.response?.data?.erro
+                || error.response?.data?.message
+                || (!error.response
+                    ? 'Não foi possível conectar ao servidor. Verifique a rede Wi-Fi e o endereço da API.'
+                    : 'Email ou senha inválidos');
             Alert.alert('Erro ao entrar', mensagem);
         } finally {
             setCarregando(false);

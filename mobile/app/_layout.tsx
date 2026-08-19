@@ -1,11 +1,25 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 
 
 function RotasProtegidas() {
     const { usuario, carregando } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (carregando) {
+            return;
+        }
+
+        if (!usuario) {
+            router.replace('/login');
+            return;
+        }
+
+        router.replace(usuario.tipo_usuario === 'admin' ? '/admin' : '/(tabs)');
+    }, [carregando, router, usuario]);
 
     if (carregando) {
         return (
