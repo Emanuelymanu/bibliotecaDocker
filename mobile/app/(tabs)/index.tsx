@@ -1,11 +1,16 @@
 import { View, Text, StyleSheet } from 'react-native';
-
+import { useRouter } from 'expo-router';
+import { Button } from 'react-native';
 export default function HomeScreen() {
+  const router = useRouter();
   return (
+    
     <View style={styles.container}>
       <Text style={styles.title}>📚 Minha Estante</Text>
       <Text style={styles.subtitle}>Bem-vindo ao seu app de leitura!</Text>
+      <Button title="TESTE: ir pra Admin" onPress={() => router.push('/admin')} />
     </View>
+
   );
 }
 

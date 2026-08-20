@@ -11,6 +11,7 @@ export interface UsuarioAutenticado {
     id: number;
     email: string;
     nome: string;
+    tipo_usuario: 'usuario' | 'admin';
 }
 
 declare global {
