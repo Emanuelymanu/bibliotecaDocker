@@ -6,21 +6,19 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Modal,
-    TextInput,
     Alert,
-    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import EmojiPicker, { pt as traducaoEmojiPt } from 'rn-emoji-keyboard'; // 1. Importação da biblioteca
 
 import { adminService } from '@/src/services/adminService';
 import { Conquista } from '@/src/types/adminTypes';
 import { adminTheme as t } from '@/src/constants/adminTheme';
+import ConquistaFormModal, { FormConquista } from '@/components/admin/ConquistaFormModal';
+import ConcederConquistaModal from '@/components/admin/ConcederConquistaModal';
 
-const FORM_VAZIO = { nome: '', descricao: '', icone: '📖', criterio: '' };
+const FORM_VAZIO: FormConquista = { nome: '', descricao: '', icone: '📖', criterio: '' };
 
 export default function AdminConquistasScreen() {
     const router = useRouter();
@@ -28,9 +26,8 @@ export default function AdminConquistasScreen() {
     const [carregando, setCarregando] = useState(true);
 
     const [modalFormAberto, setModalFormAberto] = useState(false);
-    const [seletorEmojiAberto, setSeletorEmojiAberto] = useState(false); // 2. Estado do seletor
     const [editandoId, setEditandoId] = useState<number | null>(null);
-    const [form, setForm] = useState(FORM_VAZIO);
+    const [form, setForm] = useState<FormConquista>(FORM_VAZIO);
 
     const [conquistaConcedendo, setConquistaConcedendo] = useState<Conquista | null>(null);
     const [idUsuarioConceder, setIdUsuarioConceder] = useState('');
@@ -167,112 +164,23 @@ export default function AdminConquistasScreen() {
                 />
             )}
 
-            {/* Modal de criar/editar */}
-            <Modal visible={modalFormAberto} transparent animationType="fade" onRequestClose={() => setModalFormAberto(false)}>
-                <View style={styles.modalFundo}>
-                    <View style={styles.modalCaixa}>
-                        <View style={styles.modalTopo}>
-                            <Text style={styles.modalTitulo}>{editandoId ? 'Editar Conquista' : 'Nova Conquista'}</Text>
-                            <TouchableOpacity onPress={() => setModalFormAberto(false)}>
-                                <Ionicons name="close" size={22} color={t.cor.textoTerciario} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <Text style={styles.campoLabel}>ÍCONE</Text>
-
-                            {/* 3. Botão Seletor de Emoji com Preview */}
-                            <TouchableOpacity
-                                style={styles.seletorEmojiBotao}
-                                onPress={() => setSeletorEmojiAberto(true)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.seletorEmojiIconeContainer}>
-                                    <Text style={styles.seletorEmojiTexto}>{form.icone}</Text>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.seletorEmojiTitulo}>Escolher Ícone</Text>
-                                    <Text style={styles.seletorEmojiSubtitulo}>Toque para abrir a galeria de emojis</Text>
-                                </View>
-                                <Ionicons name="happy-outline" size={20} color={t.cor.textoSecundario} />
-                            </TouchableOpacity>
-
-                            <Text style={styles.campoLabel}>NOME DA CONQUISTA *</Text>
-                            <TextInput
-                                style={styles.modalInput}
-                                placeholder="ex: Bibliófilo"
-                                placeholderTextColor={t.cor.textoTerciario}
-                                value={form.nome}
-                                onChangeText={(v) => setForm({ ...form, nome: v })}
-                            />
-
-                            <Text style={styles.campoLabel}>DESCRIÇÃO *</Text>
-                            <TextInput
-                                style={styles.modalInput}
-                                placeholder="ex: Dez livros concluídos!"
-                                placeholderTextColor={t.cor.textoTerciario}
-                                value={form.descricao}
-                                onChangeText={(v) => setForm({ ...form, descricao: v })}
-                            />
-
-                            <Text style={styles.campoLabel}>CRITÉRIO DE DESBLOQUEIO *</Text>
-                            <TextInput
-                                style={styles.modalInput}
-                                placeholder="ex: Conclua 10 livros"
-                                placeholderTextColor={t.cor.textoTerciario}
-                                value={form.criterio}
-                                onChangeText={(v) => setForm({ ...form, criterio: v })}
-                            />
-                        </ScrollView>
-
-                        <View style={styles.modalBotoes}>
-                            <TouchableOpacity onPress={() => setModalFormAberto(false)} style={styles.modalBotaoCancelar}>
-                                <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={salvarForm} style={styles.modalBotaoCriar}>
-                                <Text style={styles.modalBotaoCriarTexto}>{editandoId ? 'Salvar' : 'Criar'}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* 4. Componente do Teclado de Emojis */}
-            <EmojiPicker
-                open={seletorEmojiAberto}
-                onClose={() => setSeletorEmojiAberto(false)}
-                onEmojiSelected={(emojiObject) => {
-                    setForm((prev) => ({ ...prev, icone: emojiObject.emoji }));
-                    setSeletorEmojiAberto(false);
-                }}
-                translation={traducaoEmojiPt}
-                enableCategoryChangeAnimation
+            <ConquistaFormModal
+                visivel={modalFormAberto}
+                editando={!!editandoId}
+                form={form}
+                aoMudarForm={setForm}
+                aoFechar={() => setModalFormAberto(false)}
+                aoSalvar={salvarForm}
             />
 
-            {/* Modal de conceder manualmente */}
-            <Modal visible={!!conquistaConcedendo} transparent animationType="fade" onRequestClose={() => setConquistaConcedendo(null)}>
-                <View style={styles.modalFundo}>
-                    <View style={styles.modalCaixa}>
-                        <Text style={styles.modalTitulo}>Conceder "{conquistaConcedendo?.nome}"</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            placeholder="ID do usuário"
-                            placeholderTextColor={t.cor.textoTerciario}
-                            keyboardType="numeric"
-                            value={idUsuarioConceder}
-                            onChangeText={setIdUsuarioConceder}
-                        />
-                        <View style={styles.modalBotoes}>
-                            <TouchableOpacity onPress={() => setConquistaConcedendo(null)} style={styles.modalBotaoCancelar}>
-                                <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={confirmarConcessao} style={[styles.modalBotaoCriar, { backgroundColor: t.cor.sucesso }]}>
-                                <Text style={styles.modalBotaoCriarTexto}>Conceder</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <ConcederConquistaModal
+                visivel={!!conquistaConcedendo}
+                nomeConquista={conquistaConcedendo?.nome}
+                idUsuario={idUsuarioConceder}
+                aoMudarIdUsuario={setIdUsuarioConceder}
+                aoFechar={() => setConquistaConcedendo(null)}
+                aoConfirmar={confirmarConcessao}
+            />
         </SafeAreaView>
     );
 }
@@ -308,43 +216,4 @@ const styles = StyleSheet.create({
     itemDescricao: { fontSize: 12, color: t.cor.textoSecundario, marginTop: 1 },
     itemCriterio: { fontSize: 11, color: t.cor.textoTerciario, marginTop: 1, fontStyle: 'italic' },
     botaoIcone: { width: 30, height: 30, borderRadius: t.raio.sm, justifyContent: 'center', alignItems: 'center', marginLeft: 6 },
-    modalFundo: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: t.espaco.lg },
-    modalCaixa: { backgroundColor: t.cor.superficie, borderRadius: t.raio.xl, padding: t.espaco.lg, maxHeight: '85%' },
-    modalTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: t.espaco.md },
-    modalTitulo: { fontSize: 16, fontWeight: '700', color: t.cor.texto },
-    campoLabel: { fontSize: 10.5, fontWeight: '700', color: t.cor.textoSecundario, letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-
-    // Novos estilos para o botão de seleção de emoji
-    seletorEmojiBotao: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: t.cor.fundo,
-        borderWidth: 1.5,
-        borderColor: t.cor.borda,
-        borderRadius: t.raio.md,
-        padding: 10,
-        marginBottom: t.espaco.md,
-        gap: 12,
-    },
-    seletorEmojiIconeContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: t.raio.sm,
-        backgroundColor: t.categoria.conquistas.fundo,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    seletorEmojiTexto: { fontSize: 22 },
-    seletorEmojiTitulo: { fontSize: 13.5, fontWeight: '600', color: t.cor.texto },
-    seletorEmojiSubtitulo: { fontSize: 11, color: t.cor.textoTerciario },
-
-    modalInput: {
-        borderWidth: 1.5, borderColor: t.cor.borda, borderRadius: t.raio.sm,
-        padding: 12, fontSize: 14.5, marginBottom: t.espaco.md, color: t.cor.texto,
-    },
-    modalBotoes: { flexDirection: 'row', gap: t.espaco.sm, marginTop: t.espaco.sm },
-    modalBotaoCancelar: { flex: 1, paddingVertical: 12, borderRadius: t.raio.sm, borderWidth: 1.5, borderColor: t.cor.borda, alignItems: 'center' },
-    modalBotaoCancelarTexto: { color: t.cor.textoSecundario, fontWeight: '600' },
-    modalBotaoCriar: { flex: 1, backgroundColor: t.categoria.conquistas.icone, paddingVertical: 12, borderRadius: t.raio.sm, alignItems: 'center' },
-    modalBotaoCriarTexto: { color: t.cor.superficie, fontWeight: '700' },
 });
