@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
-    Modal,
     TextInput,
     Alert,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
 import { tipoCatalogo } from '../../src/types/adminTypes';
 import { adminTheme as t, corDoAvatar, iniciais } from '@/src/constants/adminTheme';
+import AdminModal from './AdminModal';
 
 type ItemCatalogo = { nome: string; total_livros: number; [key: string]: any };
 
@@ -185,63 +185,61 @@ export default function CatalogoLista({
             <Text style={styles.dicaMesclar}>Segure um item pra mesclar com outro</Text>
 
             {/* Modal de edição */}
-            <Modal visible={!!itemEditando} transparent animationType="fade" onRequestClose={() => setItemEditando(null)}>
-                <View style={styles.modalFundo}>
-                    <View style={styles.modalCaixa}>
-                        <Text style={styles.modalTitulo}>Editar {titulo.slice(0, -1).toLowerCase()}</Text>
-                        <TextInput
-                            style={styles.modalInput}
-                            placeholder="Nome"
-                            value={form.nome}
-                            onChangeText={(v) => setForm({ ...form, nome: v })}
-                            autoFocus
-                        />
-                        {camposEdicao.map((c) => (
-                            <TextInput
-                                key={c.campo}
-                                style={styles.modalInput}
-                                placeholder={c.placeholder}
-                                value={form[c.campo]}
-                                onChangeText={(v) => setForm({ ...form, [c.campo]: v })}
-                            />
-                        ))}
-                        <View style={styles.modalBotoes}>
-                            <TouchableOpacity onPress={() => setItemEditando(null)} style={styles.modalBotaoCancelar}>
-                                <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={salvarEdicao} style={[styles.modalBotaoSalvar, { backgroundColor: corCategoria.icone }]}>
-                                <Text style={styles.modalBotaoSalvarTexto}>Salvar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
+            <AdminModal
+                visivel={!!itemEditando}
+                aoFechar={() => setItemEditando(null)}
+                titulo={`Editar ${titulo.slice(0, -1).toLowerCase()}`}
+            >
+                <TextInput
+                    style={styles.modalInput}
+                    placeholder="Nome"
+                    value={form.nome}
+                    onChangeText={(v) => setForm({ ...form, nome: v })}
+                    autoFocus
+                />
+                {camposEdicao.map((c) => (
+                    <TextInput
+                        key={c.campo}
+                        style={styles.modalInput}
+                        placeholder={c.placeholder}
+                        value={form[c.campo]}
+                        onChangeText={(v) => setForm({ ...form, [c.campo]: v })}
+                    />
+                ))}
+                <View style={styles.modalBotoes}>
+                    <TouchableOpacity onPress={() => setItemEditando(null)} style={styles.modalBotaoCancelar}>
+                        <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={salvarEdicao} style={[styles.modalBotaoSalvar, { backgroundColor: corCategoria.icone }]}>
+                        <Text style={styles.modalBotaoSalvarTexto}>Salvar</Text>
+                    </TouchableOpacity>
                 </View>
-            </Modal>
+            </AdminModal>
 
             {/* Modal de mesclagem */}
-            <Modal visible={!!itemMesclando} transparent animationType="fade" onRequestClose={() => setItemMesclando(null)}>
-                <View style={styles.modalFundo}>
-                    <View style={styles.modalCaixa}>
-                        <Text style={styles.modalTitulo}>Mesclar "{itemMesclando?.nome}"</Text>
-                        <Text style={styles.modalAviso}>
-                            Os livros vinculados passam pro item escolhido, e "{itemMesclando?.nome}" é apagado.
-                        </Text>
-                        <FlatList
-                            style={{ maxHeight: 240, marginTop: t.espaco.sm }}
-                            data={itens.filter((i) => i[pk] !== itemMesclando?.[pk])}
-                            keyExtractor={(item) => String(item[pk])}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity style={styles.opcaoMesclagem} onPress={() => confirmarMesclagem(item)}>
-                                    <Text style={styles.opcaoMesclagemTexto}>{item.nome}</Text>
-                                    <Ionicons name="chevron-forward" size={16} color={t.cor.textoTerciario} />
-                                </TouchableOpacity>
-                            )}
-                        />
-                        <TouchableOpacity onPress={() => setItemMesclando(null)} style={[styles.modalBotaoCancelar, { marginTop: t.espaco.md }]}>
-                            <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
+            <AdminModal
+                visivel={!!itemMesclando}
+                aoFechar={() => setItemMesclando(null)}
+                titulo={`Mesclar "${itemMesclando?.nome}"`}
+            >
+                <Text style={styles.modalAviso}>
+                    Os livros vinculados passam pro item escolhido, e "{itemMesclando?.nome}" é apagado.
+                </Text>
+                <FlatList
+                    style={{ maxHeight: 240, marginTop: t.espaco.sm }}
+                    data={itens.filter((i) => i[pk] !== itemMesclando?.[pk])}
+                    keyExtractor={(item) => String(item[pk])}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity style={styles.opcaoMesclagem} onPress={() => confirmarMesclagem(item)}>
+                            <Text style={styles.opcaoMesclagemTexto}>{item.nome}</Text>
+                            <Ionicons name="chevron-forward" size={16} color={t.cor.textoTerciario} />
                         </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+                    )}
+                />
+                <TouchableOpacity onPress={() => setItemMesclando(null)} style={[styles.modalBotaoCancelar, { marginTop: t.espaco.md }]}>
+                    <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
+                </TouchableOpacity>
+            </AdminModal>
         </SafeAreaView>
     );
 }
@@ -290,9 +288,6 @@ const styles = StyleSheet.create({
     botaoIconeCinza: { backgroundColor: '#F1F2F5' },
     botaoIconeVermelho: { backgroundColor: t.cor.perigoClaro },
     dicaMesclar: { textAlign: 'center', color: t.cor.textoTerciario, fontSize: 11, paddingBottom: t.espaco.md },
-    modalFundo: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: t.espaco.xl },
-    modalCaixa: { backgroundColor: t.cor.superficie, borderRadius: t.raio.xl, padding: t.espaco.xl },
-    modalTitulo: { fontSize: 16, fontWeight: '700', color: t.cor.texto, marginBottom: t.espaco.md, textTransform: 'capitalize' },
     modalAviso: { fontSize: 12.5, color: t.cor.textoSecundario, lineHeight: 18 },
     modalInput: {
         borderWidth: 1.5, borderColor: t.cor.borda, borderRadius: t.raio.sm,
