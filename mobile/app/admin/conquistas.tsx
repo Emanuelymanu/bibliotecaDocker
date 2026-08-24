@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import EmojiPicker, { pt as traducaoEmojiPt } from 'rn-emoji-keyboard'; // 1. Importação da biblioteca
+import EmojiPicker, { pt as traducaoEmojiPt } from 'rn-emoji-keyboard'; 
 
 import { adminService } from '@/src/services/adminService';
 import { Conquista } from '@/src/types/adminTypes';
@@ -167,7 +167,7 @@ export default function AdminConquistasScreen() {
                 />
             )}
 
-            {/* Modal de criar/editar */}
+           
             <Modal visible={modalFormAberto} transparent animationType="fade" onRequestClose={() => setModalFormAberto(false)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
@@ -181,7 +181,7 @@ export default function AdminConquistasScreen() {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.campoLabel}>ÍCONE</Text>
 
-                            {/* 3. Botão Seletor de Emoji com Preview */}
+                            
                             <TouchableOpacity
                                 style={styles.seletorEmojiBotao}
                                 onPress={() => setSeletorEmojiAberto(true)}
@@ -237,7 +237,7 @@ export default function AdminConquistasScreen() {
                 </View>
             </Modal>
 
-            {/* 4. Componente do Teclado de Emojis */}
+           
             <EmojiPicker
                 open={seletorEmojiAberto}
                 onClose={() => setSeletorEmojiAberto(false)}
@@ -249,7 +249,7 @@ export default function AdminConquistasScreen() {
                 enableCategoryChangeAnimation
             />
 
-            {/* Modal de conceder manualmente */}
+           
             <Modal visible={!!conquistaConcedendo} transparent animationType="fade" onRequestClose={() => setConquistaConcedendo(null)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     modalTitulo: { fontSize: 16, fontWeight: '700', color: t.cor.texto },
     campoLabel: { fontSize: 10.5, fontWeight: '700', color: t.cor.textoSecundario, letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
 
-    // Novos estilos para o botão de seleção de emoji
+  
     seletorEmojiBotao: {
         flexDirection: 'row',
         alignItems: 'center',

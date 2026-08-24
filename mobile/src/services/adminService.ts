@@ -2,12 +2,12 @@ import { api } from './api';
 import { Autor, Editora, Genero, tipoCatalogo, Conquista } from '../types/adminTypes';
 
 export const adminService = {
-    /** Busca as 4 contagens pro painel inicial, em paralelo */
+   
     async buscarEstatisticas() {
         const [autoresLista, editorasLista, generosLista, conquistasLista] = await Promise.all([
-            api.get('/admin/catalogo/autores'),
-            api.get('/admin/catalogo/editoras'),
-            api.get('/admin/catalogo/generos'),
+            api.get('/admin/autores'),
+            api.get('/admin/editoras'),
+            api.get('/admin/generos'),
             api.get('/conquistas/admin/todas'),
         ]);
         return {
@@ -18,8 +18,7 @@ export const adminService = {
         };
     },
 
-    // ---------------- CATÁLOGO ----------------
-    // Prefixo real no backend é /admin/<tipo> (ex: /admin/autores), sem /catalogo no meio
+
 
     async listarCatalogo(tipo: tipoCatalogo): Promise<(Autor | Editora | Genero)[]> {
         const { data } = await api.get(`/admin/${tipo}`);
@@ -44,7 +43,6 @@ export const adminService = {
         await api.post(`/admin/${tipo}/mesclar`, { id_origem: idOrigem, id_destino: idDestino });
     },
 
-    // ---------------- CONQUISTAS ----------------
 
     async listarTodasConquistas(): Promise<Conquista[]> {
         const { data } = await api.get('/conquistas/admin/todas');

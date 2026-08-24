@@ -173,7 +173,7 @@ export default function AdminCatalogoScreen() {
                 />
             )}
 
-            {/* Modal de edição */}
+          
             <Modal visible={!!itemEditando} transparent animationType="fade" onRequestClose={() => setItemEditando(null)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
@@ -194,7 +194,7 @@ export default function AdminCatalogoScreen() {
                 </View>
             </Modal>
 
-            {/* Modal de mesclagem */}
+          
             <Modal visible={!!itemMesclando} transparent animationType="fade" onRequestClose={() => setItemMesclando(null)}>
                 <View style={styles.modalFundo}>
                     <View style={styles.modalCaixa}>
