@@ -26,11 +26,11 @@ interface Props {
     icone: keyof typeof Ionicons.glyphMap;
     corCategoria: { icone: string; fundo: string };
     placeholderBusca: string;
-    /** nome do campo que aparece como "subtítulo" abaixo do nome (ex: nacionalidade, pais). Opcional. */
+
     campoSubtitulo?: string;
-    /** nome do campo de texto longo (ex: bio). Opcional. */
+   
     campoDescricao?: string;
-    /** campos do modal de edição, além do nome */
+   
     camposEdicao?: { campo: string; label: string; placeholder: string }[];
 }
 
@@ -184,7 +184,7 @@ export default function CatalogoLista({
 
             <Text style={styles.dicaMesclar}>Segure um item pra mesclar com outro</Text>
 
-            {/* Modal de edição */}
+          
             <AdminModal
                 visivel={!!itemEditando}
                 aoFechar={() => setItemEditando(null)}
@@ -216,7 +216,7 @@ export default function CatalogoLista({
                 </View>
             </AdminModal>
 
-            {/* Modal de mesclagem */}
+          
             <AdminModal
                 visivel={!!itemMesclando}
                 aoFechar={() => setItemMesclando(null)}

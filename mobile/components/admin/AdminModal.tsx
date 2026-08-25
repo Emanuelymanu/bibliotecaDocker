@@ -8,11 +8,11 @@ interface Props {
     aoFechar: () => void;
     titulo: string;
     children: React.ReactNode;
-    /** Envolve o conteúdo num ScrollView. Use quando o modal tiver muitos campos (ex: formulários). */
+  
     scrollavel?: boolean;
-    /** Renderizado fora do ScrollView, fixo no rodapé (ex: linha de botões Cancelar/Salvar). */
+  
     rodape?: React.ReactNode;
-    /** Mostra um "X" ao lado do título, além do fechamento por fora/cancelar. */
+
     comBotaoFechar?: boolean;
     espacamento?: number;
     alturaMaxima?: DimensionValue;
