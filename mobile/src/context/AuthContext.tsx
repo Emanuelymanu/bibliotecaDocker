@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../services/authService';
+import { definirCallbackSessaoExpirada } from '../services/api';
 import { Usuario } from '../types/auth';
 
 interface AuthContextData {
@@ -17,6 +18,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         carregarUsuarioSalvo();
+
+        definirCallbackSessaoExpirada(() => setUsuario(null));
+        return () => definirCallbackSessaoExpirada(null);
     }, []);
 
     async function carregarUsuarioSalvo() {
