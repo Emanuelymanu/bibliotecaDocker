@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
 import { adminTheme as t } from '@/src/constants/adminTheme';
@@ -19,16 +19,18 @@ export default function AdminHomeScreen() {
     const router = useRouter();
     const [stats, setStats] = useState<Record<ChaveStat, number> | null>(null);
 
-    useEffect(() => {
-        adminService.buscarEstatisticas()
-            .then(setStats)
-            .catch((err) => console.error('Erro ao buscar estatísticas:', err));
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            adminService.buscarEstatisticas()
+                .then(setStats)
+                .catch((err) => console.error('Erro ao buscar estatísticas:', err));
+        }, [])
+    );
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.voltarBotao}>
+                <TouchableOpacity onPress={() => router.push('/cadastro-livro')} style={styles.voltarBotao}>
                     <Ionicons name="chevron-back" size={24} color={t.cor.texto} />
                 </TouchableOpacity>
                 <View>

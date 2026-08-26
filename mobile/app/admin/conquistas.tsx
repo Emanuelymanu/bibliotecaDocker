@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -9,7 +9,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { adminService } from '@/src/services/adminService';
@@ -45,7 +45,7 @@ export default function AdminConquistasScreen() {
         }
     }, []);
 
-    useEffect(() => { carregar(); }, [carregar]);
+    useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
 
     function abrirCriacao() {
         setEditandoId(null);

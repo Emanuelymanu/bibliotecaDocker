@@ -9,6 +9,7 @@ export default function HomeScreen() {
       <Text style={styles.title}>📚 Minha Estante</Text>
       <Text style={styles.subtitle}>Bem-vindo ao seu app de leitura!</Text>
       <Button title="TESTE: ir pra Admin" onPress={() => router.push('/admin')} />
+      <Button title="TESTE: Cadastrar Livro" onPress={() => router.push('/cadastro-livro')} />
     </View>
 
   );

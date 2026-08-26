@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -10,7 +10,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
 import { tipoCatalogo } from '../../src/types/adminTypes';
@@ -61,9 +61,11 @@ export default function CatalogoLista({
         }
     }, [tipo]);
 
-    useEffect(() => {
-        carregar();
-    }, [carregar]);
+    useFocusEffect(
+        useCallback(() => {
+            carregar();
+        }, [carregar])
+    );
 
     const itensFiltrados = itens.filter((item) =>
         item.nome.toLowerCase().includes(busca.toLowerCase())

@@ -31,14 +31,15 @@ function RotasProtegidas() {
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
-            {usuario ? (
-                <>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="admin" />
-                </>
-            ) : (
+            <Stack.Protected guard={!!usuario}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="admin" />
+                <Stack.Screen name="cadastro-livro" options={{ presentation: 'modal' }} />
+            </Stack.Protected>
+
+            <Stack.Protected guard={!usuario}>
                 <Stack.Screen name="login" />
-            )}
+            </Stack.Protected>
         </Stack>
     );
 }

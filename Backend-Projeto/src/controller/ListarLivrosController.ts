@@ -98,18 +98,22 @@ export class ListarLivrosController {
                 avaliacaoWhere = { avaliacao: { [Op.between]: [min, max] } };
             }
 
-            const usuarioId = req.usuario?.id;
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+            const usuarioId = req.usuario.id;
 
+            // required: true -> só traz livros que o próprio usuário tem em leituras (sua biblioteca pessoal,
+            // não o catálogo inteiro de todo mundo que já cadastrou algo)
             const leiturasInclude: any = {
                 model: leituras,
                 as: 'leituras',
                 attributes: ['id_leitura', 'id_usuario', 'id_livro', 'status', 'data_inicio', 'data_conclusao', 'avaliacao', 'resenha', 'pagina_atual', 'vezes_lido'],
-                required: false
+                required: true,
+                where: { id_usuario: usuarioId }
             };
-            if (usuarioId) leiturasInclude.where = { id_usuario: usuarioId };
             if (avaliacao_min || avaliacao_max) {
-                leiturasInclude.where = { ...(leiturasInclude.where || {}), ...avaliacaoWhere };
-                leiturasInclude.required = true;
+                leiturasInclude.where = { ...leiturasInclude.where, ...avaliacaoWhere };
             }
 
             // Autor/gênero/editora agora são relações -> filtra via include, não via where direto em livros

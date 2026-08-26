@@ -6,6 +6,7 @@ import { editoras } from '../models-auto/editoras';
 import { generos } from '../models-auto/generos';
 import { sequelize } from '../models-auto';
 import { normalizarTexto, normalizarInteiro, normalizarLista } from '../utils/normalizadores';
+import { traduzirGeneros } from '../utils/traducaoGeneros';
 
 export class CadastrarLivrosController {
 
@@ -46,16 +47,16 @@ export class CadastrarLivrosController {
 
     async cadastrarLivro(req: Request, res: Response) {
         try {
-            let { id_google, titulo, autor, autores: autoresBody, subtitulo, tipo_obra, ano_publicacao, num_paginas, editora, generos: generosBody, capa, avaliacao_media, total_avaliacoes } = req.body;
+            let { id_google, titulo, autor, autores: autoresBody, subtitulo, tipo_obra, ano_publicacao, num_paginas, editora, generos: generosBody, genero, capa, avaliacao_media, total_avaliacoes } = req.body;
 
-            
+
             if (req.file) {
                 capa = req.file.filename;
             }
 
-            
+
             const nomesAutores = normalizarLista(autoresBody ?? autor);
-            const nomesGeneros = normalizarLista(generosBody);
+            const nomesGeneros = normalizarLista(generosBody ?? traduzirGeneros(genero));
             const nomeEditora = normalizarTexto(editora);
 
             if (!titulo || nomesAutores.length === 0) {
