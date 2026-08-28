@@ -1,4 +1,3 @@
-// src/services/googleBooksService.ts
 export interface Livro {
   id_google: string;
   titulo: string;

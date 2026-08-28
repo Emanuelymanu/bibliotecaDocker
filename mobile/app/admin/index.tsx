@@ -38,15 +38,7 @@ export default function AdminHomeScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
-                <View style={styles.hero}>
-                    <View style={styles.heroIconeCaixa}>
-                        <Ionicons name="shield-checkmark" size={22} color={t.cor.superficie} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.heroTitulo}>Área de Administração</Text>
-                        <Text style={styles.heroSubtitulo}>Gerencie conquistas, autores, editoras e gêneros</Text>
-                    </View>
-                </View>
+               
 
                 {!stats ? (
                     <ActivityIndicator style={{ marginVertical: t.espaco.lg }} color={t.cor.primaria} />

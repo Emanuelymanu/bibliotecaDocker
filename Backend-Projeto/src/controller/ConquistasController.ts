@@ -2,6 +2,7 @@ import { Op, Sequelize } from 'sequelize';
 import { conquistas } from '../models-auto/conquistas';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
+import { generos } from '../models-auto/generos';
 import { metas_leituras } from '../models-auto/metas_leituras';
 import { sessoes_leitura } from '../models-auto/sessoes_leitura';
 import { usuario_conquistas } from '../models-auto/usuario_conquistas';
@@ -11,6 +12,7 @@ type EstatisticasConquistas = {
     paginasLidas: number;
     totalSessoes: number;
     possuiMeta: boolean;
+    livrosLidosPorGenero: Record<string, number>;
 };
 
 function extrairNumero(texto: string): number | null {
@@ -35,6 +37,13 @@ function atendeCriterio(textoBase: string, estatisticas: EstatisticasConquistas)
     }
 
     if (texto.includes('livro') || texto.includes('leitura')) {
+        const generoMencionado = Object.keys(estatisticas.livrosLidosPorGenero)
+            .find((nomeGenero) => texto.includes(nomeGenero));
+
+        if (generoMencionado) {
+            return estatisticas.livrosLidosPorGenero[generoMencionado] >= alvo;
+        }
+
         return estatisticas.livrosLidos >= alvo;
     }
 
@@ -45,18 +54,36 @@ async function carregarEstatisticas(usuarioId: number): Promise<EstatisticasConq
     const leiturasDoUsuario = await leituras.findAll({
         where: { id_usuario: usuarioId },
         attributes: ['id_leitura', 'status'],
-        include: [{ model: livros, as: 'id_livro_livro', attributes: ['num_paginas'] }]
+        include: [{
+            model: livros,
+            as: 'id_livro_livro',
+            attributes: ['num_paginas'],
+            include: [{
+                model: generos,
+                as: 'generos',
+                attributes: ['nome'],
+                through: { attributes: [] }
+            }]
+        }]
     });
 
     const idsLeituras = leiturasDoUsuario.map((leitura) => leitura.id_leitura);
-    const livrosLidos = leiturasDoUsuario.filter((leitura) => leitura.status === 'lido').length;
-    const paginasLidas = leiturasDoUsuario.reduce((total, leitura) => {
-        if (leitura.status !== 'lido') {
-            return total;
-        }
-
+    const leiturasLidas = leiturasDoUsuario.filter((leitura) => leitura.status === 'lido');
+    const livrosLidos = leiturasLidas.length;
+    const paginasLidas = leiturasLidas.reduce((total, leitura) => {
         return total + Number(leitura.id_livro_livro?.num_paginas || 0);
     }, 0);
+
+    const livrosLidosPorGenero: Record<string, number> = {};
+    leiturasLidas.forEach((leitura) => {
+        const generosLivro = leitura.id_livro_livro?.generos || [];
+        generosLivro.forEach((genero) => {
+            if (genero.nome) {
+                const chave = genero.nome.toLowerCase();
+                livrosLidosPorGenero[chave] = (livrosLidosPorGenero[chave] || 0) + 1;
+            }
+        });
+    });
 
     const totalSessoes = idsLeituras.length
         ? await sessoes_leitura.count({ where: { id_leitura: { [Op.in]: idsLeituras } } })
@@ -68,7 +95,8 @@ async function carregarEstatisticas(usuarioId: number): Promise<EstatisticasConq
         livrosLidos,
         paginasLidas,
         totalSessoes,
-        possuiMeta
+        possuiMeta,
+        livrosLidosPorGenero
     };
 }
 

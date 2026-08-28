@@ -2,11 +2,20 @@ import { Router } from 'express';
 import { conquistas } from '../models-auto/conquistas';
 import { usuario_conquistas } from '../models-auto/usuario_conquistas';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { adminMiddleware } from '../middleware/Adminmiddleware';
 import { verificarConquistas } from '../controller/ConquistasController';
+import { AdminConquistasController } from '../controller/AdminConquistasController';
 
 const router = Router();
+const adminController = new AdminConquistasController();
 
 router.use(authMiddleware);
+
+router.get('/admin/todas', adminMiddleware, (req, res) => adminController.listarTodas(req, res));
+router.post('/admin', adminMiddleware, (req, res) => adminController.criar(req, res));
+router.put('/admin/:id', adminMiddleware, (req, res) => adminController.editar(req, res));
+router.delete('/admin/:id', adminMiddleware, (req, res) => adminController.apagar(req, res));
+router.post('/admin/:id/conceder', adminMiddleware, (req, res) => adminController.conceder(req, res));
 
 router.get('/', async (req, res) => {
     try {
