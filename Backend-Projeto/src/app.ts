@@ -24,6 +24,8 @@ const allowedOrigins = [
   'https://localhost',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:8081', 
+  'http://localhost:19006',
   'http://estantedigital.local',
   'https://estantedigital.local',
 

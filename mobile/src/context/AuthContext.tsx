@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../services/authService';
+import { definirCallbackSessaoExpirada } from '../services/api';
 import { Usuario } from '../types/auth';
 
 interface AuthContextData {
@@ -7,6 +8,7 @@ interface AuthContextData {
     carregando: boolean;
     login: (email: string, senha: string) => Promise<void>;
     logout: () => Promise<void>;
+    atualizarUsuario: (dados: Partial<Usuario>) => void;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -17,6 +19,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         carregarUsuarioSalvo();
+
+        definirCallbackSessaoExpirada(() => setUsuario(null));
+        return () => definirCallbackSessaoExpirada(null);
     }, []);
 
     async function carregarUsuarioSalvo() {
@@ -38,8 +43,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsuario(null);
     }
 
+    // Atualiza só os campos que mudaram (ex: depois de editar o perfil),
+    // sem precisar deslogar e logar de novo pra refletir em outras telas.
+    function atualizarUsuario(dados: Partial<Usuario>) {
+        setUsuario((atual) => (atual ? { ...atual, ...dados } : atual));
+    }
+
     return (
-        <AuthContext.Provider value={{ usuario, carregando, login, logout }}>
+        <AuthContext.Provider value={{ usuario, carregando, login, logout, atualizarUsuario }}>
             {children}
         </AuthContext.Provider>
     );
