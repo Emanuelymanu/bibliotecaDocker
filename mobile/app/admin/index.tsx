@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
 import { adminTheme as t } from '@/src/constants/adminTheme';
+import { useAuth } from '@/src/context/AuthContext';
 
 type ChaveStat = 'conquistas' | 'autores' | 'editoras' | 'generos';
 
@@ -17,6 +18,7 @@ const ITENS = [
 
 export default function AdminHomeScreen() {
     const router = useRouter();
+    const { logout } = useAuth();
     const [stats, setStats] = useState<Record<ChaveStat, number> | null>(null);
 
     useEffect(() => {
@@ -25,16 +27,26 @@ export default function AdminHomeScreen() {
             .catch((err) => console.error('Erro ao buscar estatísticas:', err));
     }, []);
 
+    function confirmarSaida() {
+        Alert.alert('Sair', 'Tem certeza que quer sair da conta?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Sair', style: 'destructive', onPress: () => logout() },
+        ]);
+    }
+
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.voltarBotao}>
                     <Ionicons name="chevron-back" size={24} color={t.cor.texto} />
                 </TouchableOpacity>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.headerTitulo}>Painel Admin</Text>
                     <Text style={styles.headerSubtitulo}>Gerenciamento do sistema</Text>
                 </View>
+                <TouchableOpacity onPress={confirmarSaida} style={styles.sairBotao}>
+                    <Ionicons name="log-out-outline" size={22} color={t.cor.perigo} />
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -105,6 +117,7 @@ const styles = StyleSheet.create({
         borderBottomColor: t.cor.borda,
     },
     voltarBotao: { padding: t.espaco.xs, marginRight: t.espaco.xs },
+    sairBotao: { padding: t.espaco.xs, marginLeft: t.espaco.xs },
     headerTitulo: { fontSize: 17, fontWeight: '700', color: t.cor.texto },
     headerSubtitulo: { fontSize: 12.5, color: t.cor.textoSecundario },
     scroll: { padding: t.espaco.lg },
