@@ -35,7 +35,7 @@ export class EditarLivrosController {
     async deletarLivro(req: Request, res: Response): Promise<Response> {
         try {
             const id = Number(req.params.id);
-            await livrosService.deletarLivro(id);
+            await livrosService.deletarLivro(id, req.usuario);
             return res.json({ message: 'Livro deletado com sucesso' });
         } catch (error) {
             if (error instanceof HttpError) {

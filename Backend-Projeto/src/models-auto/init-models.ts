@@ -124,6 +124,9 @@ export function initModels(sequelize: Sequelize) {
   livros.belongsTo(editoras, { as: "editora", foreignKey: "id_editora" });
   editoras.hasMany(livros, { as: "livros", foreignKey: "id_editora" });
 
+  livros.belongsTo(usuarios, { as: "cadastradoPor", foreignKey: "id_usuario_cadastro" });
+  usuarios.hasMany(livros, { as: "livros_cadastrados", foreignKey: "id_usuario_cadastro" });
+
   livros.belongsToMany(autores, { as: "autores", through: livros_autores, foreignKey: "id_livro", otherKey: "id_autor" });
   autores.belongsToMany(livros, { as: "livros", through: livros_autores, foreignKey: "id_autor", otherKey: "id_livro" });
   livros_autores.belongsTo(livros, { as: "livro", foreignKey: "id_livro" });

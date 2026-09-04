@@ -18,11 +18,12 @@ export interface livrosAttributes {
   capa?: string;
   avaliacao_media?: number; // averageRating do Google Books
   total_avaliacoes?: number; // ratingsCount do Google Books
+  id_usuario_cadastro?: number; // usuário que cadastrou o livro no catálogo
 }
 
 export type livrosPk = "id_livro";
 export type livrosId = livros[livrosPk];
-export type livrosOptionalAttributes = "id_livro" | "id_google" | "subtitulo" | "tipo_obra" | "ano_publicacao" | "num_paginas" | "id_editora" | "capa" | "avaliacao_media" | "total_avaliacoes";
+export type livrosOptionalAttributes = "id_livro" | "id_google" | "subtitulo" | "tipo_obra" | "ano_publicacao" | "num_paginas" | "id_editora" | "capa" | "avaliacao_media" | "total_avaliacoes" | "id_usuario_cadastro";
 export type livrosCreationAttributes = Optional<livrosAttributes, livrosOptionalAttributes>;
 
 export class livros extends Model<livrosAttributes, livrosCreationAttributes> implements livrosAttributes {
@@ -37,6 +38,7 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
   capa?: string;
   avaliacao_media?: number;
   total_avaliacoes?: number;
+  id_usuario_cadastro?: number;
 
   leituras!: leituras[];
   getLeituras!: Sequelize.HasManyGetAssociationsMixin<leituras>;
@@ -130,6 +132,14 @@ export class livros extends Model<livrosAttributes, livrosCreationAttributes> im
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0
+      },
+      id_usuario_cadastro: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'usuarios',
+          key: 'id_usuario'
+        }
       }
     },
 

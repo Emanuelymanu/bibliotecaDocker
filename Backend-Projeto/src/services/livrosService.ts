@@ -61,6 +61,20 @@ function removerArquivoCapaSeExistir(capa: string | null | undefined) {
 
 export class LivrosService {
 
+    private verificarPermissaoEdicao(livro: livros, usuario: { id: number; tipo_usuario?: string } | undefined) {
+        if (!usuario) {
+            throw new HttpError(401, 'Usuário não autenticado');
+        }
+
+        if (usuario.tipo_usuario === 'admin') {
+            return;
+        }
+
+        if (livro.id_usuario_cadastro !== usuario.id) {
+            throw new HttpError(403, 'Você só pode editar ou excluir livros que você mesmo cadastrou');
+        }
+    }
+
     private async resolverEditora(nomeEditora: string | null, transaction: any): Promise<number | null> {
         if (!nomeEditora) return null;
         const [editoraLocal] = await editoras.findOrCreate({
@@ -129,7 +143,8 @@ export class LivrosService {
                 id_editora: idEditora ?? undefined,
                 capa: normalizarTexto(capa) ?? undefined,
                 avaliacao_media: normalizarInteiro(avaliacao_media) ?? undefined,
-                total_avaliacoes: normalizarInteiro(total_avaliacoes) ?? undefined
+                total_avaliacoes: normalizarInteiro(total_avaliacoes) ?? undefined,
+                id_usuario_cadastro: idUsuario
             };
 
             const [livroLocal, livroCriado] = await livros.findOrCreate({
@@ -169,7 +184,7 @@ export class LivrosService {
         return resultado.livroLocal.get();
     }
 
-    async atualizarLivro(id: number, dados: AtualizarLivroInput, usuario: { id: number } | undefined, arquivo?: { filename: string }, protocoloEHost?: string): Promise<LivroResponse> {
+    async atualizarLivro(id: number, dados: AtualizarLivroInput, usuario: { id: number; tipo_usuario?: string } | undefined, arquivo?: { filename: string }, protocoloEHost?: string): Promise<LivroResponse> {
         if (isNaN(id)) {
             throw new HttpError(400, 'ID inválido. O ID deve ser um número.');
         }
@@ -178,6 +193,8 @@ export class LivrosService {
         if (!livroExiste) {
             throw new HttpError(404, 'Livro não encontrado');
         }
+
+        this.verificarPermissaoEdicao(livroExiste, usuario);
 
         const livroAtualizado = await sequelize.transaction(async (transaction) => {
             const livro = await livros.findByPk(id, { transaction });
@@ -278,7 +295,7 @@ export class LivrosService {
         };
     }
 
-    async deletarLivro(id: number): Promise<void> {
+    async deletarLivro(id: number, usuario: { id: number; tipo_usuario?: string } | undefined): Promise<void> {
         if (isNaN(id)) {
             throw new HttpError(400, 'ID inválido. O ID deve ser um número.');
         }
@@ -287,6 +304,8 @@ export class LivrosService {
         if (!livro) {
             throw new HttpError(404, 'Livro não encontrado');
         }
+
+        this.verificarPermissaoEdicao(livro, usuario);
 
         await sequelize.transaction(async (transaction) => {
             const leiturasDoLivro = await leituras.findAll({ where: { id_livro: id }, transaction });
