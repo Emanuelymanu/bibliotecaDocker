@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -15,7 +15,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+import AutocompleteInput from '@/components/AutocompleteInput';
 import { livroService } from '@/src/services/livroService';
+import { livrosService, OpcoesFiltro } from '@/src/services/livrosService';
 import { validarImagemCapa } from '@/src/utils/validarImagem';
 import { CapaSelecionada, TipoObra } from '@/src/types/livro';
 
@@ -32,13 +34,44 @@ export default function CadastroLivroScreen() {
 
     const [titulo, setTitulo] = useState('');
     const [subtitulo, setSubtitulo] = useState('');
-    const [autor, setAutor] = useState('');
     const [tipoObra, setTipoObra] = useState<TipoObra>('unico');
     const [anoPublicacao, setAnoPublicacao] = useState('');
     const [numPaginas, setNumPaginas] = useState('');
-    const [genero, setGenero] = useState('');
     const [editora, setEditora] = useState('');
     const [capa, setCapa] = useState<CapaSelecionada | null>(null);
+
+    const [autores, setAutores] = useState<string[]>([]);
+    const [autorTexto, setAutorTexto] = useState('');
+    const [generos, setGeneros] = useState<string[]>([]);
+    const [generoTexto, setGeneroTexto] = useState('');
+
+    const [opcoes, setOpcoes] = useState<OpcoesFiltro>({ autores: [], editoras: [], generos: [] });
+
+    useEffect(() => {
+        livrosService.buscarOpcoesFiltro().then(setOpcoes).catch(() => {});
+    }, []);
+
+    function adicionarAutor(nome: string) {
+        const limpo = nome.trim();
+        if (!limpo || autores.includes(limpo)) return;
+        setAutores((atual) => [...atual, limpo]);
+        setAutorTexto('');
+    }
+
+    function removerAutor(nome: string) {
+        setAutores((atual) => atual.filter((a) => a !== nome));
+    }
+
+    function adicionarGenero(nome: string) {
+        const limpo = nome.trim();
+        if (!limpo || generos.includes(limpo)) return;
+        setGeneros((atual) => [...atual, limpo]);
+        setGeneroTexto('');
+    }
+
+    function removerGenero(nome: string) {
+        setGeneros((atual) => atual.filter((g) => g !== nome));
+    }
 
     async function escolherCapa() {
         const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -77,8 +110,8 @@ export default function CadastroLivroScreen() {
             Alert.alert('Atenção', 'Título é obrigatório');
             return;
         }
-        if (!autor.trim()) {
-            Alert.alert('Atenção', 'Autor é obrigatório');
+        if (autores.length === 0) {
+            Alert.alert('Atenção', 'Adicione pelo menos um autor');
             return;
         }
         if (!numPaginas.trim()) {
@@ -95,11 +128,11 @@ export default function CadastroLivroScreen() {
             await livroService.cadastrarComCapa({
                 titulo: titulo.trim(),
                 subtitulo: subtitulo.trim() || undefined,
-                autor: autor.trim(),
+                autores,
                 tipo_obra: tipoObra,
                 ano_publicacao: anoPublicacao.trim() || undefined,
                 num_paginas: numPaginas.trim(),
-                genero: genero.trim() || undefined,
+                generos: generos.length > 0 ? generos : undefined,
                 editora: editora.trim() || undefined,
             }, capa);
 
@@ -140,8 +173,26 @@ export default function CadastroLivroScreen() {
                 <Text style={styles.label}>SUBTÍTULO</Text>
                 <TextInput style={styles.input} value={subtitulo} onChangeText={setSubtitulo} placeholderTextColor="#999" />
 
-                <Text style={styles.label}>AUTOR *</Text>
-                <TextInput style={styles.input} value={autor} onChangeText={setAutor} placeholder="ex: Machado de Assis" placeholderTextColor="#999" />
+                <Text style={styles.label}>AUTORES *</Text>
+                {autores.length > 0 && (
+                    <View style={styles.chipsLinha}>
+                        {autores.map((nome) => (
+                            <TouchableOpacity key={nome} style={styles.tag} onPress={() => removerAutor(nome)}>
+                                <Text style={styles.tagTexto}>{nome}</Text>
+                                <Ionicons name="close" size={14} color="#fff" />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+                <AutocompleteInput
+                    valor={autorTexto}
+                    onChangeValor={setAutorTexto}
+                    onSelecionarOpcao={adicionarAutor}
+                    onSubmitEditing={() => adicionarAutor(autorTexto)}
+                    opcoes={opcoes.autores}
+                    excluir={autores}
+                    placeholder="ex: Machado de Assis"
+                />
 
                 <Text style={styles.label}>TIPO DE OBRA</Text>
                 <View style={styles.chipsLinha}>
@@ -162,11 +213,35 @@ export default function CadastroLivroScreen() {
                 <Text style={styles.label}>NÚMERO DE PÁGINAS *</Text>
                 <TextInput style={styles.input} value={numPaginas} onChangeText={setNumPaginas} keyboardType="numeric" placeholderTextColor="#999" />
 
-                <Text style={styles.label}>GÊNERO</Text>
-                <TextInput style={styles.input} value={genero} onChangeText={setGenero} placeholderTextColor="#999" />
+                <Text style={styles.label}>GÊNEROS</Text>
+                {generos.length > 0 && (
+                    <View style={styles.chipsLinha}>
+                        {generos.map((nome) => (
+                            <TouchableOpacity key={nome} style={styles.tag} onPress={() => removerGenero(nome)}>
+                                <Text style={styles.tagTexto}>{nome}</Text>
+                                <Ionicons name="close" size={14} color="#fff" />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+                <AutocompleteInput
+                    valor={generoTexto}
+                    onChangeValor={setGeneroTexto}
+                    onSelecionarOpcao={adicionarGenero}
+                    onSubmitEditing={() => adicionarGenero(generoTexto)}
+                    opcoes={opcoes.generos}
+                    excluir={generos}
+                    placeholder="ex: Romance"
+                />
 
                 <Text style={styles.label}>EDITORA</Text>
-                <TextInput style={styles.input} value={editora} onChangeText={setEditora} placeholderTextColor="#999" />
+                <AutocompleteInput
+                    valor={editora}
+                    onChangeValor={setEditora}
+                    onSelecionarOpcao={setEditora}
+                    opcoes={opcoes.editoras}
+                    placeholder="ex: Companhia das Letras"
+                />
 
                 <TouchableOpacity style={styles.botaoSalvar} onPress={salvar} disabled={salvando}>
                     {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoSalvarTexto}>Salvar Livro</Text>}
@@ -206,6 +281,12 @@ const styles = StyleSheet.create({
     chipSelecionado: { backgroundColor: '#6200ee', borderColor: '#6200ee' },
     chipTexto: { fontSize: 13, color: '#666', fontWeight: '600' },
     chipTextoSelecionado: { color: '#fff' },
+    tag: {
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16,
+        backgroundColor: '#6200ee',
+    },
+    tagTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
     botaoSalvar: {
         backgroundColor: '#6200ee', borderRadius: 8, paddingVertical: 14,
         alignItems: 'center', marginTop: 28,

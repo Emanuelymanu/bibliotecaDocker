@@ -3,11 +3,11 @@ export type TipoObra = 'unico' | 'trilogia' | 'serie' | 'colecao';
 export interface CriarLivroDTO {
     titulo: string;
     subtitulo?: string;
-    autor: string;
+    autores: string[];
     tipo_obra: TipoObra;
     ano_publicacao?: string;
     num_paginas: string;
-    genero?: string;
+    generos?: string[];
     editora?: string;
 }
 

@@ -1,3 +1,5 @@
+import { api } from './api';
+
 export interface Livro {
   id_google: string;
   titulo: string;
@@ -10,11 +12,6 @@ export interface Livro {
   total_avaliacoes?: number;
   editora?: string;
   generos?: string[];
-}
-
-export interface GoogleBooksResponse {
-  items: GoogleBooksItem[];
-  totalItems: number;
 }
 
 interface GoogleBooksItem {
@@ -36,42 +33,41 @@ interface GoogleBooksItem {
   };
 }
 
+function mapearItemGoogle(item: GoogleBooksItem): Livro {
+  return {
+    id_google: item.id,
+    titulo: item.volumeInfo.title || 'Título desconhecido',
+    subtitulo: item.volumeInfo.subtitle,
+    autores: item.volumeInfo.authors || ['Autor desconhecido'],
+    capa: item.volumeInfo.imageLinks?.thumbnail || item.volumeInfo.imageLinks?.medium || '',
+    num_paginas: item.volumeInfo.pageCount || 0,
+    ano_publicacao: extrairAno(item.volumeInfo.publishedDate),
+    avaliacao_media: item.volumeInfo.averageRating || 0,
+    total_avaliacoes: item.volumeInfo.ratingsCount || 0,
+    editora: item.volumeInfo.publisher,
+    generos: item.volumeInfo.categories,
+  };
+}
+
+/**
+ * Busca livros via GET /api/livros/buscar (backend), que por sua vez chama a
+ * Google Books API usando a chave configurada no servidor. Passar pelo
+ * backend evita que cada aparelho bata direto na cota anônima (bem menor e
+ * compartilhada) da API do Google.
+ */
 export async function buscarLivrosNaAPI(termoBusca: string): Promise<Livro[]> {
   if (!termoBusca.trim()) {
     return [];
   }
 
   try {
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(termoBusca)}&maxResults=40`
-    );
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const data: GoogleBooksResponse = await response.json();
-
-    if (!data.items) {
-      return [];
-    }
-
-    return data.items.map((item) => ({
-      id_google: item.id,
-      titulo: item.volumeInfo.title || 'Título desconhecido',
-      subtitulo: item.volumeInfo.subtitle,
-      autores: item.volumeInfo.authors || ['Autor desconhecido'],
-      capa: item.volumeInfo.imageLinks?.thumbnail || item.volumeInfo.imageLinks?.medium || '',
-      num_paginas: item.volumeInfo.pageCount || 0,
-      ano_publicacao: extrairAno(item.volumeInfo.publishedDate),
-      avaliacao_media: item.volumeInfo.averageRating || 0,
-      total_avaliacoes: item.volumeInfo.ratingsCount || 0,
-      editora: item.volumeInfo.publisher,
-      generos: item.volumeInfo.categories,
-    }));
-  } catch (error) {
+    const { data } = await api.get('/livros/buscar', { params: { query: termoBusca } });
+    const items: GoogleBooksItem[] = data.livros ?? [];
+    return items.map(mapearItemGoogle);
+  } catch (error: any) {
+    const mensagem = error.response?.data?.erro || 'Não foi possível buscar os livros. Tente novamente.';
     console.error('Erro ao buscar livros:', error);
-    return [];
+    throw new Error(mensagem);
   }
 }
 

@@ -25,12 +25,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     async function carregarUsuarioSalvo() {
-        const usuarioSalvo = await authService.getUsuarioSalvo();
-        const token = await authService.getToken();
-        if (usuarioSalvo && token) {
-            setUsuario(usuarioSalvo);
+        try {
+            const usuarioSalvo = await authService.getUsuarioSalvo();
+            const token = await authService.getToken();
+            if (usuarioSalvo && token) {
+                setUsuario(usuarioSalvo);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar sessão salva:', error);
+        } finally {
+            setCarregando(false);
         }
-        setCarregando(false);
     }
 
     async function login(email: string, senha: string) {

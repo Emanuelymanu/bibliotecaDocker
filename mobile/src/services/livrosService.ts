@@ -30,6 +30,12 @@ export interface LivroCompleto {
   editora: string | null;
 }
 
+export interface OpcoesFiltro {
+  autores: string[];
+  editoras: string[];
+  generos: string[];
+}
+
 export interface AtualizarLivroPayload {
   titulo: string;
   subtitulo?: string;
@@ -90,5 +96,15 @@ export const livrosService = {
   /** DELETE /api/livros/deletar/:id */
   async deletar(idLivro: number): Promise<void> {
     await api.delete(`/livros/deletar/${idLivro}`);
+  },
+
+  /** GET /api/livros/filtros/opcoes — rota pública, alimenta os autocompletes do cadastro de livro */
+  async buscarOpcoesFiltro(): Promise<OpcoesFiltro> {
+    const { data } = await api.get('/livros/filtros/opcoes');
+    return {
+      autores: data.autores ?? [],
+      editoras: data.editoras ?? [],
+      generos: data.generos ?? [],
+    };
   },
 };
