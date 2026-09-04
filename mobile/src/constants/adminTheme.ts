@@ -21,6 +21,7 @@ export const adminTheme = {
         autores: { icone: '#2563EB', fundo: '#DBEAFE' },
         editoras: { icone: '#7C3AED', fundo: '#EDE4FB' },
         generos: { icone: '#059669', fundo: '#D1FAE5' },
+        usuarios: { icone: '#DB2777', fundo: '#FCE7F3' },
     },
   
     avatares: [

@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { AdmincatalogoController } from '../controller/AdmincatalogoController';
+import { AdminUsuariosController } from '../controller/AdminUsuariosController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { adminMiddleware } from '../middleware/Adminmiddleware';
 
 const router = Router();
 const controller = new AdmincatalogoController();
+const usuariosController = new AdminUsuariosController();
 
 
 router.use(authMiddleware, adminMiddleware);
@@ -26,5 +28,9 @@ router.get('/generos', (req, res) => controller.listarGeneros(req, res));
 router.put('/generos/:id', (req, res) => controller.editarGenero(req, res));
 router.delete('/generos/:id', (req, res) => controller.deletarGenero(req, res));
 router.post('/generos/mesclar', (req, res) => controller.mesclarGeneros(req, res));
+
+router.get('/usuarios', (req, res) => usuariosController.listar(req, res));
+router.put('/usuarios/:id/promover', (req, res) => usuariosController.promover(req, res));
+router.put('/usuarios/:id/rebaixar', (req, res) => usuariosController.rebaixar(req, res));
 
 export default router;

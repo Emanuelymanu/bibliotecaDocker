@@ -1,5 +1,5 @@
 import { api } from './api';
-import { Autor, Editora, Genero, tipoCatalogo, Conquista } from '../types/adminTypes';
+import { Autor, Editora, Genero, tipoCatalogo, Conquista, UsuarioAdmin } from '../types/adminTypes';
 
 export const adminService = {
    
@@ -65,5 +65,21 @@ export const adminService = {
 
     async concederConquista(idConquista: number, idUsuario: number): Promise<void> {
         await api.post(`/conquistas/admin/${idConquista}/conceder`, { id_usuario: idUsuario });
+    },
+
+
+    async listarUsuarios(busca?: string): Promise<UsuarioAdmin[]> {
+        const { data } = await api.get('/admin/usuarios', { params: busca ? { busca } : undefined });
+        return data.usuarios;
+    },
+
+    async promoverUsuario(id: number): Promise<UsuarioAdmin> {
+        const { data } = await api.put(`/admin/usuarios/${id}/promover`);
+        return data.usuario;
+    },
+
+    async rebaixarUsuario(id: number): Promise<UsuarioAdmin> {
+        const { data } = await api.put(`/admin/usuarios/${id}/rebaixar`);
+        return data.usuario;
     },
 };
