@@ -1,10 +1,3 @@
-// app/(tabs)/leituras.tsx
-//
-// Tela Leituras — mostra os livros que estão com status "lendo" no momento.
-// Ao tocar num livro, abre um cartão de baixo com duas abas:
-// - Progresso: atualizar a página atual, marcar como lido ou abandonar
-// - Anotações: navegar página a página e ver/criar anotações daquela página
-
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -20,11 +13,14 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 
 import { Brand } from '@/constants/Brand';
 import { BookCard } from '@/components/BookCard';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
 import { anotacoesService, Anotacao } from '@/src/services/anotacoesService';
+import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 
 export default function LeiturasScreen() {
   const [leituras, setLeituras] = useState<LeituraItem[]>([]);
@@ -46,9 +42,11 @@ export default function LeiturasScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    carregar();
-  }, [carregar]);
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [carregar])
+  );
 
   function removerDaLista(idLeitura: number) {
     setLeituras((lista) => lista.filter((l) => l.id_leitura !== idLeitura));
@@ -56,7 +54,7 @@ export default function LeiturasScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Minhas Leituras</Text>
         <Text style={styles.contagem}>{leituras.length} livro{leituras.length === 1 ? '' : 's'} em leitura</Text>
@@ -97,11 +95,10 @@ export default function LeiturasScreen() {
       {selecionada && (
         <LeituraSheet leitura={selecionada} onClose={() => setSelecionada(null)} onFinalizada={removerDaLista} />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
-// ---------- Bottom sheet com abas ----------
 function LeituraSheet({
   leitura,
   onClose,
@@ -130,13 +127,14 @@ function LeituraSheet({
     }
     setSalvando(true);
     try {
-      await leiturasService.atualizarProgresso(leitura.id_leitura, { pagina_atual: valor });
+      const novasConquistas = await leiturasService.atualizarProgresso(leitura.id_leitura, { pagina_atual: valor });
       if (numPaginas != null && valor === numPaginas) {
         Alert.alert('Parabéns! 🎉', 'Livro marcado como lido automaticamente.');
         onFinalizada(leitura.id_leitura);
       } else {
         onClose();
       }
+      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível atualizar o progresso.');
       console.error(e);
@@ -148,8 +146,9 @@ function LeituraSheet({
   async function marcarComoLido() {
     setSalvando(true);
     try {
-      await leiturasService.atualizarProgresso(leitura.id_leitura, { status: 'lido' });
+      const novasConquistas = await leiturasService.atualizarProgresso(leitura.id_leitura, { status: 'lido' });
       onFinalizada(leitura.id_leitura);
+      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível marcar como lido.');
       console.error(e);
@@ -246,7 +245,6 @@ function LeituraSheet({
   );
 }
 
-// ---------- Aba de anotações ----------
 function AbaAnotacoes({
   idLeitura,
   paginaInicial,

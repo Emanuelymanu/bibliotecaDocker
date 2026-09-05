@@ -1,3 +1,5 @@
+import { api } from './api';
+
 export interface Livro {
   id_google: string;
   titulo: string;
@@ -10,11 +12,6 @@ export interface Livro {
   total_avaliacoes?: number;
   editora?: string;
   generos?: string[];
-}
-
-export interface GoogleBooksResponse {
-  items: GoogleBooksItem[];
-  totalItems: number;
 }
 
 interface GoogleBooksItem {
@@ -41,22 +38,21 @@ export async function buscarLivrosNaAPI(termoBusca: string): Promise<Livro[]> {
     return [];
   }
 
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(termoBusca)}&maxResults=40`
-    );
+  // Busca via backend (GET /api/livros/buscar) em vez de chamar o Google
+  // Books direto do celular. O backend já usa a GOOGLE_BOOKS_API_KEY do
+  // .env, que tem uma cota bem maior que o acesso anônimo (que estava
+  // batendo em 429 rápido, principalmente em rede de operadora).
+  const { data } = await api.get<{ livros: GoogleBooksItem[] }>('/livros/buscar', {
+    params: { query: termoBusca },
+  });
 
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
+  const items = data.livros;
 
-    const data: GoogleBooksResponse = await response.json();
+  if (!items) {
+    return [];
+  }
 
-    if (!data.items) {
-      return [];
-    }
-
-    return data.items.map((item) => ({
+  return items.map((item) => ({
       id_google: item.id,
       titulo: item.volumeInfo.title || 'Título desconhecido',
       subtitulo: item.volumeInfo.subtitle,
@@ -68,11 +64,7 @@ export async function buscarLivrosNaAPI(termoBusca: string): Promise<Livro[]> {
       total_avaliacoes: item.volumeInfo.ratingsCount || 0,
       editora: item.volumeInfo.publisher,
       generos: item.volumeInfo.categories,
-    }));
-  } catch (error) {
-    console.error('Erro ao buscar livros:', error);
-    return [];
-  }
+  }));
 }
 
 function extrairAno(dataPublicacao?: string): number | undefined {
