@@ -1,10 +1,5 @@
-// src/services/leiturasService.ts
-//
-// Fala com as rotas /api/leituras/* do backend (arquivo leiturasRoutes.ts).
-// Segue o mesmo padrão dos outros services do projeto: usa a instância
-// `api` (axios) já configurada com o token de login.
-
 import { api } from './api';
+import { ConquistaDesbloqueada } from '../utils/celebrarConquistas';
 
 export interface LeituraItem {
   id_leitura: number;
@@ -23,7 +18,6 @@ export interface LeituraItem {
 }
 
 export const leiturasService = {
-  /** GET /api/leituras/listar — devolve as leituras do usuário logado, com os dados do livro já junto */
   async listar(status?: string): Promise<LeituraItem[]> {
     const params: Record<string, string | number> = { limit: 100 };
     if (status) params.status = status;
@@ -31,22 +25,17 @@ export const leiturasService = {
     return data.leituras ?? [];
   },
 
-  /** PUT /api/leituras/:id/progresso — troca o status (ex: "lendo" -> "lido") */
-  async atualizarStatus(idLeitura: number, status: string): Promise<void> {
-    await api.put(`/leituras/${idLeitura}/progresso`, { status });
+  async atualizarStatus(idLeitura: number, status: string): Promise<ConquistaDesbloqueada[]> {
+    const { data } = await api.put(`/leituras/${idLeitura}/progresso`, { status });
+    return data.novasConquistas ?? [];
   },
 
-  /**
-   * PUT /api/leituras/:id/progresso — mesma rota do atualizarStatus, mas
-   * aqui também dá pra mandar a página atual. Se pagina_atual chegar no
-   * total de páginas do livro, o próprio backend já marca como "lido"
-   * sozinho (não precisa mandar status junto nesse caso).
-   */
-  async atualizarProgresso(idLeitura: number, dados: { status?: string; pagina_atual?: number }): Promise<void> {
-    await api.put(`/leituras/${idLeitura}/progresso`, dados);
+
+  async atualizarProgresso(idLeitura: number, dados: { status?: string; pagina_atual?: number }): Promise<ConquistaDesbloqueada[]> {
+    const { data } = await api.put(`/leituras/${idLeitura}/progresso`, dados);
+    return data.novasConquistas ?? [];
   },
 
-  /** POST /api/leituras/:id/avaliar — só funciona se a leitura já estiver com status "lido" (regra do backend) */
   async avaliar(idLeitura: number, avaliacao: number): Promise<void> {
     await api.post(`/leituras/${idLeitura}/avaliar`, { avaliacao });
   },

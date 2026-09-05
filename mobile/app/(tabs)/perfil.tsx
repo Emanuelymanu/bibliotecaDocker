@@ -1,9 +1,3 @@
-// app/(tabs)/perfil.tsx
-//
-// Tela Meu Perfil — mostra os dados de quem está logado e permite editar
-// nome, CPF e (opcionalmente) trocar a senha. O e-mail não é editável
-// porque o backend não aceita esse campo no PUT /api/perfil.
-
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand } from '@/constants/Brand';
 import { perfilService, PerfilUsuario } from '@/src/services/perfilService';
@@ -68,22 +63,26 @@ export default function PerfilScreen() {
 
   if (carregando) {
     return (
-      <View style={[styles.container, styles.centro]}>
+      <SafeAreaView style={[styles.container, styles.centro]} edges={['top']}>
         <ActivityIndicator size="small" color={Brand.primary} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (erro || !perfil) {
     return (
-      <View style={[styles.container, styles.centro]}>
+      <SafeAreaView style={[styles.container, styles.centro]} edges={['top']}>
         <View style={styles.erroBox}>
           <Text style={styles.erroTexto}>{erro ?? 'Não foi possível carregar seu perfil.'}</Text>
           <TouchableOpacity onPress={carregar}>
             <Text style={styles.erroBotao}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        <TouchableOpacity style={[styles.botaoSair, { marginTop: 16, marginHorizontal: 16 }]} onPress={confirmarLogout}>
+          <Ionicons name="log-out-outline" size={18} color={Brand.danger} />
+          <Text style={styles.botaoSairTexto}>Sair</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     );
   }
 
@@ -95,7 +94,8 @@ export default function PerfilScreen() {
     .toUpperCase();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+    <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Meu Perfil</Text>
       </View>
@@ -141,10 +141,10 @@ export default function PerfilScreen() {
         </TouchableOpacity>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
-// ---------- Formulário de edição ----------
 function FormularioEdicao({
   perfil,
   onCancelar,

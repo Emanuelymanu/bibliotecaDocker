@@ -1,16 +1,3 @@
-// app/(tabs)/index.tsx
-//
-// Tela Início (Home) — layout ajustado pra bater com o mockup do Figma:
-// banner -> atalhos (Lista de Desejos / Conquistas / Sessões) -> Buscar
-// Livros -> Meta do ano (com 2 barras: livros e páginas) -> Mais Bem Avaliados.
-//
-// O que já é real: nome de quem logou (useAuth) e a lista de mais bem
-// avaliados (livrosService, puxa do backend).
-// O que ainda é fixo (placeholder): os números da Meta do ano — a rota
-// /api/metas ainda não foi ligada aqui. Quando ligar, é só trocar essas
-// 4 constantes (livrosAtual, livrosAlvo, paginasAtual, paginasAlvo) por
-// dados vindos da API.
-
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -24,25 +11,20 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand } from '@/constants/Brand';
 import { BookCard } from '@/components/BookCard';
 import { livrosService, LivroTopAvaliado } from '@/src/services/livrosService';
+import { metasService, Meta, Progresso } from '@/src/services/metasService';
 import { useAuth } from '@/src/context/AuthContext';
 
-// TODO: substituir por GET /api/metas/:ano quando essa rota for ligada no mobile
-const METAS_PLACEHOLDER = {
-  ano: new Date().getFullYear(),
-  livrosAtual: 5,
-  livrosAlvo: 24,
-  paginasAtual: 1747,
-  paginasAlvo: 8000,
-};
+const ANO_ATUAL = new Date().getFullYear();
 
 const ATALHOS = [
-  { key: 'wishlist', label: 'Lista de Desejos', icon: 'heart' as const, cor: '#ec4899', fundo: '#fce7f3' },
-  { key: 'conquistas', label: 'Conquistas', icon: 'trophy' as const, cor: '#d97706', fundo: '#fef3c7' },
-  { key: 'sessoes', label: 'Sessões', icon: 'timer' as const, cor: '#0d9488', fundo: '#ccfbf1' },
+  { key: 'wishlist', label: 'Lista de Desejos', icon: 'heart' as const, cor: '#ec4899', fundo: '#fce7f3', rota: '/lista-desejos' as const },
+  { key: 'conquistas', label: 'Conquistas', icon: 'trophy' as const, cor: '#d97706', fundo: '#fef3c7', rota: '/conquistas' as const },
+  { key: 'sessoes', label: 'Sessões', icon: 'timer' as const, cor: '#0d9488', fundo: '#ccfbf1', rota: '/sessoes' as const },
 ];
 
 export default function HomeScreen() {
@@ -53,6 +35,7 @@ export default function HomeScreen() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
+  const [meta, setMeta] = useState<{ meta: Meta; progresso: Progresso } | null>(null);
 
   const carregarTopAvaliados = useCallback(async () => {
     try {
@@ -73,6 +56,13 @@ export default function HomeScreen() {
     })();
   }, [carregarTopAvaliados]);
 
+  useEffect(() => {
+    metasService
+      .buscarPorAno(ANO_ATUAL)
+      .then(setMeta)
+      .catch(() => setMeta(null));
+  }, []);
+
   const onRefresh = useCallback(async () => {
     setAtualizando(true);
     await carregarTopAvaliados();
@@ -80,17 +70,20 @@ export default function HomeScreen() {
   }, [carregarTopAvaliados]);
 
   const primeiroNome = usuario?.nome?.split(' ')[0] ?? 'Leitor(a)';
-  const pctLivros = Math.round((METAS_PLACEHOLDER.livrosAtual / METAS_PLACEHOLDER.livrosAlvo) * 100);
-  const pctPaginas = Math.round((METAS_PLACEHOLDER.paginasAtual / METAS_PLACEHOLDER.paginasAlvo) * 100);
+  const livrosAlvo = meta?.meta.qtd_livros_alvo ?? null;
+  const paginasAlvo = meta?.meta.qtd_paginas_alvo ?? null;
+  const livrosAtual = meta?.progresso.livros_lidos ?? 0;
+  const paginasAtual = meta?.progresso.paginas_lidas ?? 0;
+  const pctLivros = livrosAlvo ? Math.min(100, Math.round((livrosAtual / livrosAlvo) * 100)) : 0;
+  const pctPaginas = paginasAlvo ? Math.min(100, Math.round((paginasAtual / paginasAlvo) * 100)) : 0;
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView
-      style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
     >
-      {/* Banner de boas-vindas */}
       <LinearGradient
         colors={[Brand.gradientStart, Brand.gradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -106,10 +99,14 @@ export default function HomeScreen() {
         </View>
       </LinearGradient>
 
-      {/* Atalhos */}
       <View style={styles.atalhosRow}>
         {ATALHOS.map((a) => (
-          <TouchableOpacity key={a.key} style={styles.atalhoCard} activeOpacity={0.8}>
+          <TouchableOpacity
+            key={a.key}
+            style={styles.atalhoCard}
+            activeOpacity={0.8}
+            onPress={() => a.rota && router.push(a.rota)}
+          >
             <View style={[styles.atalhoIconWrapper, { backgroundColor: a.fundo }]}>
               <Ionicons name={a.icon} size={16} color={a.cor} />
             </View>
@@ -120,7 +117,6 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Buscar Livros */}
       <View>
         <Text style={styles.secaoTitulo}>Buscar Livros</Text>
         <TouchableOpacity style={styles.searchShortcut} onPress={() => router.push('/busca')} activeOpacity={0.8}>
@@ -129,50 +125,54 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Meta do ano */}
       <View>
-        <Text style={styles.secaoTitulo}>Meta de {METAS_PLACEHOLDER.ano}</Text>
-        <View style={styles.metaCard}>
+        <Text style={styles.secaoTitulo}>Meta de {ANO_ATUAL}</Text>
+        <TouchableOpacity style={styles.metaCard} activeOpacity={0.85} onPress={() => router.push('/metas')}>
           <View style={styles.metaHeader}>
             <View style={styles.metaIconWrapper}>
               <Ionicons name="locate-outline" size={18} color="#7c3aed" />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.metaHeaderTitulo}>
-                {METAS_PLACEHOLDER.livrosAtual} de {METAS_PLACEHOLDER.livrosAlvo} livros
+                {livrosAlvo != null ? `${livrosAtual} de ${livrosAlvo} livros` : 'Nenhuma meta definida ainda'}
               </Text>
-              <Text style={styles.metaHeaderSubtitulo}>
-                {METAS_PLACEHOLDER.paginasAtual.toLocaleString('pt-BR')} de{' '}
-                {METAS_PLACEHOLDER.paginasAlvo.toLocaleString('pt-BR')} páginas
-              </Text>
+              {paginasAlvo != null && (
+                <Text style={styles.metaHeaderSubtitulo}>
+                  {paginasAtual.toLocaleString('pt-BR')} de {paginasAlvo.toLocaleString('pt-BR')} páginas
+                </Text>
+              )}
             </View>
+            <Ionicons name="chevron-forward" size={18} color={Brand.textSecondary} />
           </View>
 
-          <View style={styles.metaBarraBloco}>
-            <View style={styles.metaBarraLabelRow}>
-              <Text style={styles.metaBarraLabel}>Livros</Text>
-              <Text style={styles.metaBarraPct}>{pctLivros}%</Text>
+          {livrosAlvo != null && (
+            <View style={styles.metaBarraBloco}>
+              <View style={styles.metaBarraLabelRow}>
+                <Text style={styles.metaBarraLabel}>Livros</Text>
+                <Text style={styles.metaBarraPct}>{pctLivros}%</Text>
+              </View>
+              <View style={styles.metaBarTrack}>
+                <View style={[styles.metaBarFill, { width: `${pctLivros}%`, backgroundColor: Brand.gradientStart }]} />
+              </View>
             </View>
-            <View style={styles.metaBarTrack}>
-              <View style={[styles.metaBarFill, { width: `${pctLivros}%`, backgroundColor: Brand.gradientStart }]} />
-            </View>
-          </View>
+          )}
 
-          <View style={styles.metaBarraBloco}>
-            <View style={styles.metaBarraLabelRow}>
-              <Text style={styles.metaBarraLabel}>Páginas</Text>
-              <Text style={styles.metaBarraPct}>{pctPaginas}%</Text>
+          {paginasAlvo != null && (
+            <View style={styles.metaBarraBloco}>
+              <View style={styles.metaBarraLabelRow}>
+                <Text style={styles.metaBarraLabel}>Páginas</Text>
+                <Text style={styles.metaBarraPct}>{pctPaginas}%</Text>
+              </View>
+              <View style={styles.metaBarTrack}>
+                <View style={[styles.metaBarFill, { width: `${pctPaginas}%`, backgroundColor: Brand.gradientEnd }]} />
+              </View>
             </View>
-            <View style={styles.metaBarTrack}>
-              <View style={[styles.metaBarFill, { width: `${pctPaginas}%`, backgroundColor: Brand.gradientEnd }]} />
-            </View>
-          </View>
-        </View>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Mais Bem Avaliados */}
       <View>
-        <Text style={styles.secaoTitulo}>Mais Bem Avaliados</Text>
+        <Text style={styles.secaoTitulo}>Meus Livros</Text>
 
         {carregando ? (
           <ActivityIndicator size="small" color={Brand.primary} style={styles.loading} />
@@ -197,7 +197,7 @@ export default function HomeScreen() {
                   capa={livro.capa}
                   badgeNota={nota}
                   onPress={() => {
-                    // TODO: navegar para a tela de detalhes do livro quando ela existir
+
                     console.log('Abrir detalhes de', livro.titulo);
                   }}
                 />
@@ -207,6 +207,7 @@ export default function HomeScreen() {
         )}
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
