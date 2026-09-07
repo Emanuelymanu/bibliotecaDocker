@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,7 @@ export default function MetasScreen() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [editorAberto, setEditorAberto] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -44,6 +46,12 @@ export default function MetasScreen() {
 
   useEffect(() => {
     carregar();
+  }, [carregar]);
+
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
   }, [carregar]);
 
   const metaDoAno = metas.find((m) => m.meta.ano === ANO_ATUAL);
@@ -78,17 +86,21 @@ export default function MetasScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={carregar}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={carregando || erro ? styles.centro : styles.scroll}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={carregar}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
           <LinearGradient
             colors={[Brand.gradientStart, Brand.gradientEnd]}
             start={{ x: 0, y: 0 }}
@@ -154,8 +166,9 @@ export default function MetasScreen() {
               })}
             </View>
           )}
-        </ScrollView>
-      )}
+          </>
+        )}
+      </ScrollView>
 
       {editorAberto && (
         <EditorMeta
@@ -237,6 +250,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 },
   tituloTela: { fontSize: 16, fontWeight: '700', color: Brand.textPrimary },
   scroll: { padding: 16 },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   cardMeta: { borderRadius: 16, padding: 20 },
   cardMetaAno: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
   linhaLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },

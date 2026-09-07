@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,6 +13,7 @@ export default function ListaDesejosScreen() {
   const [itens, setItens] = useState<ItemDesejo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -30,6 +31,12 @@ export default function ListaDesejosScreen() {
 
   useEffect(() => {
     carregar();
+  }, [carregar]);
+
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
   }, [carregar]);
 
   function confirmarRemocao(idLivro: number, titulo: string) {
@@ -61,24 +68,27 @@ export default function ListaDesejosScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={carregar}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : itens.length === 0 ? (
-        <View style={styles.vazioBox}>
-          <Ionicons name="heart-outline" size={40} color={Brand.placeholderIcon} />
-          <Text style={styles.vazioTexto}>Sua lista de desejos está vazia.</Text>
-          <Text style={styles.vazioSubtexto}>Adicione livros pela tela de Buscar.</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.grid}>
-          {itens.map((item) =>
+      <ScrollView
+        contentContainerStyle={itens.length > 0 ? styles.grid : styles.centro}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={carregar}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : itens.length === 0 ? (
+          <View style={styles.vazioBox}>
+            <Ionicons name="heart-outline" size={40} color={Brand.placeholderIcon} />
+            <Text style={styles.vazioTexto}>Sua lista de desejos está vazia.</Text>
+            <Text style={styles.vazioSubtexto}>Adicione livros pela tela de Buscar.</Text>
+          </View>
+        ) : (
+          itens.map((item) =>
             item.livro ? (
               <View key={item.livro.id_livro} style={{ width: '47%' }}>
                 <BookCard titulo={item.livro.titulo} autor={item.livro.autores?.[0]} capa={item.livro.capa} width="100%" />
@@ -91,9 +101,9 @@ export default function ListaDesejosScreen() {
                 </TouchableOpacity>
               </View>
             ) : null
-          )}
-        </ScrollView>
-      )}
+          )
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -103,6 +113,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8 },
   tituloTela: { fontSize: 16, fontWeight: '700', color: Brand.textPrimary },
   grid: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   botaoRemover: { flexDirection: 'row', gap: 4, alignItems: 'center', justifyContent: 'center', marginTop: 6, paddingVertical: 6, borderRadius: 8, backgroundColor: Brand.dangerBg },
   botaoRemoverTexto: { fontSize: 11, fontWeight: '700', color: Brand.danger },
   erroBox: { margin: 16, backgroundColor: Brand.dangerBg, borderRadius: 10, padding: 12, gap: 6 },

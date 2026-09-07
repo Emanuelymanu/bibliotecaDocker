@@ -1,5 +1,5 @@
 const EXTENSOES_PERMITIDAS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-export const TAMANHO_MAXIMO_CAPA_BYTES = 5 * 1024 * 1024; // mesmo limite do multer no backend
+export const TAMANHO_MAXIMO_CAPA_BYTES = 5 * 1024 * 1024; 
 
 interface ArquivoParaValidar {
     fileName?: string | null;
@@ -8,7 +8,7 @@ interface ArquivoParaValidar {
     uri: string;
 }
 
-/** Valida extensão, mimetype e tamanho da capa antes de enviar pro backend. Retorna a mensagem de erro, ou null se estiver ok. */
+
 export function validarImagemCapa(asset: ArquivoParaValidar): string | null {
     const nomeArquivo = asset.fileName ?? asset.uri;
     const extensao = nomeArquivo.split('.').pop()?.toLowerCase() ?? '';

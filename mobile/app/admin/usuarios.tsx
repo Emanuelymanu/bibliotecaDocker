@@ -3,6 +3,7 @@ import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -25,6 +26,7 @@ export default function AdminUsuariosScreen() {
     const [carregando, setCarregando] = useState(true);
     const [busca, setBusca] = useState('');
     const [processandoId, setProcessandoId] = useState<number | null>(null);
+    const [atualizando, setAtualizando] = useState(false);
 
     function ordenarPorAdmin(lista: UsuarioAdmin[]): UsuarioAdmin[] {
         return [...lista].sort((a, b) => (a.tipo_usuario === b.tipo_usuario ? 0 : a.tipo_usuario === 'admin' ? -1 : 1));
@@ -44,6 +46,12 @@ export default function AdminUsuariosScreen() {
     }, []);
 
     useFocusEffect(useCallback(() => { carregar(busca || undefined); }, [carregar]));
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar(busca || undefined);
+        setAtualizando(false);
+    }, [carregar, busca]);
 
     function confirmarPromocao(usuario: UsuarioAdmin) {
         Alert.alert('Tornar administrador', `Dar acesso de administrador para "${usuario.nome}"?`, [
@@ -108,13 +116,14 @@ export default function AdminUsuariosScreen() {
                 />
             </View>
 
-            {carregando ? (
+            {carregando && usuarios.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={usuarios}
                     keyExtractor={(item) => String(item.id_usuario)}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name="people-outline" size={36} color={t.cor.textoTerciario} />

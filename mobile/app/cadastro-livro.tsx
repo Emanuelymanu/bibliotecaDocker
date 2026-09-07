@@ -19,6 +19,7 @@ import AutocompleteInput from '@/components/AutocompleteInput';
 import { livroService } from '@/src/services/livroService';
 import { livrosService, OpcoesFiltro } from '@/src/services/livrosService';
 import { validarImagemCapa } from '@/src/utils/validarImagem';
+import { solicitarPermissaoGaleria } from '@/src/utils/permissoes';
 import { CapaSelecionada, TipoObra } from '@/src/types/livro';
 
 const TIPOS_OBRA: { valor: TipoObra; label: string }[] = [
@@ -74,11 +75,8 @@ export default function CadastroLivroScreen() {
     }
 
     async function escolherCapa() {
-        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permissao.granted) {
-            Alert.alert('Permissão necessária', 'Autorize o acesso às fotos pra escolher uma capa.');
-            return;
-        }
+        const permitido = await solicitarPermissaoGaleria();
+        if (!permitido) return;
 
         const resultado = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],

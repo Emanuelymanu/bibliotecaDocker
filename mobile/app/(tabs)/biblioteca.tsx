@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Brand } from '@/constants/Brand';
@@ -21,6 +23,9 @@ import { BookCard, StatusTom } from '@/components/BookCard';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
 import { livrosService, LivroCompleto, CadastrarLivroPayload } from '@/src/services/livrosService';
 import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
+import { validarImagemCapa } from '@/src/utils/validarImagem';
+import { solicitarPermissaoGaleria } from '@/src/utils/permissoes';
+import { CapaSelecionada } from '@/src/types/livro';
 
 const FILTROS: { label: string; valor?: string }[] = [
   { label: 'Todos', valor: undefined },
@@ -90,6 +95,7 @@ function Seletor({
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
         <Pressable style={styles.selectOverlay} onPress={() => setAberto(false)}>
           <View style={styles.selectLista}>
+            <ScrollView showsVerticalScrollIndicator={false}>
             {opcoes.map((o) => (
               <TouchableOpacity
                 key={o.valor}
@@ -105,6 +111,7 @@ function Seletor({
                 {o.valor === valor && <Ionicons name="checkmark" size={16} color={Brand.primary} />}
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
@@ -238,7 +245,7 @@ function TelaEditarLivro({
 
             <View style={styles.linhaDupla}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.campoLabel}>Ano *</Text>
+                <Text style={styles.campoLabel}>Ano</Text>
                 <TextInput
                   style={styles.input}
                   value={form.ano_publicacao}
@@ -248,7 +255,7 @@ function TelaEditarLivro({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.campoLabel}>Páginas *</Text>
+                <Text style={styles.campoLabel}>Páginas</Text>
                 <TextInput
                   style={styles.input}
                   value={form.num_paginas}
@@ -327,7 +334,7 @@ function TelaCadastrarLivro({
   onSalvar,
 }: {
   onCancelar: () => void;
-  onSalvar: (form: FormularioCadastro) => Promise<void>;
+  onSalvar: (form: FormularioCadastro, capa: CapaSelecionada | null) => Promise<void>;
 }) {
   const [form, setForm] = useState<FormularioCadastro>({
     titulo: '',
@@ -340,10 +347,40 @@ function TelaCadastrarLivro({
     editora: '',
     statusInicial: 'quero_ler',
   });
+  const [capa, setCapa] = useState<CapaSelecionada | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   function atualizarCampo<K extends keyof FormularioCadastro>(campo: K, valor: FormularioCadastro[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
+  async function escolherCapa() {
+    const permitido = await solicitarPermissaoGaleria();
+    if (!permitido) return;
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+
+    if (resultado.canceled || !resultado.assets?.[0]) {
+      return;
+    }
+
+    const asset = resultado.assets[0];
+    const erroValidacao = validarImagemCapa(asset);
+    if (erroValidacao) {
+      Alert.alert('Imagem inválida', erroValidacao);
+      return;
+    }
+
+    setCapa({
+      uri: asset.uri,
+      nome: asset.fileName ?? `capa-${Date.now()}.jpg`,
+      tipoMime: asset.mimeType ?? 'image/jpeg',
+      tamanhoBytes: asset.fileSize,
+    });
   }
 
   async function salvar() {
@@ -361,7 +398,7 @@ function TelaCadastrarLivro({
     }
     setSalvando(true);
     try {
-      await onSalvar(form);
+      await onSalvar(form, capa);
     } finally {
       setSalvando(false);
     }
@@ -379,13 +416,17 @@ function TelaCadastrarLivro({
         </View>
 
         <ScrollView contentContainerStyle={styles.editScroll}>
-          <View style={styles.editCapaWrapper}>
-            <View style={[styles.editCapa, styles.editCapaPlaceholder]}>
-              <Ionicons name="book-outline" size={28} color={Brand.placeholderIcon} />
-            </View>
-          </View>
+          <TouchableOpacity style={styles.editCapaWrapper} onPress={escolherCapa} activeOpacity={0.8}>
+            {capa ? (
+              <Image source={{ uri: capa.uri }} style={styles.editCapa} />
+            ) : (
+              <View style={[styles.editCapa, styles.editCapaPlaceholder]}>
+                <Ionicons name="image-outline" size={28} color={Brand.placeholderIcon} />
+              </View>
+            )}
+          </TouchableOpacity>
           <Text style={styles.editCapaAviso}>
-            Ainda não dá pra escolher uma capa por aqui (só via upload de arquivo, que essa tela não suporta ainda).
+            {capa ? 'Toque na imagem pra trocar a capa.' : 'Toque pra escolher uma capa da sua galeria (opcional).'}
           </Text>
 
           <View style={styles.editCard}>
@@ -493,6 +534,7 @@ export default function BibliotecaScreen() {
   const [livroEmEdicao, setLivroEmEdicao] = useState<LivroCompleto | null>(null);
   const [carregandoEdicao, setCarregandoEdicao] = useState(false);
   const [cadastroAberto, setCadastroAberto] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async (statusAtual?: string) => {
     try {
@@ -513,6 +555,12 @@ export default function BibliotecaScreen() {
       carregar(filtro);
     }, [filtro, carregar])
   );
+
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar(filtro);
+    setAtualizando(false);
+  }, [carregar, filtro]);
 
   const listaFiltrada = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -601,7 +649,7 @@ export default function BibliotecaScreen() {
     }
   }
 
-  async function salvarCadastro(form: FormularioCadastro) {
+  async function salvarCadastro(form: FormularioCadastro, capa: CapaSelecionada | null) {
     try {
       const payload: CadastrarLivroPayload = {
         titulo: form.titulo.trim(),
@@ -612,6 +660,7 @@ export default function BibliotecaScreen() {
         num_paginas: Number(form.num_paginas) || 0,
         generos: [form.genero],
         editora: form.editora.trim() || undefined,
+        capa: capa ?? undefined,
       };
       const { id_livro } = await livrosService.cadastrar(payload);
 
@@ -683,20 +732,23 @@ export default function BibliotecaScreen() {
         ))}
       </ScrollView>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={() => carregar(filtro)}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : listaFiltrada.length === 0 ? (
-        <Text style={styles.vazioTexto}>Nenhum livro encontrado.</Text>
-      ) : (
-        <ScrollView contentContainerStyle={styles.grid}>
-          {listaFiltrada.map((item) => (
+      <ScrollView
+        contentContainerStyle={listaFiltrada.length > 0 ? styles.grid : styles.centro}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={() => carregar(filtro)}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : listaFiltrada.length === 0 ? (
+          <Text style={styles.vazioTexto}>Nenhum livro encontrado.</Text>
+        ) : (
+          listaFiltrada.map((item) => (
             <BookCard
               key={item.id_leitura}
               titulo={item.livro?.titulo ?? 'Sem título'}
@@ -708,9 +760,9 @@ export default function BibliotecaScreen() {
               width="47%"
               onPress={() => abrirDetalhes(item)}
             />
-          ))}
-        </ScrollView>
-      )}
+          ))
+        )}
+      </ScrollView>
 
       <Modal visible={!!selecionada} animationType="slide" transparent onRequestClose={() => setSelecionada(null)}>
         <Pressable style={styles.overlay} onPress={() => setSelecionada(null)} />
@@ -873,6 +925,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 12,
   },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   erroBox: { margin: 16, backgroundColor: Brand.dangerBg, borderRadius: 10, padding: 12, gap: 6 },
   erroTexto: { fontSize: 13, color: Brand.danger },
   erroBotao: { fontSize: 13, fontWeight: '700', color: Brand.danger },
@@ -980,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   selectTexto: { fontSize: 14, color: Brand.textPrimary },
   selectOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 32 },
-  selectLista: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 8, maxHeight: 340 },
+  selectLista: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 8, maxHeight: 340, overflow: 'hidden' },
   selectItem: {
     flexDirection: 'row',
     alignItems: 'center',

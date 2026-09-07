@@ -7,7 +7,7 @@ import { Op } from 'sequelize';
 import { anotacoes } from '../models-auto/anotacoes';
 import { normalizarLista } from '../utils/normalizadores';
 
-// Interface estendida para aceitar dados vindos do front baseados na API do Google
+
 interface CriarLeituraGoogleDTO extends CriarLeituraDTO {
    id_google?: string;
    titulo?: string;
@@ -50,8 +50,7 @@ export class LeiturasController {
          const { id_livro, id_google, titulo, autor, num_paginas, capa } = req.body;
          let livroIdFinal = id_livro;
 
-         // ALTERAÇÃO: Se o livro veio direto da busca da API e não tem ID local ainda,
-         // nós garantimos a criação ou localização dele usando findOrCreate.
+     
          if (!livroIdFinal && id_google) {
             const [livroLocal, livroCriado] = await livros.findOrCreate({
                where: { id_google },
@@ -74,7 +73,7 @@ export class LeiturasController {
             return res.status(400).json({ erro: 'ID do livro ou ID do Google é obrigatório' });
          }
 
-         // Ajustamos a requisição para prosseguir com o ID do livro local definido
+         
          req.body.id_livro = livroIdFinal;
 
          const valid = await this.validarIniciarLeitura(req, res, num_paginas);
@@ -92,7 +91,7 @@ export class LeiturasController {
       }
    }
 
-   // Mudança na assinatura para receber o num_paginas opcional da requisição externa
+   
    private async validarIniciarLeitura(req: Request<{}, {}, CriarLeituraGoogleDTO>, res: Response, numPaginasExterno?: number) {
       const { id_livro, status, pagina_atual } = req.body;
       const paginaAtualNum = pagina_atual !== undefined ? Number(pagina_atual) : undefined;
@@ -113,7 +112,7 @@ export class LeiturasController {
          return res.status(400).json({ erro: 'status inválido' });
       }
 
-      // Validação dinâmica do limite de páginas: Prioriza o banco, se estiver nulo, usa o enviado pela API
+
       const numPaginasMax = livro.num_paginas ? Number(livro.num_paginas) : (numPaginasExterno ? Number(numPaginasExterno) : null);
 
       if (numPaginasMax && paginaAtualNum !== undefined && (paginaAtualNum < 0 || paginaAtualNum > numPaginasMax)) {

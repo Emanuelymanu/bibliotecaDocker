@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,6 +30,7 @@ export default function PerfilScreen() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [editando, setEditando] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -46,6 +48,12 @@ export default function PerfilScreen() {
 
   useEffect(() => {
     carregar();
+  }, [carregar]);
+
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
   }, [carregar]);
 
   function aoSalvar(atualizado: PerfilUsuario) {
@@ -95,7 +103,10 @@ export default function PerfilScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+    >
       <View style={styles.header}>
         <Text style={styles.titulo}>Meu Perfil</Text>
       </View>

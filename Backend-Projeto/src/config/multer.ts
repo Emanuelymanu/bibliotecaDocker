@@ -18,8 +18,7 @@ const storage = multer.diskStorage({
     },
 
     filename: (req, file, cb) => {
-        // Nome só com hash aleatório + extensão validada: evita colisão de nomes
-        // e não usa o nome original do arquivo (vindo do cliente) no caminho em disco.
+       
         const hash = crypto.randomBytes(16).toString('hex');
         const extensao = path.extname(file.originalname).toLowerCase();
         cb(null, `${hash}${extensao}`);
@@ -40,5 +39,5 @@ const fileFilter: multer.Options['fileFilter'] = (req, file, cb) => {
 export const upload = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+    limits: { fileSize: 5 * 1024 * 1024 } 
 });

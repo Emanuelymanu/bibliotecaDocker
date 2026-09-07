@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,7 +30,7 @@ interface SessaoAtiva {
   titulo: string;
   capa: string | null;
   pagina_inicial: number;
-  iniciadaEm: number; // timestamp (ms)
+  iniciadaEm: number; 
 }
 
 function hojeISO() {
@@ -57,6 +58,7 @@ export default function SessoesScreen() {
   const [leiturasEmAndamento, setLeiturasEmAndamento] = useState<LeituraItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
 
   const [sessaoAtiva, setSessaoAtiva] = useState<SessaoAtiva | null>(null);
   const [segundosDecorridos, setSegundosDecorridos] = useState(0);
@@ -86,14 +88,20 @@ export default function SessoesScreen() {
     }, [carregar])
   );
 
-  // recupera uma sessão que já estava rodando (ex: você saiu da tela e voltou)
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
+  }, [carregar]);
+
+
   useEffect(() => {
     AsyncStorage.getItem(CHAVE_SESSAO_ATIVA).then((salvo) => {
       if (salvo) setSessaoAtiva(JSON.parse(salvo));
     });
   }, []);
 
-  // cronômetro: atualiza a cada segundo enquanto tiver sessão ativa
+
   useEffect(() => {
     if (!sessaoAtiva) {
       if (intervaloRef.current) clearInterval(intervaloRef.current);
@@ -189,17 +197,21 @@ export default function SessoesScreen() {
         </View>
       </View>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={carregar}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.lista}>
+      <ScrollView
+        contentContainerStyle={carregando || erro ? styles.centro : styles.lista}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={carregar}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
           {sessaoAtiva ? (
             <SessaoAtivaCard
               sessaoAtiva={sessaoAtiva}
@@ -254,8 +266,9 @@ export default function SessoesScreen() {
               );
             })
           )}
-        </ScrollView>
-      )}
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -435,9 +448,10 @@ const styles = StyleSheet.create({
   tituloTela: { fontSize: 17, fontWeight: '700', color: Brand.textPrimary },
   subtituloTela: { fontSize: 12, color: Brand.textSecondary, marginTop: 2 },
   lista: { padding: 16, paddingTop: 0 },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   secaoTitulo: { fontSize: 15, fontWeight: '700', color: Brand.textPrimary, marginTop: 20, marginBottom: 10 },
 
-  // card "Iniciar Sessão"
+
   cardIniciar: { backgroundColor: Brand.card, borderRadius: 16, padding: 16 },
   cardIniciarHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   iconWrapperAzul: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#dbeafe', alignItems: 'center', justifyContent: 'center' },
@@ -451,7 +465,7 @@ const styles = StyleSheet.create({
   botaoIniciarTexto: { fontSize: 14, fontWeight: '700', color: '#fff' },
   avisoSemLivro: { fontSize: 13, color: Brand.textSecondary, textAlign: 'center', paddingVertical: 8 },
 
-  // card sessão ativa (cronômetro)
+
   cardAtivo: { borderRadius: 16, padding: 24, alignItems: 'center' },
   botaoCancelarSessao: { position: 'absolute', top: 12, right: 12, padding: 4 },
   iconWrapperAtivo: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
@@ -461,7 +475,6 @@ const styles = StyleSheet.create({
   botaoFinalizar: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: '#fff', borderRadius: 30, paddingVertical: 12, paddingHorizontal: 22, marginTop: 18 },
   botaoFinalizarTexto: { fontSize: 13, fontWeight: '700', color: Brand.primary },
 
-  // histórico
   card: { flexDirection: 'row', gap: 12, backgroundColor: Brand.card, borderRadius: 14, padding: 12, marginBottom: 10, alignItems: 'center' },
   capa: { width: 40, height: 56, borderRadius: 6, backgroundColor: Brand.placeholder },
   capaPequena: { width: 32, height: 44, borderRadius: 5, backgroundColor: Brand.placeholder },

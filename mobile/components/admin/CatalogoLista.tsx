@@ -3,6 +3,7 @@ import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -42,6 +43,7 @@ export default function CatalogoLista({
     const [itens, setItens] = useState<ItemCatalogo[]>([]);
     const [busca, setBusca] = useState('');
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
 
     const [itemEditando, setItemEditando] = useState<ItemCatalogo | null>(null);
     const [form, setForm] = useState<Record<string, string>>({});
@@ -66,6 +68,12 @@ export default function CatalogoLista({
             carregar();
         }, [carregar])
     );
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar();
+        setAtualizando(false);
+    }, [carregar]);
 
     const itensFiltrados = itens.filter((item) =>
         item.nome.toLowerCase().includes(busca.toLowerCase())
@@ -139,13 +147,14 @@ export default function CatalogoLista({
                 />
             </View>
 
-            {carregando ? (
+            {carregando && itens.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={itensFiltrados}
                     keyExtractor={(item) => String(item[pk])}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name={icone} size={36} color={t.cor.textoTerciario} />

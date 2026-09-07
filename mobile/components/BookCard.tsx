@@ -1,11 +1,3 @@
-// components/BookCard.tsx
-//
-// Card de livro reutilizável (capa + título + autor), no mesmo estilo visual
-// do site (cantos arredondados, sombra leve). Usado na Home e na Biblioteca.
-// Se a capa não existir ou falhar ao carregar, mostra um placeholder com
-// ícone de livro. O "statusLabel" é opcional: quando informado, mostra um
-// selo colorido embaixo do autor (ex: "Lido" em verde, "Lendo" em laranja).
-
 import { useState } from 'react';
 import { DimensionValue, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +19,7 @@ interface BookCardProps {
   badgeNota?: number | string | null;
   statusLabel?: string | null;
   statusTom?: StatusTom;
-  width?: DimensionValue; // aceita número (130) ou texto ('47%')
+  width?: DimensionValue; 
   onPress?: () => void;
 }
 

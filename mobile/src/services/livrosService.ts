@@ -1,4 +1,5 @@
 import { api } from './api';
+import { CapaSelecionada } from '../types/livro';
 
 export interface LivroTopAvaliado {
   id_livro: number;
@@ -30,6 +31,21 @@ export interface OpcoesFiltro {
   generos: string[];
 }
 
+
+export interface LivroDescoberta {
+  id_livro: number | null;
+  id_google?: string | null;
+  titulo: string;
+  subtitulo?: string | null;
+  tipo_obra?: string;
+  autores: string[];
+  generos: string[];
+  editora?: string | null;
+  capa?: string | null;
+  num_paginas?: number | null;
+  ano_publicacao?: number | null;
+}
+
 export interface CadastrarLivroPayload {
   titulo: string;
   subtitulo?: string;
@@ -39,6 +55,7 @@ export interface CadastrarLivroPayload {
   num_paginas: number;
   generos: string[];
   editora?: string;
+  capa?: CapaSelecionada;
 }
 
 export interface AtualizarLivroPayload {
@@ -116,18 +133,18 @@ export const livrosService = {
     return { id_livro: data.livro.id_livro };
   },
 
-  async buscarPorAutor(nomeAutor: string): Promise<LivroTopAvaliado[]> {
+  async buscarPorAutor(nomeAutor: string): Promise<LivroDescoberta[]> {
     const { data } = await api.get(`/livros/autor/${encodeURIComponent(nomeAutor)}`, { params: { limit: 50 } });
     return data.livros ?? [];
   },
 
-  async buscarPorGenero(nomeGenero: string): Promise<LivroTopAvaliado[]> {
+  async buscarPorGenero(nomeGenero: string): Promise<LivroDescoberta[]> {
     const { data } = await api.get(`/livros/genero/${encodeURIComponent(nomeGenero)}`, { params: { limit: 50 } });
     return data.livros ?? [];
   },
 
-  async buscarPorEditora(nomeEditora: string): Promise<LivroTopAvaliado[]> {
-    const { data } = await api.get('/livros/listar', { params: { editora: nomeEditora, limit: 50 } });
+  async buscarPorEditora(nomeEditora: string): Promise<LivroDescoberta[]> {
+    const { data } = await api.get(`/livros/editora/${encodeURIComponent(nomeEditora)}`, { params: { limit: 50 } });
     return data.livros ?? [];
   },
 
@@ -141,6 +158,13 @@ export const livrosService = {
     formData.append('num_paginas', String(dados.num_paginas));
     dados.generos.forEach((nome) => formData.append('generos', nome));
     if (dados.editora) formData.append('editora', dados.editora);
+    if (dados.capa) {
+      formData.append('capa', {
+        uri: dados.capa.uri,
+        name: dados.capa.nome,
+        type: dados.capa.tipoMime,
+      } as any);
+    }
 
     const { data } = await api.post('/livros/cadastrar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -152,7 +176,7 @@ export const livrosService = {
     await api.delete(`/livros/deletar/${idLivro}`);
   },
 
-  /** GET /api/livros/filtros/opcoes — rota pública, alimenta os autocompletes do cadastro de livro */
+ 
   async buscarOpcoesFiltro(): Promise<OpcoesFiltro> {
     const { data } = await api.get('/livros/filtros/opcoes');
     return {

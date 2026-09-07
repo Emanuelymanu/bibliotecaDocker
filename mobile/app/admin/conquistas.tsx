@@ -3,6 +3,7 @@ import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -24,6 +25,7 @@ export default function AdminConquistasScreen() {
     const router = useRouter();
     const [conquistas, setConquistas] = useState<Conquista[]>([]);
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
 
     const [modalFormAberto, setModalFormAberto] = useState(false);
     const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -46,6 +48,12 @@ export default function AdminConquistasScreen() {
     }, []);
 
     useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar();
+        setAtualizando(false);
+    }, [carregar]);
 
     function abrirCriacao() {
         setEditandoId(null);
@@ -130,13 +138,14 @@ export default function AdminConquistasScreen() {
                 </TouchableOpacity>
             </View>
 
-            {carregando ? (
+            {carregando && conquistas.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={conquistas}
                     keyExtractor={(item) => String(item.id_conquista)}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name="trophy-outline" size={36} color={t.cor.textoTerciario} />

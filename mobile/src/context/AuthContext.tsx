@@ -48,8 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsuario(null);
     }
 
-    // Atualiza só os campos que mudaram (ex: depois de editar o perfil),
-    // sem precisar deslogar e logar de novo pra refletir em outras telas.
+
     function atualizarUsuario(dados: Partial<Usuario>) {
         setUsuario((atual) => (atual ? { ...atual, ...dados } : atual));
     }

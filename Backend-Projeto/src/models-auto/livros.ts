@@ -16,9 +16,9 @@ export interface livrosAttributes {
   num_paginas: number;
   id_editora?: number;
   capa?: string;
-  avaliacao_media?: number; // averageRating do Google Books
-  total_avaliacoes?: number; // ratingsCount do Google Books
-  id_usuario_cadastro?: number; // usuário que cadastrou o livro no catálogo
+  avaliacao_media?: number; 
+  total_avaliacoes?: number; 
+  id_usuario_cadastro?: number; 
 }
 
 export type livrosPk = "id_livro";

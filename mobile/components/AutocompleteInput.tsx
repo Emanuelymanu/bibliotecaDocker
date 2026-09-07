@@ -11,11 +11,6 @@ interface AutocompleteInputProps {
     onSubmitEditing?: () => void;
 }
 
-/**
- * Input de texto com sugestões vindas do catálogo (autores/editoras/gêneros já
- * cadastrados). O usuário pode escolher uma sugestão ou simplesmente digitar
- * um valor novo — o backend cria o registro automaticamente (findOrCreate).
- */
 export default function AutocompleteInput({
     valor,
     onChangeValor,

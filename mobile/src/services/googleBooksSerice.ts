@@ -49,12 +49,7 @@ function mapearItemGoogle(item: GoogleBooksItem): Livro {
   };
 }
 
-/**
- * Busca livros via GET /api/livros/buscar (backend), que por sua vez chama a
- * Google Books API usando a chave configurada no servidor. Passar pelo
- * backend evita que cada aparelho bata direto na cota anônima (bem menor e
- * compartilhada) da API do Google.
- */
+
 export async function buscarLivrosNaAPI(termoBusca: string): Promise<Livro[]> {
   if (!termoBusca.trim()) {
     return [];

@@ -35,9 +35,6 @@ function formatarItemGoogle(item: any) {
 }
 
 export class FiltroLivros {
-
-    /** Agora que autor/editora/genero são tabelas próprias, as opções de filtro
-     *  vêm direto delas, em vez de um GROUP BY em cima de texto solto em livros. */
     async obterOpcoesFiltro(req: Request, res: Response): Promise<Response> {
         try {
             const [listaGeneros, listaEditoras, listaAutores] = await Promise.all([
@@ -131,23 +128,75 @@ export class FiltroLivros {
                 distinct: true
             });
 
-            let livrosResponse: any[] = rows.map(formatarLivro);
+            const livrosResponse: any[] = rows.map(formatarLivro);
 
-            if (livrosResponse.length === 0) {
-                try {
-                    if (Array.isArray(genero)) genero = genero[0];
-                    const items = await fetchFromGoogle(genero);
-                    if (items && items.length > 0) {
-                        livrosResponse = items.map(formatarItemGoogle);
-                    }
-                } catch (err) {
-                    console.error('Erro ao buscar na Google Books API:', err);
+        
+            try {
+                if (Array.isArray(genero)) genero = genero[0];
+                const items = await fetchFromGoogle(`insubject:${genero}`);
+                if (items && items.length > 0) {
+                    const idsGoogleLocais = new Set(livrosResponse.map((l) => l.id_google));
+                    const extras = items
+                        .filter((item: any) => !idsGoogleLocais.has(item.id))
+                        .map(formatarItemGoogle);
+                    livrosResponse.push(...extras);
                 }
+            } catch (err) {
+                console.error('Erro ao buscar na Google Books API:', err);
             }
 
-            return res.json({ genero, total: count, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
+            return res.json({ genero, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
             console.error('Erro ao buscar por gênero:', error);
+            return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
+        }
+    }
+
+    async buscarPorEditora(req: Request, res: Response): Promise<Response> {
+        try {
+            let { editora } = req.params;
+            const { page = 1, limit = 10 } = req.query;
+            const pagina = Number(page);
+            const limite = Number(limit);
+
+            if (isNaN(pagina) || pagina < 1) return res.status(400).json({ erro: 'Página inválida' });
+            if (isNaN(limite) || limite < 1 || limite > 100) return res.status(400).json({ erro: 'Limite inválido' });
+
+            const offset = (pagina - 1) * limite;
+
+            const { count, rows } = await livros.findAndCountAll({
+                include: [
+                    { model: editoras, as: 'editora', where: { nome: { [Op.like]: `%${editora}%` } }, required: true },
+                    { model: autores, as: 'autores', attributes: ['nome'] },
+                    { model: generos, as: 'generos', attributes: ['nome'] }
+                ],
+                limit: limite,
+                offset,
+                order: [['titulo', 'ASC']],
+                attributes: { exclude: ['created_at', 'updated_at'] },
+                distinct: true
+            });
+
+            const livrosResponse: any[] = rows.map(formatarLivro);
+
+           
+            try {
+                if (Array.isArray(editora)) editora = editora[0];
+                const items = await fetchFromGoogle(`inpublisher:${editora}`);
+                if (items && items.length > 0) {
+                    const idsGoogleLocais = new Set(livrosResponse.map((l) => l.id_google));
+                    const extras = items
+                        .filter((item: any) => !idsGoogleLocais.has(item.id))
+                        .map(formatarItemGoogle);
+                    livrosResponse.push(...extras);
+                }
+            } catch (err) {
+                console.error('Erro ao buscar na Google Books API:', err);
+            }
+
+            return res.json({ editora, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
+        } catch (error) {
+            console.error('Erro ao buscar por editora:', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
@@ -177,21 +226,24 @@ export class FiltroLivros {
                 distinct: true
             });
 
-            let livrosResponse: any[] = rows.map(formatarLivro);
+            const livrosResponse: any[] = rows.map(formatarLivro);
 
-            if (livrosResponse.length === 0) {
-                try {
-                    if (Array.isArray(autor)) autor = autor[0];
-                    const items = await fetchFromGoogle(autor);
-                    if (items && items.length > 0) {
-                        livrosResponse = items.map(formatarItemGoogle);
-                    }
-                } catch (err) {
-                    console.error('Erro ao buscar na Google Books API:', err);
+          
+            try {
+                if (Array.isArray(autor)) autor = autor[0];
+                const items = await fetchFromGoogle(`inauthor:${autor}`);
+                if (items && items.length > 0) {
+                    const idsGoogleLocais = new Set(livrosResponse.map((l) => l.id_google));
+                    const extras = items
+                        .filter((item: any) => !idsGoogleLocais.has(item.id))
+                        .map(formatarItemGoogle);
+                    livrosResponse.push(...extras);
                 }
+            } catch (err) {
+                console.error('Erro ao buscar na Google Books API:', err);
             }
 
-            return res.json({ autor, total: count, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
+            return res.json({ autor, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
             console.error('Erro ao buscar por autor:', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });

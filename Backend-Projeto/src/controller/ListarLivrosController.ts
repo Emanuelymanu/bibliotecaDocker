@@ -8,7 +8,6 @@ import { Op, Sequelize } from 'sequelize';
 import { ListarLivrosQuery } from '../types/livroTypes';
 import { fetchFromGoogle } from '../services/googleBooksService';
 
-/** Achata as relações (autores/generos/editora) num formato simples pro frontend consumir. */
 function formatarLivro(livro: any) {
     const dados = livro.get ? livro.get({ plain: true }) : livro;
     return {
@@ -19,7 +18,7 @@ function formatarLivro(livro: any) {
     };
 }
 
-/** Monta o resultado "cru" vindo do Google Books, no mesmo formato que formatarLivro devolveria. */
+
 function formatarItemGoogle(item: any) {
     const info = item.volumeInfo;
     return {
@@ -103,8 +102,7 @@ export class ListarLivrosController {
             }
             const usuarioId = req.usuario.id;
 
-            // required: true -> só traz livros que o próprio usuário tem em leituras (sua biblioteca pessoal,
-            // não o catálogo inteiro de todo mundo que já cadastrou algo)
+           
             const leiturasInclude: any = {
                 model: leituras,
                 as: 'leituras',
@@ -116,7 +114,7 @@ export class ListarLivrosController {
                 leiturasInclude.where = { ...leiturasInclude.where, ...avaliacaoWhere };
             }
 
-            // Autor/gênero/editora agora são relações -> filtra via include, não via where direto em livros
+          
             const autoresInclude: any = { model: autores, as: 'autores', attributes: ['id_autor', 'nome'] };
             if (autor) {
                 autoresInclude.where = { nome: { [Op.like]: `%${autor}%` } };
@@ -141,7 +139,7 @@ export class ListarLivrosController {
                 offset,
                 order: [[ordenar_por, direcao]],
                 attributes: { exclude: ['created_at', 'updated_at'] },
-                distinct: true, // evita contagem duplicada por causa dos includes N:N
+                distinct: true, 
                 include: [leiturasInclude, autoresInclude, generosInclude, editorasInclude]
             });
 
@@ -155,7 +153,7 @@ export class ListarLivrosController {
                 return { ...formatarLivro(livro), avaliacao_media: mediaAvaliacao };
             }));
 
-            // Se não houver resultados locais e houver busca, tenta buscar na Google Books API
+            
             if (livrosResponse.length === 0 && busca) {
                 try {
                     const items = await fetchFromGoogle(busca);

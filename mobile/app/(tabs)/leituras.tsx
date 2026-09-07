@@ -5,6 +5,7 @@ import {
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +28,7 @@ export default function LeiturasScreen() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [selecionada, setSelecionada] = useState<LeituraItem | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -48,6 +50,12 @@ export default function LeiturasScreen() {
     }, [carregar])
   );
 
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
+  }, [carregar]);
+
   function removerDaLista(idLeitura: number) {
     setLeituras((lista) => lista.filter((l) => l.id_leitura !== idLeitura));
     setSelecionada(null);
@@ -60,20 +68,23 @@ export default function LeiturasScreen() {
         <Text style={styles.contagem}>{leituras.length} livro{leituras.length === 1 ? '' : 's'} em leitura</Text>
       </View>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={carregar}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : leituras.length === 0 ? (
-        <Text style={styles.vazioTexto}>Nenhum livro em leitura no momento.</Text>
-      ) : (
-        <ScrollView contentContainerStyle={styles.grid}>
-          {leituras.map((item) => (
+      <ScrollView
+        contentContainerStyle={leituras.length > 0 ? styles.grid : styles.centro}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={carregar}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : leituras.length === 0 ? (
+          <Text style={styles.vazioTexto}>Nenhum livro em leitura no momento.</Text>
+        ) : (
+          leituras.map((item) => (
             <BookCard
               key={item.id_leitura}
               titulo={item.livro?.titulo ?? 'Sem título'}
@@ -88,9 +99,9 @@ export default function LeiturasScreen() {
               width="47%"
               onPress={() => setSelecionada(item)}
             />
-          ))}
-        </ScrollView>
-      )}
+          ))
+        )}
+      </ScrollView>
 
       {selecionada && (
         <LeituraSheet leitura={selecionada} onClose={() => setSelecionada(null)} onFinalizada={removerDaLista} />
@@ -399,6 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     rowGap: 12,
   },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   erroBox: { margin: 16, backgroundColor: Brand.dangerBg, borderRadius: 10, padding: 12, gap: 6 },
   erroTexto: { fontSize: 13, color: Brand.danger },
   erroBotao: { fontSize: 13, fontWeight: '700', color: Brand.danger },

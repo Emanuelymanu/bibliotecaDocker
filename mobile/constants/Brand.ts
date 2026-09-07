@@ -1,8 +1,3 @@
-// constants/Brand.ts
-// Paleta extraída do site (Frontend-Projeto) para manter o mobile visualmente
-// consistente com a versão web. Usar sempre que precisar de cor "de marca"
-// em vez de criar hex soltos nas telas.
-
 export const Brand = {
   primary: '#1d4ed8',
   primaryDark: '#1e40af',

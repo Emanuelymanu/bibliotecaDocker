@@ -316,7 +316,7 @@ export class LivrosService {
                 await leituras.destroy({ where: { id_livro: id }, transaction });
             }
 
-            // As linhas de livros_autores e livro_generos somem sozinhas (ON DELETE CASCADE)
+            
             removerArquivoCapaSeExistir(livro.capa);
 
             await livro.destroy({ transaction });

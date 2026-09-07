@@ -1,12 +1,5 @@
-// app/conquistas.tsx
-//
-// Mostra TODAS as conquistas (desbloqueadas e bloqueadas), com barra de
-// progresso — no modelo do Figma. Usa /api/conquistas/catalogo, a rota
-// nova que devolve o catálogo completo já marcado com desbloqueada: true/
-// false pra esse usuário.
-
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -20,6 +13,7 @@ export default function ConquistasScreen() {
   const [conquistas, setConquistas] = useState<ConquistaCatalogo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
@@ -41,6 +35,12 @@ export default function ConquistasScreen() {
     }, [carregar])
   );
 
+  const onRefresh = useCallback(async () => {
+    setAtualizando(true);
+    await carregar();
+    setAtualizando(false);
+  }, [carregar]);
+
   const total = conquistas.length;
   const desbloqueadas = conquistas.filter((c) => c.desbloqueada).length;
   const pct = total > 0 ? Math.round((desbloqueadas / total) * 100) : 0;
@@ -59,61 +59,66 @@ export default function ConquistasScreen() {
         </View>
       </View>
 
-      {carregando ? (
-        <ActivityIndicator size="small" color={Brand.primary} style={{ marginTop: 24 }} />
-      ) : erro ? (
-        <View style={styles.erroBox}>
-          <Text style={styles.erroTexto}>{erro}</Text>
-          <TouchableOpacity onPress={carregar}>
-            <Text style={styles.erroBotao}>Tentar novamente</Text>
-          </TouchableOpacity>
-        </View>
-      ) : conquistas.length === 0 ? (
-        <View style={styles.vazioBox}>
-          <Ionicons name="trophy-outline" size={40} color={Brand.placeholderIcon} />
-          <Text style={styles.vazioTexto}>Nenhuma conquista cadastrada ainda.</Text>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.lista}>
-          <View style={styles.progressoLinha}>
-            <View style={styles.progressoTrack}>
-              <View style={[styles.progressoFill, { width: `${pct}%` }]} />
-            </View>
-            <Text style={styles.progressoTexto}>{pct}% completo</Text>
+      <ScrollView
+        contentContainerStyle={conquistas.length > 0 ? styles.lista : styles.centro}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={Brand.primary} />}
+      >
+        {carregando ? (
+          <ActivityIndicator size="small" color={Brand.primary} />
+        ) : erro ? (
+          <View style={styles.erroBox}>
+            <Text style={styles.erroTexto}>{erro}</Text>
+            <TouchableOpacity onPress={carregar}>
+              <Text style={styles.erroBotao}>Tentar novamente</Text>
+            </TouchableOpacity>
           </View>
+        ) : conquistas.length === 0 ? (
+          <View style={styles.vazioBox}>
+            <Ionicons name="trophy-outline" size={40} color={Brand.placeholderIcon} />
+            <Text style={styles.vazioTexto}>Nenhuma conquista cadastrada ainda.</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.progressoLinha}>
+              <View style={styles.progressoTrack}>
+                <View style={[styles.progressoFill, { width: `${pct}%` }]} />
+              </View>
+              <Text style={styles.progressoTexto}>{pct}% completo</Text>
+            </View>
 
-          <View style={styles.grid}>
-            {conquistas.map((c) => (
-              <View key={c.id_conquista} style={styles.card}>
-                <View style={[styles.iconWrapper, !c.desbloqueada && styles.iconWrapperBloqueado]}>
-                  {c.desbloqueada ? (
-                    <Ionicons name={iconeConquista(c)} size={22} color="#d97706" />
-                  ) : (
-                    <Ionicons name="lock-closed" size={18} color={Brand.placeholderIcon} />
+            <View style={styles.grid}>
+              {conquistas.map((c) => (
+                <View key={c.id_conquista} style={styles.card}>
+                  <View style={[styles.iconWrapper, !c.desbloqueada && styles.iconWrapperBloqueado]}>
+                    {c.desbloqueada ? (
+                      <Ionicons name={iconeConquista(c)} size={22} color="#d97706" />
+                    ) : (
+                      <Ionicons name="lock-closed" size={18} color={Brand.placeholderIcon} />
+                    )}
+                  </View>
+                  <Text style={[styles.nome, !c.desbloqueada && styles.textoBloqueado]} numberOfLines={2}>
+                    {c.nome}
+                  </Text>
+                  {!!c.descricao && (
+                    <Text
+                      style={[styles.descricao, c.desbloqueada ? styles.descricaoDesbloqueada : styles.textoBloqueado]}
+                      numberOfLines={2}
+                    >
+                      {c.descricao}
+                    </Text>
+                  )}
+                  {c.desbloqueada && (
+                    <View style={styles.badge}>
+                      <Ionicons name="checkmark" size={11} color="#92400e" />
+                      <Text style={styles.badgeTexto}>Desbloqueada</Text>
+                    </View>
                   )}
                 </View>
-                <Text style={[styles.nome, !c.desbloqueada && styles.textoBloqueado]} numberOfLines={2}>
-                  {c.nome}
-                </Text>
-                {!!c.descricao && (
-                  <Text
-                    style={[styles.descricao, c.desbloqueada ? styles.descricaoDesbloqueada : styles.textoBloqueado]}
-                    numberOfLines={2}
-                  >
-                    {c.descricao}
-                  </Text>
-                )}
-                {c.desbloqueada && (
-                  <View style={styles.badge}>
-                    <Ionicons name="checkmark" size={11} color="#92400e" />
-                    <Text style={styles.badgeTexto}>Desbloqueada</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      )}
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -124,6 +129,7 @@ const styles = StyleSheet.create({
   tituloTela: { fontSize: 17, fontWeight: '700', color: Brand.textPrimary },
   subtituloTela: { fontSize: 12, color: Brand.textSecondary, marginTop: 2 },
   lista: { padding: 16, paddingTop: 4 },
+  centro: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
 
   progressoLinha: { marginBottom: 18 },
   progressoTrack: { height: 8, borderRadius: 4, backgroundColor: Brand.border, overflow: 'hidden' },

@@ -1,4 +1,3 @@
-/** Categorias mais comuns devolvidas pela Google Books API (sempre em inglês) -> português. */
 const TRADUCOES_GENERO: Record<string, string> = {
     'fiction': 'Ficção',
     'nonfiction': 'Não Ficção',
@@ -56,12 +55,7 @@ const TRADUCOES_GENERO: Record<string, string> = {
     'pets': 'Animais de Estimação',
 };
 
-/**
- * Google Books devolve categorias em inglês e às vezes compostas (ex: "Fiction / Fantasy").
- * Divide por vírgula/barra, traduz os termos conhecidos e devolve o resto sem alteração
- * (cobre também o caso de já vir em português, digitado manualmente: não tem match no
- * dicionário — que é só inglês — então passa direto sem alteração).
- */
+
 export function traduzirGeneros(valor: unknown): string[] {
     if (typeof valor !== 'string' || !valor.trim()) {
         return [];
