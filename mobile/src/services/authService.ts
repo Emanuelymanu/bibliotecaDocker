@@ -5,6 +5,13 @@ import { loginDTO, loginResponse, Usuario } from '../types/auth';
 const TOKEN_KEY = '@estante:token';
 const USER_KEY = '@estante:usuario';
 
+export interface cadastroDTO {
+    nome: string;
+    email: string;
+    cpf: string;
+    senha: string;
+}
+
 export const authService = {
     async login(credentials: loginDTO): Promise<loginResponse> {
         const { data } = await api.post<loginResponse>('/auth/login', credentials);
@@ -13,6 +20,11 @@ export const authService = {
             [USER_KEY, JSON.stringify(data.usuario)],
         ]);
         return data;
+    },
+
+
+    async cadastro(dados: cadastroDTO): Promise<void> {
+        await api.post('/auth/cadastro', dados);
     },
 
     async getToken(): Promise<string | null> {

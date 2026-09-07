@@ -1,11 +1,4 @@
-// app/(tabs)/biblioteca.tsx
-//
-// Tela Biblioteca — lista os livros que o usuário logado já marcou com algum
-// status de leitura, com busca, filtro por status, selo de status no card,
-// e um cartão de baixo (bottom sheet) pra ver detalhes, trocar status, dar
-// nota, editar (formulário completo) ou excluir o livro.
-
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,13 +13,15 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Brand } from '@/constants/Brand';
 import { BookCard, StatusTom } from '@/components/BookCard';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
-import { livrosService, LivroCompleto } from '@/src/services/livrosService';
+import { livrosService, LivroCompleto, CadastrarLivroPayload } from '@/src/services/livrosService';
+import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 
-// ---------- Constantes de status ----------
 const FILTROS: { label: string; valor?: string }[] = [
   { label: 'Todos', valor: undefined },
   { label: 'Quero Ler', valor: 'quero_ler' },
@@ -59,15 +54,11 @@ const TIPOS_OBRA: { label: string; valor: string }[] = [
   { label: 'Coleção', valor: 'colecao' },
 ];
 
-// Gêneros mais comuns pra oferecer no seletor. O backend aceita qualquer
-// nome de gênero (cria automaticamente se não existir), então isso aqui é
-// só uma lista de sugestão, não uma trava.
 const GENEROS_SUGERIDOS = [
   'Fantasia', 'Ficção Científica', 'Romance', 'História', 'Biografia',
   'Tecnologia', 'Autoajuda', 'Terror', 'Suspense', 'Poesia', 'Infantil',
 ];
 
-// ---------- Pequeno seletor reutilizável (sem precisar instalar libs) ----------
 function Seletor({
   label,
   valor,
@@ -121,7 +112,6 @@ function Seletor({
   );
 }
 
-// ---------- Chip de filtro/status ----------
 function Chip({ label, ativo, onPress }: { label: string; ativo: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity onPress={onPress} style={[styles.chip, ativo && styles.chipAtivo]}>
@@ -130,7 +120,6 @@ function Chip({ label, ativo, onPress }: { label: string; ativo: boolean; onPres
   );
 }
 
-// ---------- Formulário de edição (dentro de um Modal em tela cheia) ----------
 interface FormularioEdicao {
   titulo: string;
   subtitulo: string;
@@ -194,7 +183,7 @@ function TelaEditarLivro({
 
   return (
     <Modal visible animationType="slide" onRequestClose={onCancelar}>
-      <View style={styles.editContainer}>
+      <SafeAreaView style={styles.editContainer} edges={['top']}>
         <View style={styles.editHeader}>
           <TouchableOpacity onPress={onCancelar} style={{ padding: 4 }}>
             <Ionicons name="arrow-back" size={22} color={Brand.textPrimary} />
@@ -316,13 +305,182 @@ function TelaEditarLivro({
             {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoSalvarTexto}>Salvar Alterações</Text>}
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
-// ---------- Tela principal ----------
+interface FormularioCadastro {
+  titulo: string;
+  subtitulo: string;
+  autor: string;
+  tipo_obra: string;
+  ano_publicacao: string;
+  num_paginas: string;
+  genero: string;
+  editora: string;
+  statusInicial: string;
+}
+
+function TelaCadastrarLivro({
+  onCancelar,
+  onSalvar,
+}: {
+  onCancelar: () => void;
+  onSalvar: (form: FormularioCadastro) => Promise<void>;
+}) {
+  const [form, setForm] = useState<FormularioCadastro>({
+    titulo: '',
+    subtitulo: '',
+    autor: '',
+    tipo_obra: 'unico',
+    ano_publicacao: '',
+    num_paginas: '',
+    genero: GENEROS_SUGERIDOS[0],
+    editora: '',
+    statusInicial: 'quero_ler',
+  });
+  const [salvando, setSalvando] = useState(false);
+
+  function atualizarCampo<K extends keyof FormularioCadastro>(campo: K, valor: FormularioCadastro[K]) {
+    setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
+  async function salvar() {
+    if (!form.titulo.trim()) {
+      Alert.alert('Campo obrigatório', 'O título não pode ficar vazio.');
+      return;
+    }
+    if (!form.autor.trim()) {
+      Alert.alert('Campo obrigatório', 'Preencha pelo menos um autor.');
+      return;
+    }
+    if (!form.ano_publicacao || !form.num_paginas) {
+      Alert.alert('Campo obrigatório', 'Preencha o ano e o número de páginas.');
+      return;
+    }
+    setSalvando(true);
+    try {
+      await onSalvar(form);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onCancelar}>
+      <SafeAreaView style={styles.editContainer} edges={['top']}>
+        <View style={styles.editHeader}>
+          <TouchableOpacity onPress={onCancelar} style={{ padding: 4 }}>
+            <Ionicons name="arrow-back" size={22} color={Brand.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.editHeaderTitulo}>Cadastrar Livro</Text>
+          <View style={{ width: 22 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={styles.editScroll}>
+          <View style={styles.editCapaWrapper}>
+            <View style={[styles.editCapa, styles.editCapaPlaceholder]}>
+              <Ionicons name="book-outline" size={28} color={Brand.placeholderIcon} />
+            </View>
+          </View>
+          <Text style={styles.editCapaAviso}>
+            Ainda não dá pra escolher uma capa por aqui (só via upload de arquivo, que essa tela não suporta ainda).
+          </Text>
+
+          <View style={styles.editCard}>
+            <Text style={styles.campoLabel}>Título *</Text>
+            <TextInput
+              style={styles.input}
+              value={form.titulo}
+              onChangeText={(t) => atualizarCampo('titulo', t)}
+              placeholder="Ex: Duna"
+            />
+
+            <Text style={styles.campoLabel}>Subtítulo</Text>
+            <TextInput
+              style={styles.input}
+              value={form.subtitulo}
+              onChangeText={(t) => atualizarCampo('subtitulo', t)}
+            />
+
+            <Text style={styles.campoLabel}>Autor(es) *</Text>
+            <TextInput
+              style={styles.input}
+              value={form.autor}
+              onChangeText={(t) => atualizarCampo('autor', t)}
+              placeholder="Separe vários autores por vírgula"
+            />
+
+            <Seletor
+              label="Tipo de Obra"
+              valor={form.tipo_obra}
+              opcoes={TIPOS_OBRA}
+              onSelecionar={(v) => atualizarCampo('tipo_obra', v)}
+            />
+
+            <View style={styles.linhaDupla}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.campoLabel}>Ano *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.ano_publicacao}
+                  onChangeText={(t) => atualizarCampo('ano_publicacao', t.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  placeholder="2024"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.campoLabel}>Páginas *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form.num_paginas}
+                  onChangeText={(t) => atualizarCampo('num_paginas', t.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                  placeholder="320"
+                />
+              </View>
+            </View>
+
+            <Seletor
+              label="Gênero"
+              valor={form.genero}
+              opcoes={GENEROS_SUGERIDOS.map((g) => ({ label: g, valor: g }))}
+              onSelecionar={(v) => atualizarCampo('genero', v)}
+            />
+
+            <Text style={styles.campoLabel}>Editora</Text>
+            <TextInput
+              style={styles.input}
+              value={form.editora}
+              onChangeText={(t) => atualizarCampo('editora', t)}
+            />
+
+            <Seletor
+              label="Status inicial"
+              valor={form.statusInicial}
+              opcoes={['quero_ler', 'lendo', 'lido'].map((s) => ({ label: STATUS_LABEL[s], valor: s }))}
+              onSelecionar={(v) => atualizarCampo('statusInicial', v)}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.editRodape}>
+          <TouchableOpacity style={styles.botaoCancelar} onPress={onCancelar} disabled={salvando}>
+            <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botaoSalvar} onPress={salvar} disabled={salvando}>
+            {salvando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoSalvarTexto}>Cadastrar Livro</Text>}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 export default function BibliotecaScreen() {
+  const router = useRouter();
   const [filtro, setFiltro] = useState<string | undefined>(undefined);
   const [busca, setBusca] = useState('');
   const [leituras, setLeituras] = useState<LeituraItem[]>([]);
@@ -334,6 +492,7 @@ export default function BibliotecaScreen() {
 
   const [livroEmEdicao, setLivroEmEdicao] = useState<LivroCompleto | null>(null);
   const [carregandoEdicao, setCarregandoEdicao] = useState(false);
+  const [cadastroAberto, setCadastroAberto] = useState(false);
 
   const carregar = useCallback(async (statusAtual?: string) => {
     try {
@@ -349,11 +508,12 @@ export default function BibliotecaScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    carregar(filtro);
-  }, [filtro, carregar]);
+  useFocusEffect(
+    useCallback(() => {
+      carregar(filtro);
+    }, [filtro, carregar])
+  );
 
-  // Filtro de busca por título/autor, aplicado em cima do que já foi carregado
   const listaFiltrada = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     if (!termo) return leituras;
@@ -373,11 +533,12 @@ export default function BibliotecaScreen() {
     if (!selecionada || !statusPendente || statusPendente === selecionada.status) return;
     try {
       setSalvandoStatus(true);
-      await leiturasService.atualizarStatus(selecionada.id_leitura, statusPendente);
+      const novasConquistas = await leiturasService.atualizarStatus(selecionada.id_leitura, statusPendente);
       setLeituras((lista) =>
         lista.map((l) => (l.id_leitura === selecionada.id_leitura ? { ...l, status: statusPendente as LeituraItem['status'] } : l))
       );
       setSelecionada((sel) => (sel ? { ...sel, status: statusPendente as LeituraItem['status'] } : sel));
+      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível atualizar o status.');
       console.error(e);
@@ -433,9 +594,38 @@ export default function BibliotecaScreen() {
       });
       setLivroEmEdicao(null);
       setSelecionada(null);
-      await carregar(filtro); // recarrega a lista pra já mostrar os dados novos
+      await carregar(filtro); 
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível salvar as alterações.');
+      console.error(e);
+    }
+  }
+
+  async function salvarCadastro(form: FormularioCadastro) {
+    try {
+      const payload: CadastrarLivroPayload = {
+        titulo: form.titulo.trim(),
+        subtitulo: form.subtitulo.trim() || undefined,
+        autores: form.autor.split(',').map((a) => a.trim()).filter(Boolean),
+        tipo_obra: form.tipo_obra,
+        ano_publicacao: Number(form.ano_publicacao) || 0,
+        num_paginas: Number(form.num_paginas) || 0,
+        generos: [form.genero],
+        editora: form.editora.trim() || undefined,
+      };
+      const { id_livro } = await livrosService.cadastrar(payload);
+
+      const listaAtualizada = await leiturasService.listar();
+      const leituraCriada = listaAtualizada.find((l) => l.livro?.id_livro === id_livro);
+      if (leituraCriada && form.statusInicial !== leituraCriada.status) {
+        await leiturasService.atualizarStatus(leituraCriada.id_leitura, form.statusInicial);
+      }
+
+      setCadastroAberto(false);
+      await carregar(filtro);
+    } catch (e: any) {
+      const mensagem = e?.response?.data?.message ?? 'Não foi possível cadastrar o livro.';
+      Alert.alert('Erro', mensagem);
       console.error(e);
     }
   }
@@ -466,15 +656,13 @@ export default function BibliotecaScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View>
           <Text style={styles.titulo}>Biblioteca</Text>
           <Text style={styles.contagem}>{leituras.length} livro{leituras.length === 1 ? '' : 's'}</Text>
         </View>
-        {/* Ainda não existe uma tela de cadastro manual no mobile — por enquanto
-            leva pra Busca, que é onde dá pra encontrar livros pra adicionar. */}
-        <TouchableOpacity style={styles.botaoAdicionar}>
+        <TouchableOpacity style={styles.botaoAdicionar} onPress={() => setCadastroAberto(true)}>
           <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -524,7 +712,6 @@ export default function BibliotecaScreen() {
         </ScrollView>
       )}
 
-      {/* Bottom sheet de detalhes */}
       <Modal visible={!!selecionada} animationType="slide" transparent onRequestClose={() => setSelecionada(null)}>
         <Pressable style={styles.overlay} onPress={() => setSelecionada(null)} />
         {selecionada && (
@@ -541,7 +728,16 @@ export default function BibliotecaScreen() {
               )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.sheetTitulo}>{selecionada.livro?.titulo}</Text>
-                <Text style={styles.sheetAutor}>{selecionada.livro?.autor}</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    const primeiroAutor = selecionada.livro?.autor?.split(',')[0]?.trim();
+                    if (primeiroAutor) router.push(`/autor/${encodeURIComponent(primeiroAutor)}`);
+                  }}
+                >
+                  <Text style={[styles.sheetAutor, { textDecorationLine: 'underline' }]}>
+                    {selecionada.livro?.autor}
+                  </Text>
+                </TouchableOpacity>
                 {!!selecionada.livro?.num_paginas && (
                   <Text style={styles.sheetMeta}>{selecionada.livro.num_paginas} pág.</Text>
                 )}
@@ -615,7 +811,11 @@ export default function BibliotecaScreen() {
           onSalvar={salvarEdicao}
         />
       )}
-    </View>
+
+      {cadastroAberto && (
+        <TelaCadastrarLivro onCancelar={() => setCadastroAberto(false)} onSalvar={salvarCadastro} />
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -737,14 +937,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  // ---- Edição ----
   editContainer: { flex: 1, backgroundColor: Brand.background },
   editHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: Brand.card,
     borderBottomWidth: 1,

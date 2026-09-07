@@ -35,10 +35,17 @@ function RotasProtegidas() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="admin" />
                 <Stack.Screen name="cadastro-livro" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="metas" />
+                <Stack.Screen name="conquistas" />
+                <Stack.Screen name="lista-desejos" />
+                <Stack.Screen name="autor/[nome]" />
+                <Stack.Screen name="genero/[nome]" />
+                <Stack.Screen name="editora/[nome]" />
             </Stack.Protected>
 
             <Stack.Protected guard={!usuario}>
                 <Stack.Screen name="login" />
+                <Stack.Screen name="cadastro" />
             </Stack.Protected>
         </Stack>
     );
