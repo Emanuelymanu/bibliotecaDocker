@@ -28,3 +28,10 @@ export interface Conquista{
     icone?: string | null;
     criterio: string;
 }
+
+export interface UsuarioAdmin{
+    id_usuario: number;
+    nome: string;
+    email: string;
+    tipo_usuario: 'usuario' | 'admin';
+}

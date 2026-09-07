@@ -40,8 +40,8 @@ export default function BuscaScreen() {
       if (livros.length === 0) {
         Alert.alert('Nenhum livro encontrado', 'Tente buscar por outro termo.');
       }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível buscar os livros. Tente novamente.');
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Não foi possível buscar os livros. Tente novamente.');
       console.error(error);
     } finally {
       setCarregando(false);

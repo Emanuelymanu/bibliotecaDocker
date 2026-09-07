@@ -1,6 +1,7 @@
 import 'dotenv/config';
-import express from 'express';
+import express, { ErrorRequestHandler } from 'express';
 import cors from 'cors';
+import multer from 'multer';
 import path from 'path';
 import { sequelize } from './models-auto';
 import './models-auto/livros';
@@ -61,6 +62,23 @@ app.use('/api/sessoes', sessoesLeituraRoutes);
 app.use('/api/metas', metasLeituraRoutes);
 app.use('/api/lista-desejos', listaDesejosRoutes);
 app.use('/api/admin', adminRoutes);
+
+const tratarErros: ErrorRequestHandler = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ erro: 'Arquivo maior que o limite permitido (5MB)' });
+    }
+    return res.status(400).json({ erro: `Erro no upload: ${err.message}` });
+  }
+
+  if (err) {
+    console.error('Erro não tratado:', err);
+    return res.status(400).json({ erro: err.message || 'Erro na requisição' });
+  }
+
+  next();
+};
+app.use(tratarErros);
 
 sequelize.authenticate()
   .then(() => {
