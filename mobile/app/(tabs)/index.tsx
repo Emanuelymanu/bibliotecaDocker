@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -36,6 +39,7 @@ export default function HomeScreen() {
   const [erro, setErro] = useState<string | null>(null);
   const [atualizando, setAtualizando] = useState(false);
   const [meta, setMeta] = useState<{ meta: Meta; progresso: Progresso } | null>(null);
+  const [livroSelecionado, setLivroSelecionado] = useState<LivroTopAvaliado | null>(null);
 
   const carregarTopAvaliados = useCallback(async () => {
     try {
@@ -196,10 +200,7 @@ export default function HomeScreen() {
                   autor={livro.autores?.[0]}
                   capa={livro.capa}
                   badgeNota={nota}
-                  onPress={() => {
-
-                    console.log('Abrir detalhes de', livro.titulo);
-                  }}
+                  onPress={() => setLivroSelecionado(livro)}
                 />
               );
             })}
@@ -207,6 +208,76 @@ export default function HomeScreen() {
         )}
       </View>
     </ScrollView>
+
+    <Modal visible={!!livroSelecionado} animationType="slide" transparent onRequestClose={() => setLivroSelecionado(null)}>
+      <Pressable style={styles.overlay} onPress={() => setLivroSelecionado(null)} />
+      {livroSelecionado && (
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            {livroSelecionado.capa ? (
+              <Image source={{ uri: livroSelecionado.capa }} style={styles.sheetCapa} />
+            ) : (
+              <View style={[styles.sheetCapa, styles.sheetCapaVazia]}>
+                <Ionicons name="book" size={28} color={Brand.textSecondary} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sheetTitulo}>{livroSelecionado.titulo}</Text>
+              {!!livroSelecionado.autores?.length && (
+                <Text style={styles.sheetMeta}>
+                  {livroSelecionado.autores.map((nome, i) => (
+                    <Text key={nome}>
+                      {i > 0 && ', '}
+                      <Text
+                        style={styles.sheetLink}
+                        onPress={() => {
+                          setLivroSelecionado(null);
+                          router.push(`/autor/${encodeURIComponent(nome)}`);
+                        }}
+                      >
+                        {nome}
+                      </Text>
+                    </Text>
+                  ))}
+                </Text>
+              )}
+              {!!livroSelecionado.editora && (
+                <Text
+                  style={[styles.sheetMeta, styles.sheetLink]}
+                  onPress={() => {
+                    const editora = livroSelecionado.editora!;
+                    setLivroSelecionado(null);
+                    router.push(`/editora/${encodeURIComponent(editora)}`);
+                  }}
+                >
+                  {livroSelecionado.editora}
+                </Text>
+              )}
+              {livroSelecionado.avaliacao_media != null && (
+                <View style={styles.sheetNotaRow}>
+                  <Ionicons name="star" size={14} color="#fbbf24" />
+                  <Text style={styles.sheetNota}>{Number(livroSelecionado.avaliacao_media).toFixed(1)}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {!!livroSelecionado.generos?.length && (
+            <View style={styles.sheetGenerosRow}>
+              {livroSelecionado.generos.map((g) => (
+                <View key={g} style={styles.sheetGeneroTag}>
+                  <Text style={styles.sheetGeneroTexto}>{g}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.sheetFechar} onPress={() => setLivroSelecionado(null)}>
+            <Text style={styles.sheetFecharTexto}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </Modal>
     </SafeAreaView>
   );
 }
@@ -388,5 +459,85 @@ const styles = StyleSheet.create({
   vazioTexto: {
     fontSize: 13,
     color: Brand.textSecondary,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Brand.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    gap: 16,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  sheetCapa: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: Brand.border,
+  },
+  sheetCapaVazia: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetTitulo: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Brand.textPrimary,
+  },
+  sheetMeta: {
+    fontSize: 13,
+    color: Brand.textSecondary,
+    marginTop: 4,
+  },
+  sheetLink: {
+    textDecorationLine: 'underline',
+  },
+  sheetNotaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+  },
+  sheetNota: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Brand.textPrimary,
+  },
+  sheetGenerosRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sheetGeneroTag: {
+    backgroundColor: Brand.background,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  sheetGeneroTexto: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Brand.textTertiary,
+  },
+  sheetFechar: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: Brand.background,
+  },
+  sheetFecharTexto: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Brand.textPrimary,
   },
 });

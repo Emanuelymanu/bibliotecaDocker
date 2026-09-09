@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { isAxiosError } from 'axios';
 import { adminService } from '@/src/services/adminService';
 import { adminTheme as t } from '@/src/constants/adminTheme';
 import { useAuth } from '@/src/context/AuthContext';
@@ -32,7 +33,12 @@ export default function AdminHomeScreen() {
         useCallback(() => {
             adminService.buscarEstatisticas()
                 .then(setStats)
-                .catch((err) => console.error('Erro ao buscar estatísticas:', err));
+                .catch((err) => {
+                    if (isAxiosError(err) && err.response?.status === 401) {
+                        return;
+                    }
+                    console.error('Erro ao buscar estatísticas:', err);
+                });
         }, [])
     );
 
