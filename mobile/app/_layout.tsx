@@ -33,7 +33,6 @@ function RotasProtegidas() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Protected guard={!!usuario}>
                 <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="admin" />
                 <Stack.Screen name="cadastro-livro" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="metas" />
                 <Stack.Screen name="conquistas" />
@@ -41,6 +40,10 @@ function RotasProtegidas() {
                 <Stack.Screen name="autor/[nome]" />
                 <Stack.Screen name="genero/[nome]" />
                 <Stack.Screen name="editora/[nome]" />
+            </Stack.Protected>
+
+            <Stack.Protected guard={usuario?.tipo_usuario === 'admin'}>
+                <Stack.Screen name="admin" />
             </Stack.Protected>
 
             <Stack.Protected guard={!usuario}>

@@ -21,7 +21,7 @@ router.put('/editar/:id', authMiddleware, upload.single('capa'), (req, res) => e
 router.delete('/deletar/:id', authMiddleware, (req, res) => editarLivrosController.deletarLivro(req, res));
 
 router.get('/listar', authMiddleware, (req, res) => listarLivros.listarLivros(req, res));
-router.get('/top-avaliados', (req, res) => listarLivros.listarTopAvaliados(req, res));
+router.get('/top-avaliados', authMiddleware, (req, res) => listarLivros.listarTopAvaliados(req, res));
 router.get('/', authMiddleware, (req, res) => listarLivros.listarLivros(req, res));
 router.get('/filtros/opcoes', (req, res) => filtroLivros.obterOpcoesFiltro(req, res));
 router.get('/genero/:genero', (req, res) => filtroLivros.buscarPorGenero(req, res));

@@ -1,8 +1,15 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '@/src/context/AuthContext';
+import { Brand } from '@/constants/Brand';
 
 export default function TabLayout() {
+  const { usuario } = useAuth();
+  const router = useRouter();
+
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -76,5 +83,35 @@ export default function TabLayout() {
         options={{ title: 'Perfil' }}
       />
     </Tabs>
+
+    {usuario?.tipo_usuario === 'admin' && (
+      <TouchableOpacity
+        style={styles.botaoAdmin}
+        onPress={() => router.push('/admin')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="shield-checkmark" size={22} color="#fff" />
+      </TouchableOpacity>
+    )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  botaoAdmin: {
+    position: 'absolute',
+    right: 16,
+    bottom: 76,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Brand.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+});

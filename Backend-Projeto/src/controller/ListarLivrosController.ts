@@ -190,30 +190,33 @@ export class ListarLivrosController {
 
     async listarTopAvaliados(req: Request, res: Response): Promise<Response> {
         try {
-            const livrosList = await livros.findAll({
-                attributes: ['id_livro', 'titulo', 'subtitulo', 'tipo_obra', 'ano_publicacao', 'num_paginas', 'capa'],
-                include: [
-                    { model: autores, as: 'autores', attributes: ['nome'] },
-                    { model: editoras, as: 'editora', attributes: ['nome'] },
-                    { model: generos, as: 'generos', attributes: ['nome'] }
-                ]
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+            const usuarioId = req.usuario.id;
+
+            const leiturasAvaliadas = await leituras.findAll({
+                where: { id_usuario: usuarioId, avaliacao: { [Op.not]: null } },
+                order: [['avaliacao', 'DESC']],
+                limit: 5,
+                include: [{
+                    model: livros,
+                    as: 'id_livro_livro',
+                    attributes: ['id_livro', 'titulo', 'subtitulo', 'tipo_obra', 'ano_publicacao', 'num_paginas', 'capa'],
+                    include: [
+                        { model: autores, as: 'autores', attributes: ['nome'] },
+                        { model: editoras, as: 'editora', attributes: ['nome'] },
+                        { model: generos, as: 'generos', attributes: ['nome'] }
+                    ]
+                }]
             });
 
-            const livrosComMediaArray = await Promise.all(livrosList.map(async (livro) => {
-                const avaliacaoObj = await leituras.findOne({
-                    where: { id_livro: livro.id_livro, avaliacao: { [Op.not]: null } },
-                    attributes: [[Sequelize.fn('AVG', Sequelize.col('avaliacao')), 'media']],
-                    raw: true
-                });
-                return {
-                    ...formatarLivro(livro),
-                    avaliacao_media: avaliacaoObj?.media ? Number(avaliacaoObj.media).toFixed(1) : null
-                };
-            }));
-
-            const top5 = livrosComMediaArray
-                .sort((a, b) => (Number(b.avaliacao_media) || 0) - (Number(a.avaliacao_media) || 0))
-                .slice(0, 5);
+            const top5 = leiturasAvaliadas
+                .filter((leitura) => leitura.id_livro_livro)
+                .map((leitura) => ({
+                    ...formatarLivro(leitura.id_livro_livro),
+                    avaliacao_media: leitura.avaliacao != null ? Number(leitura.avaliacao).toFixed(1) : null
+                }));
 
             return res.json({ livros: top5 });
         } catch (error) {
