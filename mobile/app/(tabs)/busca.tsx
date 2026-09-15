@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   botaoBuscar: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   botaoAdicionar: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#3b82f6',
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   botaoAdicionarTexto: {
-    color: '#000',
+    color: '#fcfcfc',
     fontWeight: 'bold',
     fontSize: 16,
   },
