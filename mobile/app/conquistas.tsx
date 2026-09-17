@@ -91,7 +91,11 @@ export default function ConquistasScreen() {
                 <View key={c.id_conquista} style={styles.card}>
                   <View style={[styles.iconWrapper, !c.desbloqueada && styles.iconWrapperBloqueado]}>
                     {c.desbloqueada ? (
-                      <Ionicons name={iconeConquista(c)} size={22} color="#d97706" />
+                      c.icone ? (
+                        <Text style={styles.emoji}>{c.icone}</Text>
+                      ) : (
+                        <Ionicons name={iconeConquista(c)} size={22} color="#d97706" />
+                      )
                     ) : (
                       <Ionicons name="lock-closed" size={18} color={Brand.placeholderIcon} />
                     )}
@@ -155,6 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   iconWrapperBloqueado: { backgroundColor: Brand.placeholder },
+  emoji: { fontSize: 22 },
   nome: { fontSize: 13, fontWeight: '700', color: Brand.textPrimary, textAlign: 'center' },
   descricao: { fontSize: 11, marginTop: 4, textAlign: 'center' },
   descricaoDesbloqueada: { color: Brand.primary },

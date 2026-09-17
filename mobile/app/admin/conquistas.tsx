@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     headerTitulo: { fontSize: 17, fontWeight: '700', color: t.cor.texto },
     headerSubtitulo: { fontSize: 12.5, color: t.cor.textoSecundario },
     botaoNovo: {
-        width: 34, height: 34, borderRadius: t.raio.sm, backgroundColor: t.categoria.conquistas.icone,
+        width: 34, height: 34, borderRadius: t.raio.sm, backgroundColor: t.cor.acaoPrimaria,
         justifyContent: 'center', alignItems: 'center',
     },
     lista: { padding: t.espaco.lg },

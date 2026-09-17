@@ -69,6 +69,7 @@ export interface AtualizarLivroPayload {
   editora?: string;
   status?: string;
   avaliacao?: number;
+  capa?: CapaSelecionada;
 }
 
 export const livrosService = {
@@ -96,6 +97,13 @@ export const livrosService = {
     if (dados.editora) formData.append('editora', dados.editora);
     if (dados.status) formData.append('status', dados.status);
     if (dados.avaliacao !== undefined) formData.append('avaliacao', String(dados.avaliacao));
+    if (dados.capa) {
+      formData.append('capa', {
+        uri: dados.capa.uri,
+        name: dados.capa.nome,
+        type: dados.capa.tipoMime,
+      } as any);
+    }
 
     await api.put(`/livros/editar/${idLivro}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

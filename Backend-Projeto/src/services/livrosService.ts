@@ -107,11 +107,11 @@ export class LivrosService {
         }
     }
 
-    async cadastrarLivro(dados: CadastrarLivroInput, idUsuario: number | undefined, nomeArquivoCapa?: string) {
+    async cadastrarLivro(dados: CadastrarLivroInput, idUsuario: number | undefined, nomeArquivoCapa?: string, protocoloEHost?: string) {
         let { id_google, titulo, autor, autores: autoresBody, subtitulo, tipo_obra, ano_publicacao, num_paginas, editora, generos: generosBody, genero, capa, avaliacao_media, total_avaliacoes } = dados;
 
         if (nomeArquivoCapa) {
-            capa = nomeArquivoCapa;
+            capa = `${protocoloEHost}/upload/capa/${nomeArquivoCapa}`;
         }
 
         const nomesAutores = normalizarLista(autoresBody ?? autor);

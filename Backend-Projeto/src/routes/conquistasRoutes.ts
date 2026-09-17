@@ -39,6 +39,7 @@ router.get('/catalogo', async (req, res) => {
             nome: c.nome,
             descricao: c.descricao,
             criterio: c.criterio,
+            icone: c.icone,
             desbloqueada: desbloqueadasPorId.has(c.id_conquista),
             data_conquista: desbloqueadasPorId.get(c.id_conquista) ?? null,
         }));

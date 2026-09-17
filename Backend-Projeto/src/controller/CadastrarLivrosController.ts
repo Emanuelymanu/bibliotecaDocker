@@ -8,7 +8,12 @@ export class CadastrarLivrosController {
 
     async cadastrarLivro(req: Request, res: Response) {
         try {
-            const livro = await livrosService.cadastrarLivro(req.body, req.usuario?.id, req.file?.filename);
+            const livro = await livrosService.cadastrarLivro(
+                req.body,
+                req.usuario?.id,
+                req.file?.filename,
+                `${req.protocol}://${req.get('host')}`
+            );
 
             console.log('Livro vinculado com sucesso. ID Local:', livro.id_livro);
 

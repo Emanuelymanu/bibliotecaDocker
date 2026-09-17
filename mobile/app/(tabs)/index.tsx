@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand } from '@/constants/Brand';
@@ -52,20 +52,24 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      setCarregando(true);
-      await carregarTopAvaliados();
-      setCarregando(false);
-    })();
-  }, [carregarTopAvaliados]);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        setCarregando(true);
+        await carregarTopAvaliados();
+        setCarregando(false);
+      })();
+    }, [carregarTopAvaliados])
+  );
 
-  useEffect(() => {
-    metasService
-      .buscarPorAno(ANO_ATUAL)
-      .then(setMeta)
-      .catch(() => setMeta(null));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      metasService
+        .buscarPorAno(ANO_ATUAL)
+        .then(setMeta)
+        .catch(() => setMeta(null));
+    }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setAtualizando(true);

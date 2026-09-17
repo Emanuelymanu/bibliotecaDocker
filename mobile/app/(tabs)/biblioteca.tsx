@@ -134,6 +134,7 @@ export default function BibliotecaScreen() {
         editora: form.editora.trim() || undefined,
         status: form.status,
         avaliacao: form.status === 'lido' ? form.avaliacao : undefined,
+        capa: form.capa,
       });
       setLivroEmEdicao(null);
       setSelecionada(null);

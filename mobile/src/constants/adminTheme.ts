@@ -6,6 +6,7 @@ export const adminTheme = {
         primariaClara: '#EDE7FB',
         primariaEscura: '#4C1D95',
         destaque: '#D97706',
+        acaoPrimaria: '#2563EB',
         heroFundo: '#1E2536',      
         perigo: '#DC2626',
         perigoClaro: '#FEE2E2',
@@ -17,7 +18,7 @@ export const adminTheme = {
     },
    
     categoria: {
-        conquistas: { icone: '#D97706', fundo: '#FEF3C7' },
+        conquistas: { icone: '#eb9c25', fundo: '#FEF3C7' },
         autores: { icone: '#2563EB', fundo: '#DBEAFE' },
         editoras: { icone: '#7C3AED', fundo: '#EDE4FB' },
         generos: { icone: '#059669', fundo: '#D1FAE5' },

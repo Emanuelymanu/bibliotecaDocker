@@ -5,6 +5,7 @@ export interface ConquistaCatalogo {
   nome: string;
   descricao: string | null;
   criterio: string | null;
+  icone: string | null;
   desbloqueada: boolean;
   data_conquista: string | null;
 }

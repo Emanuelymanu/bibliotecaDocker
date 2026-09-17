@@ -4,7 +4,7 @@ export const Brand = {
   accent: '#3b82f6',
 
   gradientStart: '#3b82f6',
-  gradientEnd: '#a855f7',
+  gradientEnd: '#1d4ed8',
 
   background: '#f8fafc',
   card: '#ffffff',

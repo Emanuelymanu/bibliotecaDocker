@@ -11,10 +11,10 @@ export function celebrarConquistas(novasConquistas?: ConquistaDesbloqueada[] | n
 
   if (novasConquistas.length === 1) {
     const c = novasConquistas[0];
-    Alert.alert('🏆 Conquista desbloqueada!', c.descricao ? `${c.nome}\n${c.descricao}` : c.nome);
+    Alert.alert(' Conquista desbloqueada!', c.descricao ? `${c.nome}\n${c.descricao}` : c.nome);
     return;
   }
 
   const nomes = novasConquistas.map((c) => `• ${c.nome}`).join('\n');
-  Alert.alert('🏆 Novas conquistas desbloqueadas!', nomes);
+  Alert.alert(' Novas conquistas desbloqueadas!', nomes);
 }

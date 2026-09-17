@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
 import { Brand } from '@/constants/Brand';
 import { GENEROS_SUGERIDOS, STATUS_LABEL, TIPOS_OBRA } from '@/src/constants/livroForm';
 import { LivroCompleto } from '@/src/services/livrosService';
+import { validarImagemCapa } from '@/src/utils/validarImagem';
+import { solicitarPermissaoGaleria } from '@/src/utils/permissoes';
+import { CapaSelecionada } from '@/src/types/livro';
 import { Seletor } from './Seletor';
 import { estiloFormulario as styles } from './estiloFormulario';
 
@@ -20,6 +24,7 @@ export interface FormularioEdicao {
   editora: string;
   status: string;
   avaliacao: number;
+  capa?: CapaSelecionada;
 }
 
 export function EditarLivroModal({
@@ -47,10 +52,40 @@ export function EditarLivroModal({
     status: statusInicial,
     avaliacao: avaliacaoInicial,
   });
+  const [novaCapa, setNovaCapa] = useState<CapaSelecionada | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   function atualizarCampo<K extends keyof FormularioEdicao>(campo: K, valor: FormularioEdicao[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
+  async function escolherCapa() {
+    const permitido = await solicitarPermissaoGaleria();
+    if (!permitido) return;
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+
+    if (resultado.canceled || !resultado.assets?.[0]) {
+      return;
+    }
+
+    const asset = resultado.assets[0];
+    const erroValidacao = validarImagemCapa(asset);
+    if (erroValidacao) {
+      Alert.alert('Imagem inválida', erroValidacao);
+      return;
+    }
+
+    setNovaCapa({
+      uri: asset.uri,
+      nome: asset.fileName ?? `capa-${Date.now()}.jpg`,
+      tipoMime: asset.mimeType ?? 'image/jpeg',
+      tamanhoBytes: asset.fileSize,
+    });
   }
 
   async function salvar() {
@@ -64,7 +99,7 @@ export function EditarLivroModal({
     }
     setSalvando(true);
     try {
-      await onSalvar(form);
+      await onSalvar({ ...form, capa: novaCapa ?? undefined });
     } finally {
       setSalvando(false);
     }
@@ -82,18 +117,18 @@ export function EditarLivroModal({
         </View>
 
         <ScrollView contentContainerStyle={styles.editScroll}>
-          <View style={styles.editCapaWrapper}>
-            {livro.capa ? (
+          <TouchableOpacity style={styles.editCapaWrapper} onPress={escolherCapa} activeOpacity={0.8}>
+            {novaCapa ? (
+              <Image source={{ uri: novaCapa.uri }} style={styles.editCapa} />
+            ) : livro.capa ? (
               <Image source={{ uri: livro.capa }} style={styles.editCapa} />
             ) : (
               <View style={[styles.editCapa, styles.editCapaPlaceholder]}>
-                <Ionicons name="book-outline" size={28} color={Brand.placeholderIcon} />
+                <Ionicons name="image-outline" size={28} color={Brand.placeholderIcon} />
               </View>
             )}
-          </View>
-          <Text style={styles.editCapaAviso}>
-            A troca de capa ainda não está disponível por aqui (o backend só aceita capa via upload de arquivo).
-          </Text>
+          </TouchableOpacity>
+          <Text style={styles.editCapaAviso}>Toque na imagem pra trocar a capa.</Text>
 
           <View style={styles.editCard}>
             <Text style={styles.campoLabel}>Título *</Text>

@@ -125,6 +125,6 @@ const styles = StyleSheet.create({
     modalBotoes: { flexDirection: 'row', gap: t.espaco.sm, marginTop: t.espaco.sm },
     modalBotaoCancelar: { flex: 1, paddingVertical: 12, borderRadius: t.raio.sm, borderWidth: 1.5, borderColor: t.cor.borda, alignItems: 'center' },
     modalBotaoCancelarTexto: { color: t.cor.textoSecundario, fontWeight: '600' },
-    modalBotaoCriar: { flex: 1, backgroundColor: t.categoria.conquistas.icone, paddingVertical: 12, borderRadius: t.raio.sm, alignItems: 'center' },
+    modalBotaoCriar: { flex: 1, backgroundColor: t.cor.acaoPrimaria, paddingVertical: 12, borderRadius: t.raio.sm, alignItems: 'center' },
     modalBotaoCriarTexto: { color: t.cor.superficie, fontWeight: '700' },
 });
