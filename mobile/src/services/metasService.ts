@@ -38,4 +38,8 @@ export const metasService = {
     });
     return { meta: data.meta, novasConquistas: data.novasConquistas ?? [] };
   },
+
+  async deletar(ano: number): Promise<void> {
+    await api.delete(`/metas/${ano}`);
+  },
 };

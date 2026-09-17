@@ -8,5 +8,6 @@ const metasLeituraController = new MetasLeituraController();
 router.post('/', authMiddleware, (req, res) => metasLeituraController.criarOuAtualizarMeta(req, res));
 router.get('/', authMiddleware, (req, res) => metasLeituraController.listarMinhasMetas(req, res));
 router.get('/:ano', authMiddleware, (req, res) => metasLeituraController.buscarMetaPorAno(req, res));
+router.delete('/:ano', authMiddleware, (req, res) => metasLeituraController.deletarMeta(req, res));
 
 export default router;

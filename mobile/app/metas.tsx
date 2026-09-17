@@ -69,6 +69,25 @@ export default function MetasScreen() {
     }
   }
 
+  function confirmarExclusaoMeta() {
+    Alert.alert('Excluir meta', `Tem certeza que quer excluir a meta de ${ANO_ATUAL}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await metasService.deletar(ANO_ATUAL);
+            await carregar();
+          } catch (e) {
+            Alert.alert('Erro', 'Não foi possível excluir a meta.');
+            console.error(e);
+          }
+        },
+      },
+    ]);
+  }
+
   const pctLivros = metaDoAno?.meta.qtd_livros_alvo
     ? Math.min(100, Math.round((metaDoAno.progresso.livros_lidos / metaDoAno.meta.qtd_livros_alvo) * 100))
     : 0;
@@ -145,9 +164,16 @@ export default function MetasScreen() {
             )}
           </LinearGradient>
 
-          <TouchableOpacity style={styles.botaoEditar} onPress={() => setEditorAberto(true)}>
-            <Text style={styles.botaoEditarTexto}>{metaDoAno ? 'Editar Meta' : 'Definir Meta'}</Text>
-          </TouchableOpacity>
+          <View style={styles.botoesMetaRow}>
+            <TouchableOpacity style={[styles.botaoEditar, { flex: 1 }]} onPress={() => setEditorAberto(true)}>
+              <Text style={styles.botaoEditarTexto}>{metaDoAno ? 'Editar Meta' : 'Definir Meta'}</Text>
+            </TouchableOpacity>
+            {metaDoAno && (
+              <TouchableOpacity style={styles.botaoExcluirMeta} onPress={confirmarExclusaoMeta}>
+                <Ionicons name="trash-outline" size={18} color={Brand.danger} />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {outrasMetas.length > 0 && (
             <View style={{ marginTop: 24 }}>
@@ -259,8 +285,10 @@ const styles = StyleSheet.create({
   trackBranco: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.3)' },
   fillBranco: { height: 8, borderRadius: 4, backgroundColor: '#fff' },
   semMetaTexto: { fontSize: 13, color: 'rgba(255,255,255,0.9)', marginTop: 10 },
-  botaoEditar: { marginTop: 16, backgroundColor: Brand.card, borderRadius: 10, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: Brand.border },
+  botoesMetaRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  botaoEditar: { backgroundColor: Brand.card, borderRadius: 10, paddingVertical: 13, alignItems: 'center', borderWidth: 1, borderColor: Brand.border },
   botaoEditarTexto: { fontSize: 14, fontWeight: '700', color: Brand.primary },
+  botaoExcluirMeta: { width: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.dangerBg, borderWidth: 1, borderColor: Brand.border },
   secaoTitulo: { fontSize: 14, fontWeight: '700', color: Brand.textPrimary, marginBottom: 10 },
   itemAnoAnterior: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: Brand.card, borderRadius: 10, padding: 12, marginBottom: 8 },
   itemAnoTexto: { fontSize: 13, fontWeight: '700', color: Brand.textPrimary },
