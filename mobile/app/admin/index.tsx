@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { isAxiosError } from 'axios';
 import { adminService } from '@/src/services/adminService';
 import { adminTheme as t } from '@/src/constants/adminTheme';
+import { useAuth } from '@/src/context/AuthContext';
 
 type ChaveStat = 'conquistas' | 'autores' | 'editoras' | 'generos';
 
@@ -15,26 +17,51 @@ const ITENS = [
     { chave: 'generos' as ChaveStat, rota: '/admin/generos' as const, icone: 'pricetag' as const, titulo: 'Gêneros', descricao: 'Organize os gêneros literários disponíveis' },
 ];
 
+const ITEM_USUARIOS = {
+    rota: '/admin/usuarios' as const,
+    icone: 'shield-checkmark' as const,
+    titulo: 'Usuários',
+    descricao: 'Adicione ou remova administradores do sistema',
+};
+
 export default function AdminHomeScreen() {
     const router = useRouter();
+    const { logout } = useAuth();
     const [stats, setStats] = useState<Record<ChaveStat, number> | null>(null);
 
-    useEffect(() => {
-        adminService.buscarEstatisticas()
-            .then(setStats)
-            .catch((err) => console.error('Erro ao buscar estatísticas:', err));
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            adminService.buscarEstatisticas()
+                .then(setStats)
+                .catch((err) => {
+                    if (isAxiosError(err) && err.response?.status === 401) {
+                        return;
+                    }
+                    console.error('Erro ao buscar estatísticas:', err);
+                });
+        }, [])
+    );
+
+    function confirmarSaida() {
+        Alert.alert('Sair', 'Tem certeza que quer sair da conta?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Sair', style: 'destructive', onPress: () => logout() },
+        ]);
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.voltarBotao}>
+                <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.voltarBotao}>
                     <Ionicons name="chevron-back" size={24} color={t.cor.texto} />
                 </TouchableOpacity>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.headerTitulo}>Painel Admin</Text>
                     <Text style={styles.headerSubtitulo}>Gerenciamento do sistema</Text>
                 </View>
+                <TouchableOpacity onPress={confirmarSaida} style={styles.sairBotao}>
+                    <Ionicons name="log-out-outline" size={22} color={t.cor.perigo} />
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -87,6 +114,21 @@ export default function AdminHomeScreen() {
                             </TouchableOpacity>
                         );
                     })}
+
+                    <TouchableOpacity
+                        style={styles.itemMenu}
+                        onPress={() => router.push(ITEM_USUARIOS.rota)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.itemIconeCirculo, { backgroundColor: t.categoria.usuarios.fundo }]}>
+                            <Ionicons name={ITEM_USUARIOS.icone} size={22} color={t.categoria.usuarios.icone} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.itemTitulo}>{ITEM_USUARIOS.titulo}</Text>
+                            <Text style={styles.itemDescricao} numberOfLines={1}>{ITEM_USUARIOS.descricao}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={t.cor.textoTerciario} />
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -105,6 +147,7 @@ const styles = StyleSheet.create({
         borderBottomColor: t.cor.borda,
     },
     voltarBotao: { padding: t.espaco.xs, marginRight: t.espaco.xs },
+    sairBotao: { padding: t.espaco.xs, marginLeft: t.espaco.xs },
     headerTitulo: { fontSize: 17, fontWeight: '700', color: t.cor.texto },
     headerSubtitulo: { fontSize: 12.5, color: t.cor.textoSecundario },
     scroll: { padding: t.espaco.lg },

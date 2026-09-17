@@ -1,7 +1,12 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, LogBox } from 'react-native';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+
+LogBox.ignoreLogs([
+    'SafeAreaView has been deprecated',
+    'InteractionManager has been deprecated',
+]);
 
 
 function RotasProtegidas() {
@@ -31,14 +36,25 @@ function RotasProtegidas() {
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
-            {usuario ? (
-                <>
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="admin" />
-                </>
-            ) : (
+            <Stack.Protected guard={!!usuario}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="cadastro-livro" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="metas" />
+                <Stack.Screen name="conquistas" />
+                <Stack.Screen name="lista-desejos" />
+                <Stack.Screen name="autor/[nome]" />
+                <Stack.Screen name="genero/[nome]" />
+                <Stack.Screen name="editora/[nome]" />
+            </Stack.Protected>
+
+            <Stack.Protected guard={usuario?.tipo_usuario === 'admin'}>
+                <Stack.Screen name="admin" />
+            </Stack.Protected>
+
+            <Stack.Protected guard={!usuario}>
                 <Stack.Screen name="login" />
-            )}
+                <Stack.Screen name="cadastro" />
+            </Stack.Protected>
         </Stack>
     );
 }

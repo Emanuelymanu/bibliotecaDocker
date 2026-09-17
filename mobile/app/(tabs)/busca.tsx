@@ -1,4 +1,3 @@
-// app/(tabs)/busca.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -12,17 +11,22 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { buscarLivrosNaAPI, Livro } from '../../src/services/googleBooksSerice';
+import { livrosService } from '../../src/services/livrosService';
+import { leiturasService } from '../../src/services/leiturasService';
+import { listaDesejosService } from '../../src/services/listaDesejosService';
 
 export default function BuscaScreen() {
   const [termoBusca, setTermoBusca] = useState<string>('');
   const [resultados, setResultados] = useState<Livro[]>([]);
   const [carregando, setCarregando] = useState<boolean>(false);
   const [ultimaBusca, setUltimaBusca] = useState<string>('');
+  const [adicionando, setAdicionando] = useState<string | null>(null); 
 
   const handleBuscar = async (): Promise<void> => {
     if (!termoBusca.trim()) {
-      Alert.alert('Atenção', 'Digite um título, autor ou ISBN para buscar.');
+      Alert.alert('Atenção', 'Digite um título ou autor para buscar.');
       return;
     }
 
@@ -36,13 +40,64 @@ export default function BuscaScreen() {
       if (livros.length === 0) {
         Alert.alert('Nenhum livro encontrado', 'Tente buscar por outro termo.');
       }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível buscar os livros. Tente novamente.');
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Não foi possível buscar os livros. Tente novamente.');
       console.error(error);
     } finally {
       setCarregando(false);
     }
   };
+
+
+  async function handleAdicionar(livro: Livro) {
+    Alert.alert(livro.titulo, 'Onde você quer adicionar esse livro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Lista de Desejos', onPress: () => adicionarLivro(livro, 'wishlist') },
+      { text: 'Minha Biblioteca', onPress: () => adicionarLivro(livro, 'biblioteca') },
+    ]);
+  }
+
+  async function adicionarLivro(livro: Livro, destino: 'biblioteca' | 'wishlist') {
+    setAdicionando(livro.id_google);
+    try {
+      const { id_livro } = await livrosService.cadastrarComGoogle({
+        titulo: livro.titulo,
+        subtitulo: livro.subtitulo,
+        autores: livro.autores,
+        ano_publicacao: livro.ano_publicacao,
+        num_paginas: livro.num_paginas,
+        generos: livro.generos,
+        editora: livro.editora,
+        capa: livro.capa || undefined,
+        id_google: livro.id_google,
+      });
+
+      if (destino === 'wishlist') {
+        await listaDesejosService.adicionar(id_livro);
+        Alert.alert('Pronto!', 'Livro adicionado à sua lista de desejos.');
+      } else {
+   
+        const leituras = await leiturasService.listar();
+        const criada = leituras.find((l) => l.livro?.id_livro === id_livro);
+        if (criada) {
+          await leiturasService.atualizarStatus(criada.id_leitura, 'quero_ler');
+        }
+        Alert.alert('Pronto!', 'Livro adicionado à sua biblioteca.');
+      }
+    } catch (error: any) {
+      const mensagem = error?.response?.data?.erro || error?.response?.data?.message;
+      if (error?.response?.status === 409) {
+
+        Alert.alert('Atenção', mensagem || 'Esse livro já está na sua estante.');
+        console.warn('Livro já cadastrado:', mensagem);
+      } else {
+        Alert.alert('Erro', mensagem || 'Não foi possível adicionar o livro.');
+        console.error(error);
+      }
+    } finally {
+      setAdicionando(null);
+    }
+  }
 
   const renderItem = ({ item }: { item: Livro }) => (
     <TouchableOpacity style={styles.livroCard} onPress={() => console.log('Abrir detalhes do:', item.titulo)}>
@@ -60,8 +115,16 @@ export default function BuscaScreen() {
         </Text>
         <View style={styles.footer}>
           <Text style={styles.paginas}>{item.num_paginas} páginas</Text>
-          <TouchableOpacity style={styles.botaoAdicionar}>
-            <Text style={styles.botaoAdicionarTexto}>+</Text>
+          <TouchableOpacity
+            style={styles.botaoAdicionar}
+            onPress={() => handleAdicionar(item)}
+            disabled={adicionando === item.id_google}
+          >
+            {adicionando === item.id_google ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <Text style={styles.botaoAdicionarTexto}>+</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -69,7 +132,7 @@ export default function BuscaScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Buscar Livros</Text>
       </View>
@@ -121,7 +184,7 @@ export default function BuscaScreen() {
           windowSize={5}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -158,7 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   botaoBuscar: {
-    backgroundColor: '#6200ee',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
@@ -210,7 +273,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   botaoAdicionar: {
-    backgroundColor: '#03dac6',
+    backgroundColor: '#3b82f6',
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -218,7 +281,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   botaoAdicionarTexto: {
-    color: '#000',
+    color: '#fcfcfc',
     fontWeight: 'bold',
     fontSize: 16,
   },

@@ -8,7 +8,6 @@ import { Op, Sequelize } from 'sequelize';
 import { ListarLivrosQuery } from '../types/livroTypes';
 import { fetchFromGoogle } from '../services/googleBooksService';
 
-/** Achata as relações (autores/generos/editora) num formato simples pro frontend consumir. */
 function formatarLivro(livro: any) {
     const dados = livro.get ? livro.get({ plain: true }) : livro;
     return {
@@ -19,7 +18,7 @@ function formatarLivro(livro: any) {
     };
 }
 
-/** Monta o resultado "cru" vindo do Google Books, no mesmo formato que formatarLivro devolveria. */
+
 function formatarItemGoogle(item: any) {
     const info = item.volumeInfo;
     return {
@@ -98,21 +97,24 @@ export class ListarLivrosController {
                 avaliacaoWhere = { avaliacao: { [Op.between]: [min, max] } };
             }
 
-            const usuarioId = req.usuario?.id;
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+            const usuarioId = req.usuario.id;
 
+           
             const leiturasInclude: any = {
                 model: leituras,
                 as: 'leituras',
                 attributes: ['id_leitura', 'id_usuario', 'id_livro', 'status', 'data_inicio', 'data_conclusao', 'avaliacao', 'resenha', 'pagina_atual', 'vezes_lido'],
-                required: false
+                required: true,
+                where: { id_usuario: usuarioId }
             };
-            if (usuarioId) leiturasInclude.where = { id_usuario: usuarioId };
             if (avaliacao_min || avaliacao_max) {
-                leiturasInclude.where = { ...(leiturasInclude.where || {}), ...avaliacaoWhere };
-                leiturasInclude.required = true;
+                leiturasInclude.where = { ...leiturasInclude.where, ...avaliacaoWhere };
             }
 
-            // Autor/gênero/editora agora são relações -> filtra via include, não via where direto em livros
+          
             const autoresInclude: any = { model: autores, as: 'autores', attributes: ['id_autor', 'nome'] };
             if (autor) {
                 autoresInclude.where = { nome: { [Op.like]: `%${autor}%` } };
@@ -137,7 +139,7 @@ export class ListarLivrosController {
                 offset,
                 order: [[ordenar_por, direcao]],
                 attributes: { exclude: ['created_at', 'updated_at'] },
-                distinct: true, // evita contagem duplicada por causa dos includes N:N
+                distinct: true, 
                 include: [leiturasInclude, autoresInclude, generosInclude, editorasInclude]
             });
 
@@ -151,7 +153,7 @@ export class ListarLivrosController {
                 return { ...formatarLivro(livro), avaliacao_media: mediaAvaliacao };
             }));
 
-            // Se não houver resultados locais e houver busca, tenta buscar na Google Books API
+            
             if (livrosResponse.length === 0 && busca) {
                 try {
                     const items = await fetchFromGoogle(busca);
@@ -188,30 +190,33 @@ export class ListarLivrosController {
 
     async listarTopAvaliados(req: Request, res: Response): Promise<Response> {
         try {
-            const livrosList = await livros.findAll({
-                attributes: ['id_livro', 'titulo', 'subtitulo', 'tipo_obra', 'ano_publicacao', 'num_paginas', 'capa'],
-                include: [
-                    { model: autores, as: 'autores', attributes: ['nome'] },
-                    { model: editoras, as: 'editora', attributes: ['nome'] },
-                    { model: generos, as: 'generos', attributes: ['nome'] }
-                ]
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+            const usuarioId = req.usuario.id;
+
+            const leiturasAvaliadas = await leituras.findAll({
+                where: { id_usuario: usuarioId, avaliacao: { [Op.not]: null } },
+                order: [['avaliacao', 'DESC']],
+                limit: 5,
+                include: [{
+                    model: livros,
+                    as: 'id_livro_livro',
+                    attributes: ['id_livro', 'titulo', 'subtitulo', 'tipo_obra', 'ano_publicacao', 'num_paginas', 'capa'],
+                    include: [
+                        { model: autores, as: 'autores', attributes: ['nome'] },
+                        { model: editoras, as: 'editora', attributes: ['nome'] },
+                        { model: generos, as: 'generos', attributes: ['nome'] }
+                    ]
+                }]
             });
 
-            const livrosComMediaArray = await Promise.all(livrosList.map(async (livro) => {
-                const avaliacaoObj = await leituras.findOne({
-                    where: { id_livro: livro.id_livro, avaliacao: { [Op.not]: null } },
-                    attributes: [[Sequelize.fn('AVG', Sequelize.col('avaliacao')), 'media']],
-                    raw: true
-                });
-                return {
-                    ...formatarLivro(livro),
-                    avaliacao_media: avaliacaoObj?.media ? Number(avaliacaoObj.media).toFixed(1) : null
-                };
-            }));
-
-            const top5 = livrosComMediaArray
-                .sort((a, b) => (Number(b.avaliacao_media) || 0) - (Number(a.avaliacao_media) || 0))
-                .slice(0, 5);
+            const top5 = leiturasAvaliadas
+                .filter((leitura) => leitura.id_livro_livro)
+                .map((leitura) => ({
+                    ...formatarLivro(leitura.id_livro_livro),
+                    avaliacao_media: leitura.avaliacao != null ? Number(leitura.avaliacao).toFixed(1) : null
+                }));
 
             return res.json({ livros: top5 });
         } catch (error) {

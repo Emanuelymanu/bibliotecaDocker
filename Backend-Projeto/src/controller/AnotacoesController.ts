@@ -8,7 +8,7 @@ import { verificarConquistas } from './ConquistasController';
 export class AnotacoesController {
     async criarAnotacao(req: Request, res: Response): Promise<Response> {
         try {
-            // ALTERAÇÃO: Tratando as duas possíveis nomenclaturas do middleware JWT
+           
             const usuarioId = req.usuario?.id;
             if (!usuarioId) {
                 return res.status(401).json({
@@ -30,7 +30,7 @@ export class AnotacoesController {
                 });
             }
 
-            // Trazemos o include de livros para validar o teto máximo de páginas do livro da API
+           
             const leitura = await leituras.findOne({
                 where: {
                     id_leitura,
@@ -48,7 +48,7 @@ export class AnotacoesController {
                 });
             }
 
-            // ALTERAÇÃO: Validação do limite de páginas baseada no livro (caso o Google Books tenha retornado o total)
+           
             if (pagina !== undefined && pagina !== null) {
                 const paginaNum = Number(pagina);
                 if (paginaNum < 0) {

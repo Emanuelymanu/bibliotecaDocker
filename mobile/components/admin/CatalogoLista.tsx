@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -10,7 +11,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '@/src/services/adminService';
 import { tipoCatalogo } from '../../src/types/adminTypes';
@@ -42,6 +43,7 @@ export default function CatalogoLista({
     const [itens, setItens] = useState<ItemCatalogo[]>([]);
     const [busca, setBusca] = useState('');
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
 
     const [itemEditando, setItemEditando] = useState<ItemCatalogo | null>(null);
     const [form, setForm] = useState<Record<string, string>>({});
@@ -61,8 +63,16 @@ export default function CatalogoLista({
         }
     }, [tipo]);
 
-    useEffect(() => {
-        carregar();
+    useFocusEffect(
+        useCallback(() => {
+            carregar();
+        }, [carregar])
+    );
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar();
+        setAtualizando(false);
     }, [carregar]);
 
     const itensFiltrados = itens.filter((item) =>
@@ -137,13 +147,14 @@ export default function CatalogoLista({
                 />
             </View>
 
-            {carregando ? (
+            {carregando && itens.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={itensFiltrados}
                     keyExtractor={(item) => String(item[pk])}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name={icone} size={36} color={t.cor.textoTerciario} />

@@ -61,8 +61,7 @@ export class AtualizarLeituraController {
         const livro = leitura.id_livro_livro;
 
         if (pagina_atual !== undefined) {
-            // ALTERAÇÃO: Avalia se num_paginas existe no banco local. 
-            // Se o Google Books retornou nulo, não aplicamos a validação de limite máximo para não travar o app.
+            
             if (livro && livro.num_paginas !== null && livro.num_paginas !== undefined) {
                 const numPaginas = Number(livro.num_paginas);
 
@@ -123,7 +122,7 @@ export class AtualizarLeituraController {
             leitura.data_conclusao = new Date().toISOString().split('T')[0];
             leitura.vezes_lido = (leitura.vezes_lido || 0) + 1;
             
-            // ALTERAÇÃO: Só iguala a página atual ao total se o total de páginas for conhecido no banco local
+            
             if (livro && livro.num_paginas) {
                 leitura.pagina_atual = livro.num_paginas;
             }

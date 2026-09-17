@@ -3,6 +3,7 @@ import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
@@ -30,6 +31,7 @@ export default function AdminCatalogoScreen() {
     const [abaAtiva, setAbaAtiva] = useState<tipoCatalogo>('autores');
     const [itens, setItens] = useState<ItemCatalogo[]>([]);
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
 
     const [itemEditando, setItemEditando] = useState<ItemCatalogo | null>(null);
     const [nomeEditado, setNomeEditado] = useState('');
@@ -54,6 +56,12 @@ export default function AdminCatalogoScreen() {
 
     useEffect(() => {
         carregar();
+    }, [carregar]);
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar();
+        setAtualizando(false);
     }, [carregar]);
 
     function abrirEdicao(item: ItemCatalogo) {
@@ -130,13 +138,14 @@ export default function AdminCatalogoScreen() {
                 })}
             </View>
 
-            {carregando ? (
+            {carregando && itens.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={itens}
                     keyExtractor={(item) => String(item[pkAtual])}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name={abaAtual.icone} size={40} color={t.cor.textoTerciario} />

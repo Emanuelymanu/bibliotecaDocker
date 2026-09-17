@@ -1,15 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
     FlatList,
+    RefreshControl,
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { adminService } from '@/src/services/adminService';
@@ -24,6 +25,7 @@ export default function AdminConquistasScreen() {
     const router = useRouter();
     const [conquistas, setConquistas] = useState<Conquista[]>([]);
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
 
     const [modalFormAberto, setModalFormAberto] = useState(false);
     const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -45,7 +47,13 @@ export default function AdminConquistasScreen() {
         }
     }, []);
 
-    useEffect(() => { carregar(); }, [carregar]);
+    useFocusEffect(useCallback(() => { carregar(); }, [carregar]));
+
+    const onRefresh = useCallback(async () => {
+        setAtualizando(true);
+        await carregar();
+        setAtualizando(false);
+    }, [carregar]);
 
     function abrirCriacao() {
         setEditandoId(null);
@@ -130,13 +138,14 @@ export default function AdminConquistasScreen() {
                 </TouchableOpacity>
             </View>
 
-            {carregando ? (
+            {carregando && conquistas.length === 0 ? (
                 <ActivityIndicator size="large" color={t.cor.primaria} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
                     data={conquistas}
                     keyExtractor={(item) => String(item.id_conquista)}
                     contentContainerStyle={styles.lista}
+                    refreshControl={<RefreshControl refreshing={atualizando} onRefresh={onRefresh} tintColor={t.cor.primaria} />}
                     ListEmptyComponent={
                         <View style={styles.vazioContainer}>
                             <Ionicons name="trophy-outline" size={36} color={t.cor.textoTerciario} />
@@ -196,7 +205,7 @@ const styles = StyleSheet.create({
     headerTitulo: { fontSize: 17, fontWeight: '700', color: t.cor.texto },
     headerSubtitulo: { fontSize: 12.5, color: t.cor.textoSecundario },
     botaoNovo: {
-        width: 34, height: 34, borderRadius: t.raio.sm, backgroundColor: t.categoria.conquistas.icone,
+        width: 34, height: 34, borderRadius: t.raio.sm, backgroundColor: t.cor.acaoPrimaria,
         justifyContent: 'center', alignItems: 'center',
     },
     lista: { padding: t.espaco.lg },

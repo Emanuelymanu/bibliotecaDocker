@@ -97,7 +97,34 @@ export class MetasLeituraController {
         }
     }
 
-   
+
+    async deletarMeta(req: Request, res: Response): Promise<Response> {
+        try {
+            if (!req.usuario) {
+                return res.status(401).json({ erro: 'Usuário não autenticado' });
+            }
+            const usuarioId = req.usuario.id;
+            const ano = Number(req.params.ano);
+
+            if (isNaN(ano)) {
+                return res.status(400).json({ erro: 'Ano inválido' });
+            }
+
+            const meta = await metas_leituras.findOne({ where: { id_usuario: usuarioId, ano } });
+            if (!meta) {
+                return res.status(404).json({ erro: 'Nenhuma meta cadastrada para esse ano' });
+            }
+
+            await meta.destroy();
+
+            return res.json({ mensagem: 'Meta removida com sucesso' });
+        } catch (error) {
+            console.error('Erro ao remover meta:', error);
+            return res.status(500).json({ erro: 'Erro interno ao remover meta' });
+        }
+    }
+
+
     private async calcularProgresso(usuarioId: number, ano: number) {
         const inicioAno = `${ano}-01-01`;
         const fimAno = `${ano}-12-31`;

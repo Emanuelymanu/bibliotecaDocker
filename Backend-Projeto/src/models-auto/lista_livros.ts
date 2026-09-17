@@ -3,8 +3,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import type { usuarios, usuariosId } from './usuarios';
 import type { livros, livrosId } from './livros';
 
-/** Lista de desejos pessoal: "quero ler esse livro". Cada linha é um livro
- *  que um usuário marcou como desejado, com a data em que adicionou. */
+
 export interface lista_livrosAttributes {
   id_usuario: number;
   id_livro: number;

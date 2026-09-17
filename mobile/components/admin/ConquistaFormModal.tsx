@@ -78,6 +78,14 @@ export default function ConquistaFormModal({ visivel, editando, form, aoMudarFor
                     value={form.criterio}
                     onChangeText={(v) => aoMudarForm({ ...form, criterio: v })}
                 />
+                <Text style={styles.avisoCriterio}>
+                    O desbloqueio é automático e depende de palavras-chave no critério (ou no nome/descrição):
+                    {'\n'}• "meta" → ter uma meta de leitura cadastrada
+                    {'\n'}• "sessão" + número → total de sessões de leitura
+                    {'\n'}• "página" + número → total de páginas lidas
+                    {'\n'}• "livro"/"leitura" + número → total de livros lidos (ou de um gênero, se citar o nome dele)
+                    {'\n'}Sem nenhuma dessas palavras, a conquista nunca desbloqueia sozinha — só via "Conceder" manual.
+                </Text>
             </AdminModal>
 
             <EmojiPicker
@@ -122,9 +130,13 @@ const styles = StyleSheet.create({
         borderWidth: 1.5, borderColor: t.cor.borda, borderRadius: t.raio.sm,
         padding: 12, fontSize: 14.5, marginBottom: t.espaco.md, color: t.cor.texto,
     },
+    avisoCriterio: {
+        fontSize: 11.5, color: t.cor.textoSecundario, lineHeight: 17,
+        backgroundColor: t.cor.fundo, borderRadius: t.raio.sm, padding: 10, marginBottom: t.espaco.md,
+    },
     modalBotoes: { flexDirection: 'row', gap: t.espaco.sm, marginTop: t.espaco.sm },
     modalBotaoCancelar: { flex: 1, paddingVertical: 12, borderRadius: t.raio.sm, borderWidth: 1.5, borderColor: t.cor.borda, alignItems: 'center' },
     modalBotaoCancelarTexto: { color: t.cor.textoSecundario, fontWeight: '600' },
-    modalBotaoCriar: { flex: 1, backgroundColor: t.categoria.conquistas.icone, paddingVertical: 12, borderRadius: t.raio.sm, alignItems: 'center' },
+    modalBotaoCriar: { flex: 1, backgroundColor: t.cor.acaoPrimaria, paddingVertical: 12, borderRadius: t.raio.sm, alignItems: 'center' },
     modalBotaoCriarTexto: { color: t.cor.superficie, fontWeight: '700' },
 });

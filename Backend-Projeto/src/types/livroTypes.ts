@@ -14,8 +14,7 @@ export interface Livro {
     updated_at?: Date;
 }
 
-/** DTO de entrada para cadastro. autores/generos chegam como nomes (string);
- *  o controller resolve para id via findOrCreate nas tabelas normalizadas. */
+
 export interface CriarLivroDTO {
     id_google: string;
     titulo: string;
