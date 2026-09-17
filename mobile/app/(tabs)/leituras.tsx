@@ -140,7 +140,7 @@ function LeituraSheet({
     try {
       const novasConquistas = await leiturasService.atualizarProgresso(leitura.id_leitura, { pagina_atual: valor });
       if (numPaginas != null && valor === numPaginas) {
-        Alert.alert('Parabéns! 🎉', 'Livro marcado como lido automaticamente.');
+        Alert.alert('Parabéns! ', 'Livro marcado como lido automaticamente.');
         onFinalizada(leitura.id_leitura);
       } else {
         onClose();

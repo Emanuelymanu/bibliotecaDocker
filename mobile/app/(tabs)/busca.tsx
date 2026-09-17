@@ -22,11 +22,11 @@ export default function BuscaScreen() {
   const [resultados, setResultados] = useState<Livro[]>([]);
   const [carregando, setCarregando] = useState<boolean>(false);
   const [ultimaBusca, setUltimaBusca] = useState<string>('');
-  const [adicionando, setAdicionando] = useState<string | null>(null); // guarda o id_google do item em processamento
+  const [adicionando, setAdicionando] = useState<string | null>(null); 
 
   const handleBuscar = async (): Promise<void> => {
     if (!termoBusca.trim()) {
-      Alert.alert('Atenção', 'Digite um título, autor ou ISBN para buscar.');
+      Alert.alert('Atenção', 'Digite um título ou autor para buscar.');
       return;
     }
 
