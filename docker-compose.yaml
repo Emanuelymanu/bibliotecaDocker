@@ -9,8 +9,6 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ROOT_HOST: "%"
-    ports:
-      - "3306:3306"
     volumes:
       - dados_mysql:/var/lib/mysql
     healthcheck:
