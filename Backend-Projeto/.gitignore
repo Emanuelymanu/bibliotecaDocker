@@ -45,8 +45,7 @@ coverage/
 !src/**/*.js
 
 
-*.test.js
-*.test.ts
+
 
 
 src/migrations/
