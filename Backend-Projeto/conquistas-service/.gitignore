@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+ 
+# Variáveis de ambiente (o .env.example vai para o repositório)
+.env
+.env.*
+!.env.example
+ 
