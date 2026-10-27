@@ -9,6 +9,8 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ROOT_HOST: "%"
+    ports:
+      - "127.0.0.1:3306:3306"
     volumes:
       - dados_mysql:/var/lib/mysql
       - ./banco/init:/docker-entrypoint-initdb.d:ro
