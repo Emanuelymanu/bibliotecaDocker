@@ -52,6 +52,3 @@ src/migrations/
 src/seeders/
 
 
-package-lock.json
-yarn.lock   
-package.json
