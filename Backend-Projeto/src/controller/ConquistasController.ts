@@ -1,4 +1,4 @@
-import { Op, Sequelize } from 'sequelize';
+import { Op, Sequelize, UniqueConstraintError } from 'sequelize';
 import { conquistas } from '../models-auto/conquistas';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
@@ -101,45 +101,47 @@ async function carregarEstatisticas(usuarioId: number): Promise<EstatisticasConq
 }
 
 export async function verificarConquistas(usuarioId: number): Promise<conquistas[]> {
-    const [todasConquistas, conquistasExistentes, estatisticas] = await Promise.all([
+   try{
+    const[todasConquistas, conquistasExistentes, estatisticas] = await Promise.all([
         conquistas.findAll(),
-        usuario_conquistas.findAll({ where: { id_usuario: usuarioId }, attributes: ['id_conquista'] }),
+        usuario_conquistas.findAll({
+            where: {
+                id_usuario: usuarioId
+            }, 
+            attributes: [
+                'id_conquista'
+            ]
+        }),
         carregarEstatisticas(usuarioId)
-    ]);
-
-    const idsJaConquistados = new Set(conquistasExistentes.map((item) => item.id_conquista));
-    const novasConquistas = todasConquistas.filter((conquista) => {
-        if (idsJaConquistados.has(conquista.id_conquista)) {
-            return false;
+    ])
+    const idsJaConquistados = new Set(conquistasExistentes.map((item) => item.id_conquista))
+    const candidatas = todasConquistas.filter((conquista) =>{
+        if(idsJaConquistados.has(conquista.id_conquista)){
+            return false
         }
+        const textoBase = [conquista.nome, conquista.criterio, conquista.descricao].filter(Boolean).join(' ')
+        return atendeCriterio(textoBase, estatisticas)
+    })
+    const dataConquista = new Date().toISOString().slice(0,10)
+    const novasConquistas: conquistas[]=[]
 
-        const textoBase = [conquista.nome, conquista.criterio, conquista.descricao]
-            .filter(Boolean)
-            .join(' ');
-
-        return atendeCriterio(textoBase, estatisticas);
-    });
-
-    if (!novasConquistas.length) {
-        return [];
-    }
-
-    const dataConquista = new Date().toISOString().slice(0, 10);
-
-    await usuario_conquistas.bulkCreate(
-        novasConquistas.map((conquista) => ({
-            id_usuario: usuarioId,
-            id_conquista: conquista.id_conquista,
-            data_conquista: dataConquista
-        }))
-    );
-
-    return conquistas.findAll({
-        where: {
-            id_conquista: {
-                [Op.in]: novasConquistas.map((conquista) => conquista.id_conquista)
+    for (const conquista of candidatas){
+        try{
+            await usuario_conquistas.create({
+                id_usuario: usuarioId,
+                id_conquista: conquista.id_conquista,
+                data_conquista: dataConquista
+            })
+            novasConquistas.push(conquista);
+        }catch(erro){
+            if(!(erro instanceof UniqueConstraintError)){
+                throw erro;
             }
-        },
-        order: [['id_conquista', 'ASC']]
-    });
+        }
+    }
+    return novasConquistas
+   }catch(erro){
+    console.error(`[conquistas] falha ao verificar conquistas do usuario: ${usuarioId}:`, erro)
+    return []
+   }
 }

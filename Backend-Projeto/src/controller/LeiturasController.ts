@@ -26,7 +26,7 @@ export class LeiturasController {
             defaults: { nome }
          });
 
-         await livro.addAutor(autorLocal);
+         await livro.addAutores([autorLocal]);
       }
    }
 

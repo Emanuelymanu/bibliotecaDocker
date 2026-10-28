@@ -9,14 +9,29 @@ services:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ROOT_HOST: "%"
+    ports:
+      - "127.0.0.1:3306:3306"
     volumes:
       - dados_mysql:/var/lib/mysql
+      - ./banco/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 8
       start_period: 25s
+    networks:
+      - app-network
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     networks:
       - app-network
 
@@ -34,8 +49,11 @@ services:
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY}
+      REDIS_URL: redis://redis:6379
     depends_on:
       banco:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - ./Backend-Projeto/upload:/app/dist/upload
