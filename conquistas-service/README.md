@@ -8,7 +8,7 @@ Ver o ADR-001 na documentação de arquitetura.
 ## Rodar localmente
 
 Precisa do MySQL do projeto ligado com a porta liberada só para a sua máquina
-(`docker compose up -d banco` — o `docker-compose.override.yml` é carregado automaticamente).
+(`docker compose -f docker-compose.yaml -f docker-compose.dev.yml up -d banco`).
 
 ```bash
 npm install
@@ -23,6 +23,21 @@ O serviço sobe em `http://localhost:3001`.
 |---|---|
 | `GET /health` | Health check (usado pelo Docker) |
 | `/api/...` | Rotas de negócio (o Nginx encaminha `/api/conquistas` para cá) |
+
+## Autenticação (GDL-67)
+
+O serviço aceita o **mesmo token JWT** do login do backend principal (mesma `JWT_SECRET`).
+O guard é **global**: toda rota exige `Authorization: Bearer <token>`, menos as marcadas com `@Publica()`.
+
+| Decorator | Uso |
+|---|---|
+| `@Publica()` | Libera a rota sem token (ex.: `/health`) |
+| `@ApenasAdmin()` | Só `tipo_usuario: "admin"`; usuário comum recebe 403 |
+| `@UsuarioAtual()` | Injeta o usuário logado no método (`@UsuarioAtual('id')` para só o id) |
+
+Erros no mesmo formato e com as mesmas mensagens do backend principal:
+`Token de autenticação ausente`, `Token mal formatado`, `Token inválido ou expirado` (401)
+e `Acesso restrito a administradores` (403).
 
 ## Banco de dados (GDL-66)
 

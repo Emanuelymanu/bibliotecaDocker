@@ -1,14 +1,21 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { BancoModule } from '../src/banco/banco.module';
 import { configurarApp } from '../src/configurar-app';
+
+@Module({})
+class SemBancoModule {}
 
 describe('conquistas-service (e2e)', () => {
     let app: INestApplication;
 
     beforeAll(async () => {
-        const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
+        const modulo = await Test.createTestingModule({ imports: [AppModule] })
+            .overrideModule(BancoModule)
+            .useModule(SemBancoModule)
+            .compile();
         app = modulo.createNestApplication({ logger: false });
         configurarApp(app);
         await app.init();

@@ -1,15 +1,16 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
 import { LogRequisicoesMiddleware } from './common/middleware/log-requisicoes.middleware';
 import { validarAmbiente } from './config/variaveis-ambiente';
 import { HealthModule } from './health/health.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validarAmbiente }),
     BancoModule,
+    AuthModule,
     HealthModule,
   ],
 })
