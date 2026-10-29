@@ -2,9 +2,11 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { BancoModule } from './banco/banco.module';
+import { ConquistasModule } from './conquistas/conquistas.module';
 import { LogRequisicoesMiddleware } from './common/middleware/log-requisicoes.middleware';
 import { validarAmbiente } from './config/variaveis-ambiente';
 import { HealthModule } from './health/health.module';
+
 
 @Module({
   imports: [
@@ -12,6 +14,7 @@ import { HealthModule } from './health/health.module';
     BancoModule,
     AuthModule,
     HealthModule,
+    ConquistasModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -24,6 +24,29 @@ O serviço sobe em `http://localhost:3001`.
 | `GET /health` | Health check (usado pelo Docker) |
 | `/api/...` | Rotas de negócio (o Nginx encaminha `/api/conquistas` para cá) |
 
+## Rotas (GDL-68)
+
+Mesmos caminhos e respostas do backend principal, para o app não precisar mudar.
+Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin.
+
+| Método | Rota | O que faz |
+|---|---|---|
+| GET | `/api/conquistas` | Conquistas que o leitor já desbloqueou |
+| GET | `/api/conquistas/catalogo` | Catálogo com status e progresso do leitor |
+| GET | `/api/conquistas/admin/todas` | Todas as conquistas (admin) |
+| GET | `/api/conquistas/admin/tipos` | Tipos de critério com exemplo de texto (admin) |
+| POST | `/api/conquistas/admin` | Cria conquista (admin) |
+| PUT | `/api/conquistas/admin/:id` | Edita só os campos enviados (admin) |
+| DELETE | `/api/conquistas/admin/:id` | Apaga a conquista e os desbloqueios dela (admin) |
+| POST | `/api/conquistas/admin/:id/conceder` | Concede manualmente `{ id_usuario }` (admin) |
+
+- **Critério:** sem `tipo`, a conquista é `MANUAL` e usa o texto de `criterio` (compatível com o app atual).
+  Com tipo automático (`LIVROS_LIDOS`, `PAGINAS_LIDAS`...), o texto é gerado a partir de `tipo` + `valor_alvo`.
+- **Progresso:** vem da tabela `estatisticas_leitor`, preenchida pelo evento do Pub/Sub (GDL-71).
+  Enquanto não chegar nenhum evento para o leitor, `progresso` é `null`.
+- **Concessão automática:** ao abrir o catálogo, o leitor ganha o que já atingiu. Pedidos simultâneos
+  não geram erro (INSERT IGNORE; era o bug do GDL-52).
+
 ## Autenticação (GDL-67)
 
 O serviço aceita o **mesmo token JWT** do login do backend principal (mesma `JWT_SECRET`).
@@ -86,7 +109,7 @@ src/
 ├── app.module.ts              # módulo raiz
 ├── config/                    # validação das variáveis de ambiente
 ├── banco/                     # TypeORM: conexão, data-source da CLI e migrações
-├── conquistas/                # tipos e entities do contexto Gamificação
+├── conquistas/                # contexto Gamificação: controllers, services, DTOs, entities e regras
 ├── common/
 │   ├── filters/               # respostas de erro no formato { erro }
 │   └── middleware/            # log de cada requisição (método, rota, status, tempo)

@@ -7,9 +7,10 @@ import { ApenasAdmin } from '../src/auth/decorators/apenas-admin.decorator';
 import { UsuarioAtual } from '../src/auth/decorators/usuario-atual.decorator';
 import { UsuarioAutenticado } from '../src/auth/usuario-autenticado';
 import { BancoModule } from '../src/banco/banco.module';
+import { ConquistasModule } from '../src/conquistas/conquistas.module';
 import { configurarApp } from '../src/configurar-app';
 
-/** Rotas usadas só neste teste, protegidas pelo guard global do app. */
+
 @Controller('teste-auth')
 class RotasProtegidasController {
   @Get('eu')
@@ -30,10 +31,7 @@ class RotasDeTesteModule {}
 @Module({})
 class SemBancoModule {}
 
-/**
- * Gera o token EXATAMENTE como o login do backend principal (Express):
- *   jwt.sign({ id, email, nome, tipo_usuario }, JWT_SECRET, { expiresIn: '5h' })
- */
+
 function tokenDoBackendPrincipal(usuario: UsuarioAutenticado, segredo = process.env.JWT_SECRET as string) {
   return jwt.sign(
     { id: usuario.id, email: usuario.email, nome: usuario.nome, tipo_usuario: usuario.tipo_usuario },
@@ -51,6 +49,8 @@ describe('Autenticação JWT (e2e)', () => {
   beforeAll(async () => {
     const modulo = await Test.createTestingModule({ imports: [AppModule, RotasDeTesteModule] })
       .overrideModule(BancoModule)
+      .useModule(SemBancoModule)
+      .overrideModule(ConquistasModule)
       .useModule(SemBancoModule)
       .compile();
     app = modulo.createNestApplication({ logger: false });
