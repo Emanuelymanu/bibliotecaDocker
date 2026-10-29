@@ -1,7 +1,9 @@
 import { DataSourceOptions } from 'typeorm';
 import { ConquistaDoUsuario } from '../conquistas/entities/conquista-do-usuario.entity';
 import { Conquista } from '../conquistas/entities/conquista.entity';
+import { EstatisticasLeitorEntity } from '../conquistas/entities/estatisticas-leitor.entity';
 import { CriarTabelasGamificacao1793062185895 } from './migrations/1793062185895-CriarTabelasGamificacao';
+import { CriarEstatisticasLeitor1793227891240 } from './migrations/1793227891240-CriarEstatisticasLeitor';
 
 export interface ConfigBanco {
   host: string;
@@ -12,10 +14,10 @@ export interface ConfigBanco {
 }
 
 
-export const ENTIDADES = [Conquista, ConquistaDoUsuario];
+export const ENTIDADES = [Conquista, ConquistaDoUsuario, EstatisticasLeitorEntity];
 
 
-export const MIGRACOES = [CriarTabelasGamificacao1793062185895];
+export const MIGRACOES = [CriarTabelasGamificacao1793062185895, CriarEstatisticasLeitor1793227891240];
 
 
 export function opcoesBanco(config: ConfigBanco): DataSourceOptions {
@@ -29,16 +31,16 @@ export function opcoesBanco(config: ConfigBanco): DataSourceOptions {
     entities: ENTIDADES,
     migrations: MIGRACOES,
     migrationsTableName: 'migracoes_typeorm',
-    
+
     synchronize: false,
     charset: 'utf8mb4',
-    
+
     dateStrings: ['DATE'],
     logging: ['error', 'warn', 'migration'],
   };
 }
 
-/** Lê a configuração do banco a partir das variáveis de ambiente (usado pela CLI). */
+
 export function configBancoDoAmbiente(env: NodeJS.ProcessEnv): ConfigBanco {
   const usuario = env.DB_USER;
   const senha = env.DB_PASSWORD;

@@ -1,5 +1,6 @@
 import { ConquistaDoUsuario } from '../conquistas/entities/conquista-do-usuario.entity';
 import { Conquista } from '../conquistas/entities/conquista.entity';
+import { EstatisticasLeitorEntity } from '../conquistas/entities/estatisticas-leitor.entity';
 import { configBancoDoAmbiente, opcoesBanco } from './opcoes-banco';
 
 describe('opcoesBanco', () => {
@@ -20,11 +21,11 @@ describe('opcoesBanco', () => {
     expect(opcoesBanco(config).synchronize).toBe(false);
   });
 
-  it('registra as duas entities e a migração inicial', () => {
+  it('registra as entities e as migrações', () => {
     const opcoes = opcoesBanco(config);
 
-    expect(opcoes.entities).toEqual([Conquista, ConquistaDoUsuario]);
-    expect(opcoes.migrations).toHaveLength(1);
+    expect(opcoes.entities).toEqual([Conquista, ConquistaDoUsuario, EstatisticasLeitorEntity]);
+    expect(opcoes.migrations).toHaveLength(2);
   });
 });
 
