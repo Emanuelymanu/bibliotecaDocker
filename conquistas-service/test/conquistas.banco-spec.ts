@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { dataHojeBrasil } from '../src/common/utils/datas';
 import { configurarApp } from '../src/configurar-app';
+import { CacheCatalogoService } from '../src/conquistas/cache-catalogo.service';
 
 
 const LEITOR = { id: 990001, email: 'leitor@teste.com', nome: 'Leitor Teste', tipo_usuario: 'usuario' as const };
@@ -39,6 +40,8 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
     await banco.query('DELETE FROM usuario_conquistas WHERE id_usuario IN (?)', [usuarios]);
     await banco.query('DELETE FROM estatisticas_leitor WHERE id_usuario IN (?)', [usuarios]);
     await banco.query("DELETE FROM conquistas WHERE nome LIKE '[teste]%'");
+    const cache = app.get(CacheCatalogoService);
+    await Promise.all(usuarios.map((id) => cache.invalidarUsuario(id, 'limpeza do teste')));
   }
 
   const http = () => request(app.getHttpServer());
@@ -75,6 +78,13 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
       expect(semNome.body.erro).toContain('Nome é obrigatório');
       expect(generoFaltando.status).toBe(400);
       expect(generoFaltando.body.erro).toBe('Selecione o gênero para conquistas do tipo LIVROS_GENERO');
+    });
+
+    it('guarda o ícone enviado na criação', async () => {
+      const resposta = await criar({ nome: '[teste] Com ícone', icone: 'trofeu', criterio: 'Especial' });
+
+      expect(resposta.status).toBe(201);
+      expect(resposta.body.conquista.icone).toBe('trofeu');
     });
 
     it('lista todas e os tipos disponíveis', async () => {
@@ -149,6 +159,8 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
 
     it('vários pedidos ao mesmo tempo não dão erro 500 (bug do GDL-52)', async () => {
       await banco.query('DELETE FROM usuario_conquistas WHERE id_usuario = ?', [LEITOR.id]);
+      // Apagamos direto no banco, então o cache do leitor precisa ser limpo para os pedidos irem ao banco.
+      await app.get(CacheCatalogoService).invalidarUsuario(LEITOR.id, 'teste de concorrência');
 
       const respostas = await Promise.all(
         Array.from({ length: 5 }, () => http().get('/api/conquistas/catalogo').set('Authorization', token(LEITOR))),
@@ -164,6 +176,71 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
 
     it('sem token: 401', async () => {
       await http().get('/api/conquistas').expect(401);
+    });
+  });
+
+  describe('cache do catálogo (GDL-10 e GDL-11)', () => {
+    const catalogo = (u: typeof LEITOR) => http().get('/api/conquistas/catalogo').set('Authorization', token(u));
+    const item = (corpo: { conquistas: { id_conquista: number }[] }, id: number) =>
+      corpo.conquistas.find((c) => c.id_conquista === id) as Record<string, unknown> | undefined;
+
+    beforeEach(async () => {
+      await app.get(CacheCatalogoService).invalidarUsuario(OUTRO_LEITOR.id, 'início do teste');
+    });
+
+    it('primeira consulta vem do banco (MISS) e as seguintes do cache (HIT)', async () => {
+      const primeira = await catalogo(OUTRO_LEITOR).expect(200);
+      const segunda = await catalogo(OUTRO_LEITOR).expect(200);
+
+      expect(primeira.headers['x-cache']).toBe('MISS');
+      expect(segunda.headers['x-cache']).toBe('HIT');
+      expect(segunda.body).toEqual(primeira.body);
+    });
+
+    it('admin editou uma conquista: o catálogo de todos é invalidado', async () => {
+      await catalogo(OUTRO_LEITOR);
+      await catalogo(LEITOR);
+
+      await http()
+        .put(`/api/conquistas/admin/${criadas[0]}`)
+        .set('Authorization', token(ADMIN))
+        .send({ nome: '[teste] Leitor dedicado (editada)' })
+        .expect(200);
+
+      const outro = await catalogo(OUTRO_LEITOR).expect(200);
+      const leitor = await catalogo(LEITOR).expect(200);
+      expect(outro.headers['x-cache']).toBe('MISS');
+      expect(leitor.headers['x-cache']).toBe('MISS');
+      expect(item(outro.body, criadas[0])?.nome).toBe('[teste] Leitor dedicado (editada)');
+    });
+
+    it('admin criou uma conquista: ela aparece na hora no catálogo', async () => {
+      await catalogo(OUTRO_LEITOR);
+      const nova = await criar({ nome: '[teste] Recém-criada', criterio: 'Nova' });
+
+      const resposta = await catalogo(OUTRO_LEITOR).expect(200);
+
+      expect(resposta.headers['x-cache']).toBe('MISS');
+      expect(item(resposta.body, nova.body.conquista.id_conquista)).toBeDefined();
+    });
+
+    it('admin concedeu uma conquista a um leitor: só o cache dele é invalidado', async () => {
+      const manual = await criar({ nome: '[teste] Cache manual', criterio: 'Dada pelo admin' });
+      const idManual = manual.body.conquista.id_conquista;
+      await catalogo(OUTRO_LEITOR);
+      await catalogo(LEITOR);
+
+      await http()
+        .post(`/api/conquistas/admin/${idManual}/conceder`)
+        .set('Authorization', token(ADMIN))
+        .send({ id_usuario: OUTRO_LEITOR.id })
+        .expect(201);
+
+      const outro = await catalogo(OUTRO_LEITOR).expect(200);
+      const leitor = await catalogo(LEITOR).expect(200);
+      expect(outro.headers['x-cache']).toBe('MISS');
+      expect(item(outro.body, idManual)).toMatchObject({ desbloqueada: true });
+      expect(leitor.headers['x-cache']).toBe('HIT'); // o outro leitor não foi afetado
     });
   });
 
