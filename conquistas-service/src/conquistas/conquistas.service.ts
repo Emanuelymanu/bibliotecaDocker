@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { dataHojeBrasil } from '../common/utils/datas';
 import { inserirSeNovo } from '../common/utils/inserir-se-novo';
+import { CacheCatalogoService, OrigemCatalogo } from './cache-catalogo.service';
 import { atingiuCriterio, calcularProgresso } from './conquistas.regras';
 import { EstatisticasLeitor } from './conquistas.tipos';
 import { CatalogoResposta, MinhasConquistasResposta } from './dto/respostas.dto';
@@ -19,10 +20,16 @@ export class ConquistasService {
     @InjectRepository(Conquista) private readonly conquistas: Repository<Conquista>,
     @InjectRepository(ConquistaDoUsuario) private readonly desbloqueios: Repository<ConquistaDoUsuario>,
     @InjectRepository(EstatisticasLeitorEntity) private readonly estatisticas: Repository<EstatisticasLeitorEntity>,
+    private readonly cache: CacheCatalogoService,
   ) {}
 
   
-  async listarCatalogo(usuarioId: number): Promise<CatalogoResposta> {
+  async listarCatalogo(usuarioId: number): Promise<{ dados: CatalogoResposta; origem: OrigemCatalogo }> {
+    return this.cache.obterOuCalcular(usuarioId, () => this.calcularCatalogo(usuarioId));
+  }
+
+  
+  private async calcularCatalogo(usuarioId: number): Promise<CatalogoResposta> {
     const registro = await this.estatisticas.findOneBy({ id_usuario: usuarioId });
     const numeros = registro?.paraRegras() ?? null;
 
@@ -100,6 +107,7 @@ export class ConquistasService {
       this.logger.log(
         `usuario=${usuarioId} desbloqueou: ${novas.map((c) => `#${c.id_conquista} ${c.nome}`).join(', ')}`,
       );
+      await this.cache.invalidarUsuario(usuarioId, 'ganhou conquista automática');
     }
     return novas;
   }

@@ -7,8 +7,22 @@ Ver o ADR-001 na documentação de arquitetura.
 
 ## Rodar localmente
 
-Precisa do MySQL do projeto ligado com a porta liberada só para a sua máquina
-(`docker compose -f docker-compose.yaml -f docker-compose.dev.yml up -d banco`).
+Precisa do MySQL e do Redis do projeto ligados, com as portas liberadas só para a sua máquina.
+O `docker-compose.yaml` não publica essas portas; crie (ou complete) o `docker-compose.override.yml`
+na raiz do repositório, que está no `.gitignore` e é lido automaticamente pelo `docker compose`:
+
+```yaml
+services:
+  banco:
+    ports:
+      - "127.0.0.1:3306:3306"
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+```
+
+Depois, na raiz do repositório: `docker compose up -d banco redis`.
+Sem a porta do Redis o serviço funciona, mas sem cache (`X-Cache: SEM_CACHE`).
 
 ```bash
 npm install
@@ -46,6 +60,30 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
   Enquanto não chegar nenhum evento para o leitor, `progresso` é `null`.
 - **Concessão automática:** ao abrir o catálogo, o leitor ganha o que já atingiu. Pedidos simultâneos
   não geram erro (INSERT IGNORE; era o bug do GDL-52).
+
+## Cache do catálogo (GDL-10 e GDL-11)
+
+O `GET /api/conquistas/catalogo` usa **cache-aside no Redis**, com o `CacheModule` oficial do NestJS.
+
+| Situação | O que acontece | Cabeçalho `X-Cache` |
+|---|---|---|
+| Primeira consulta do leitor | Busca no banco e grava no Redis por `CACHE_TTL_SEGUNDOS` (padrão 300s) | `MISS` |
+| Consultas seguintes | Responde direto do Redis | `HIT` |
+| Redis fora do ar | Responde direto do banco; o log avisa uma vez quando cai e uma vez quando volta | `SEM_CACHE` |
+
+Chave: `conquistas:catalogo:v<versao>:<id_usuario>`.
+
+**Invalidação (GDL-11)**
+- Admin cria, edita ou apaga uma conquista: troca a `versao`, e o catálogo de **todos** os leitores volta a ser consultado no banco.
+- Admin concede uma conquista, ou o leitor ganha uma automaticamente: apaga só a chave **daquele** leitor.
+- Cada invalidação aparece no log (`cache invalidado ...`).
+
+Para ver funcionando:
+```bash
+curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: MISS
+curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: HIT
+docker compose exec redis redis-cli --scan --pattern 'conquistas:catalogo:*'
+```
 
 ## Autenticação (GDL-67)
 
@@ -90,8 +128,13 @@ npm run migration:revert  # desfaz a última
 npm test            # unitários
 npm run test:cov    # unitários com cobertura
 npm run test:e2e    # ponta a ponta (sobe o app em memória, sem banco)
-npm run test:banco  # integração com o MySQL de verdade (precisa do banco ligado e do .env)
+npm run test:banco  # integração com o MySQL e o Redis de verdade (precisa dos dois ligados e do .env)
 ```
+
+O `test:banco` acessa `localhost:3306` e `localhost:6379`, então as portas precisam estar publicadas
+como em [Rodar localmente](#rodar-localmente). Se os testes de cache falharem com
+`Expected: "MISS"` / `Received: "SEM_CACHE"`, o Redis não está acessível pela sua máquina:
+confira com `docker ps` se a coluna de portas do `redis` mostra `127.0.0.1:6379->6379/tcp`.
 
 ## Docker
 
@@ -109,6 +152,7 @@ src/
 ├── app.module.ts              # módulo raiz
 ├── config/                    # validação das variáveis de ambiente
 ├── banco/                     # TypeORM: conexão, data-source da CLI e migrações
+├── cache/                     # CacheModule do Nest com Redis (GDL-10)
 ├── conquistas/                # contexto Gamificação: controllers, services, DTOs, entities e regras
 ├── common/
 │   ├── filters/               # respostas de erro no formato { erro }

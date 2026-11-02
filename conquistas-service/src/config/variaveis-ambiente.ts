@@ -8,7 +8,7 @@ enum Ambiente {
   Teste = 'test',
 }
 
-/** Variáveis de ambiente aceitas pelo serviço. Validadas na inicialização. */
+
 export class VariaveisAmbiente {
   @IsOptional()
   @IsEnum(Ambiente)
@@ -20,7 +20,7 @@ export class VariaveisAmbiente {
   @Max(65535)
   PORT: number = 3001;
 
-  // ---- Banco próprio "gamificacao" (GDL-66) ----
+  
 
   @IsOptional()
   @IsString()
@@ -46,18 +46,25 @@ export class VariaveisAmbiente {
   @IsNotEmpty({ message: 'DB_PASSWORD é obrigatória (senha do usuário do banco gamificacao)' })
   DB_PASSWORD: string;
 
-  // ---- Autenticação (GDL-67) ----
-
-  /** Mesmo segredo do backend principal, para aceitar o token do login. */
+  
   @IsString()
   @IsNotEmpty({ message: 'JWT_SECRET é obrigatória (a mesma do backend principal)' })
   JWT_SECRET: string;
+
+  
+  @IsOptional()
+  @IsString()
+  REDIS_URL?: string;
+
+  
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(86400)
+  CACHE_TTL_SEGUNDOS: number = 300;
 }
 
-/**
- * Usada pelo ConfigModule: se alguma variável vier inválida,
- * o serviço não sobe e o log diz exatamente qual.
- */
+
 export function validarAmbiente(config: Record<string, unknown>): VariaveisAmbiente {
   const variaveis = plainToInstance(VariaveisAmbiente, config, { enableImplicitConversion: true });
   const erros = validateSync(variaveis, { skipMissingProperties: false });

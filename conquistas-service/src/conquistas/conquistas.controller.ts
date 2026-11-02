@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { UsuarioAtual } from '../auth/decorators/usuario-atual.decorator';
 import { ConquistasService } from './conquistas.service';
 import { CatalogoResposta, MinhasConquistasResposta } from './dto/respostas.dto';
@@ -15,8 +16,14 @@ export class ConquistasController {
   }
 
 
+ 
   @Get('catalogo')
-  listarCatalogo(@UsuarioAtual('id') usuarioId: number): Promise<CatalogoResposta> {
-    return this.conquistas.listarCatalogo(usuarioId);
+  async listarCatalogo(
+    @UsuarioAtual('id') usuarioId: number,
+    @Res({ passthrough: true }) resposta: Response,
+  ): Promise<CatalogoResposta> {
+    const { dados, origem } = await this.conquistas.listarCatalogo(usuarioId);
+    resposta.setHeader('X-Cache', origem);
+    return dados;
   }
 }

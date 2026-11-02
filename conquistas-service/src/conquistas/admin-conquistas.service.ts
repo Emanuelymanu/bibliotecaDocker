@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { dataHojeBrasil } from '../common/utils/datas';
 import { inserirSeNovo } from '../common/utils/inserir-se-novo';
+import { CacheCatalogoService } from './cache-catalogo.service';
 import { gerarTextoCriterio } from './conquistas.regras';
 import { TIPOS_CONQUISTA } from './conquistas.tipos';
 import { AtualizarConquistaDto } from './dto/atualizar-conquista.dto';
@@ -19,6 +20,7 @@ export class AdminConquistasService{
     constructor(
         @InjectRepository(Conquista) private readonly conquistas: Repository<Conquista>,
         @InjectRepository(ConquistaDoUsuario) private readonly desbloqueios: Repository<ConquistaDoUsuario>,
+        private readonly cache: CacheCatalogoService,
     ){}
 
     listarTipos(): TipoComExemplo[]{
@@ -37,11 +39,13 @@ export class AdminConquistasService{
             this.conquistas.create({
                 nome: dados.nome,
                 descricao: dados.descricao ?? null,
+                icone: dados.icone ?? null,
                 ...criterio
             })
         )
         this.logger.log(`criada #${conquista.id_conquista} ${conquista.nome} ${conquista.tipo} ${conquista.valor_alvo}`)
-           return conquista
+        await this.cache.invalidarTodos(`conquista #${conquista.id_conquista} criada`)
+        return conquista
     }
 
       async editar(id: number, dados: AtualizarConquistaDto): Promise<Conquista> {
@@ -58,6 +62,7 @@ export class AdminConquistasService{
  
     await this.conquistas.save(conquista);
     this.logger.log(`editada #${conquista.id_conquista} "${conquista.nome}"`);
+    await this.cache.invalidarTodos(`conquista #${conquista.id_conquista} editada`);
     return conquista;
   }
  
@@ -66,6 +71,7 @@ export class AdminConquistasService{
     const conquista = await this.buscar(id);
     await this.conquistas.remove(conquista);
     this.logger.log(`apagada #${id} "${conquista.nome}"`);
+    await this.cache.invalidarTodos(`conquista #${id} apagada`);
   }
  
   
@@ -78,6 +84,7 @@ export class AdminConquistasService{
     });
     if (!gravou) throw new ConflictException('Usuário já possui esta conquista');
     this.logger.log(`admin=${idAdmin} concedeu #${idConquista} ao usuario=${idUsuario}`);
+    await this.cache.invalidarUsuario(idUsuario, `admin concedeu #${idConquista}`);
   }
  
   private async buscar(id: number): Promise<Conquista> {
