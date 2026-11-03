@@ -124,4 +124,16 @@ docker compose up -d --build backend
 - Somente o Nginx expoe portas para fora (`80` e `443`)
 - Backend, conquistas-service, frontend, banco e Redis ficam isolados na rede Docker interna
 
+Roteamento do Nginx (`nginx/nginx.conf`):
+
+| Caminho | Vai para |
+|---|---|
+| `/api/conquistas` e `/api/conquistas/*` | `conquistas-service:3001` (NestJS, GDL-73) |
+| `/api/*` (o resto) e `/upload/capa/*` | `backend:3000` (Express) |
+| `/` | `frontend:5173` |
+
+Se o `conquistas-service` estiver fora do ar, só as rotas de conquistas respondem
+`503` com `{"erro": "Serviço de conquistas indisponível..."}`; o resto do sistema continua normal,
+e o Nginx volta a encaminhar sozinho quando o serviço subir de novo.
+
 Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos simples e execucao flexivel.
