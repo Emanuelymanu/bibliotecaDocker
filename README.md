@@ -79,6 +79,7 @@ Ver logs de um servico:
 
 ```bash
 docker compose logs -f backend
+docker compose logs -f conquistas-service
 docker compose logs -f frontend
 docker compose logs -f nginx
 docker compose logs -f banco
@@ -121,6 +122,6 @@ docker compose up -d --build backend
 ## 9) Estrutura de rede e exposicao
 
 - Somente o Nginx expoe portas para fora (`80` e `443`)
-- Backend, frontend e banco ficam isolados na rede Docker interna
+- Backend, conquistas-service, frontend, banco e Redis ficam isolados na rede Docker interna
 
 Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos simples e execucao flexivel.
