@@ -136,11 +136,36 @@ como em [Rodar localmente](#rodar-localmente). Se os testes de cache falharem co
 `Expected: "MISS"` / `Received: "SEM_CACHE"`, o Redis não está acessível pela sua máquina:
 confira com `docker ps` se a coluna de portas do `redis` mostra `127.0.0.1:6379->6379/tcp`.
 
-## Docker
+## Docker (GDL-74)
+
+O serviço faz parte do `docker-compose.yaml` da raiz, como `conquistas-service`. Ele sobe junto
+com o resto e só começa depois que o `banco` e o `redis` estão saudáveis:
 
 ```bash
-docker build -t conquistas-service .
-docker run --rm -p 3001:3001 conquistas-service
+docker compose up -d --build                       # tudo
+docker compose up -d --build conquistas-service    # só ele (sobe banco e redis se precisar)
+docker compose logs -f conquistas-service
+docker compose ps                                  # a coluna STATUS mostra (healthy)
+```
+
+As variáveis vêm do `.env` da raiz, **não** do `conquistas-service/.env` (esse é só para rodar fora do Docker):
+
+| Variável no container | Vem de |
+|---|---|
+| `DB_USER` / `DB_PASSWORD` | `GAMIFICACAO_DB_USER` / `GAMIFICACAO_DB_PASSWORD` (obrigatória: sem ela o `docker compose` para com erro) |
+| `JWT_SECRET` | `JWT_SECRET`, a mesma do backend, para os tokens valerem nos dois |
+| `CACHE_TTL_SEGUNDOS` | `CACHE_TTL_SEGUNDOS` (opcional, padrão 300) |
+| `DB_HOST`, `DB_NAME`, `REDIS_URL`, `NODE_ENV`, `PORT` | fixas no compose (`banco`, `gamificacao`, `redis://redis:6379`, `production`, `3001`) |
+
+A porta 3001 fica só na rede interna (`expose`). Quem recebe as requisições de fora é o Nginx (GDL-73).
+Para chamar o serviço direto da sua máquina, publique a porta no `docker-compose.override.yml`.
+
+**Volume do MySQL criado antes do GDL-66:** o `banco/init/01-gamificacao.sh` só roda quando o volume
+é novo. Se o serviço ficar reiniciando com `Access denied for user 'gamificacao'`, crie o banco e o
+usuário rodando o script uma vez:
+
+```bash
+docker compose exec banco sh /docker-entrypoint-initdb.d/01-gamificacao.sh
 ```
 
 ## Estrutura
