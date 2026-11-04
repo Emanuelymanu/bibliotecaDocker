@@ -17,6 +17,7 @@ import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
 import conquistasRoutes from './routes/conquistasRoutes';
 import adminRoutes from './routes/adminRoutes';
+import { publicarEstatisticasAposEscrita } from './eventos/estatisticasEventos';
 
 const app = express();
 
@@ -50,6 +51,13 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+
+app.use(
+  ['/api/livros', '/api/leituras', '/api/anotacoes', '/api/sessoes', '/api/metas'],
+  publicarEstatisticasAposEscrita(),
+);
+
 app.use('/api/auth', authRoutes);
 app.use('/upload/capa', express.static(path.join(__dirname, '../upload/capa')));
 app.use('/api/livros', livrosRoutes);
