@@ -137,3 +137,37 @@ Se o `conquistas-service` estiver fora do ar, só as rotas de conquistas respond
 e o Nginx volta a encaminhar sozinho quando o serviço subir de novo.
 
 Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos simples e execucao flexivel.
+## 10) Eventos entre servicos (Redis Pub/Sub)
+
+O backend (Express) avisa o `conquistas-service` pelo Redis quando os números de um leitor mudam.
+
+| Evento | Quem publica | Quando |
+|---|---|---|
+| `estatisticas.atualizadas` | backend (GDL-70) | depois de qualquer escrita bem-sucedida em `/api/livros`, `/api/leituras`, `/api/sessoes`, `/api/metas` e `/api/anotacoes` |
+
+A mensagem segue o formato do transporte Redis do NestJS:
+
+```json
+{
+  "pattern": "estatisticas.atualizadas",
+  "data": {
+    "usuarioId": 1,
+    "estatisticas": {
+      "livrosLidos": 1, "livrosCadastrados": 1, "paginasLidas": 310,
+      "totalSessoes": 1, "totalAnotacoes": 1, "totalAvaliacoes": 1,
+      "possuiMeta": true, "livrosLidosPorGenero": { "3": 1 }
+    },
+    "geradoEm": "2026-11-04T00:34:02.515Z"
+  }
+}
+```
+
+- O evento é publicado **depois** que a resposta é enviada: não deixa a requisição mais lenta.
+- Com o Redis fora do ar, a requisição funciona normalmente; o log registra a falha e avisa quando o Redis volta.
+
+Para ver os eventos chegando:
+
+```bash
+docker compose exec redis redis-cli SUBSCRIBE estatisticas.atualizadas
+docker compose logs -f backend | grep "\[eventos\]"
+```
