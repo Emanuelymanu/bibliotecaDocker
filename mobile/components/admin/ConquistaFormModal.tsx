@@ -4,20 +4,49 @@ import { Ionicons } from '@expo/vector-icons';
 import EmojiPicker, { pt as traducaoEmojiPt } from 'rn-emoji-keyboard';
 import AdminModal from './AdminModal';
 import { adminTheme as t } from '@/src/constants/adminTheme';
+import { Genero } from '@/src/types/adminTypes';
+import { OPCOES_TIPO, TipoConquista, semQuantidade, textoDoCriterio } from '@/src/utils/criterioConquista';
 
-export type FormConquista = { nome: string; descricao: string; icone: string; criterio: string };
+export type FormConquista = {
+    nome: string;
+    descricao: string;
+    icone: string;
+    tipo: TipoConquista;
+    quantidade: string; 
+    id_genero: number | null;
+    criterioManual: string; 
+};
 
 interface Props {
     visivel: boolean;
     editando: boolean;
     form: FormConquista;
+    generos: Genero[];
     aoMudarForm: (form: FormConquista) => void;
     aoFechar: () => void;
     aoSalvar: () => void;
 }
 
-export default function ConquistaFormModal({ visivel, editando, form, aoMudarForm, aoFechar, aoSalvar }: Props) {
+
+export function previaDoCriterio(form: FormConquista, generos: Genero[]): string {
+    if (form.tipo === 'MANUAL') {
+        return form.criterioManual.trim() || textoDoCriterio('MANUAL', 1);
+    }
+    const n = semQuantidade(form.tipo) ? 1 : Number(form.quantidade) || 0;
+    const nomeGenero = generos.find((g) => g.id_genero === form.id_genero)?.nome ?? null;
+    return textoDoCriterio(form.tipo, n, nomeGenero);
+}
+
+export default function ConquistaFormModal({ visivel, editando, form, generos, aoMudarForm, aoFechar, aoSalvar }: Props) {
     const [seletorEmojiAberto, setSeletorEmojiAberto] = useState(false);
+
+    function escolherTipo(tipo: TipoConquista) {
+        aoMudarForm({
+            ...form,
+            tipo,
+            id_genero: tipo === 'LIVROS_GENERO' ? form.id_genero : null,
+        });
+    }
 
     return (
         <>
@@ -70,22 +99,84 @@ export default function ConquistaFormModal({ visivel, editando, form, aoMudarFor
                     onChangeText={(v) => aoMudarForm({ ...form, descricao: v })}
                 />
 
-                <Text style={styles.campoLabel}>CRITÉRIO DE DESBLOQUEIO *</Text>
-                <TextInput
-                    style={styles.modalInput}
-                    placeholder="ex: Conclua 10 livros"
-                    placeholderTextColor={t.cor.textoTerciario}
-                    value={form.criterio}
-                    onChangeText={(v) => aoMudarForm({ ...form, criterio: v })}
-                />
-                <Text style={styles.avisoCriterio}>
-                    O desbloqueio é automático e depende de palavras-chave no critério (ou no nome/descrição):
-                    {'\n'}• "meta" → ter uma meta de leitura cadastrada
-                    {'\n'}• "sessão" + número → total de sessões de leitura
-                    {'\n'}• "página" + número → total de páginas lidas
-                    {'\n'}• "livro"/"leitura" + número → total de livros lidos (ou de um gênero, se citar o nome dele)
-                    {'\n'}Sem nenhuma dessas palavras, a conquista nunca desbloqueia sozinha — só via "Conceder" manual.
-                </Text>
+                <Text style={styles.campoLabel}>COMO DESBLOQUEIA *</Text>
+                <View style={styles.chips}>
+                    {OPCOES_TIPO.map((opcao) => {
+                        const ativo = form.tipo === opcao.tipo;
+                        return (
+                            <TouchableOpacity
+                                key={opcao.tipo}
+                                onPress={() => escolherTipo(opcao.tipo)}
+                                style={[styles.chip, ativo && styles.chipAtivo]}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>{opcao.rotulo}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {!semQuantidade(form.tipo) && (
+                    <>
+                        <Text style={styles.campoLabel}>QUANTIDADE *</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="ex: 10"
+                            placeholderTextColor={t.cor.textoTerciario}
+                            keyboardType="number-pad"
+                            value={form.quantidade}
+                            onChangeText={(v) => aoMudarForm({ ...form, quantidade: v.replace(/\D/g, '') })}
+                        />
+                    </>
+                )}
+
+                {form.tipo === 'LIVROS_GENERO' && (
+                    <>
+                        <Text style={styles.campoLabel}>GÊNERO *</Text>
+                        {generos.length === 0 ? (
+                            <Text style={styles.aviso}>Nenhum gênero cadastrado no catálogo.</Text>
+                        ) : (
+                            <View style={styles.chips}>
+                                {generos.map((g) => {
+                                    const ativo = form.id_genero === g.id_genero;
+                                    return (
+                                        <TouchableOpacity
+                                            key={g.id_genero}
+                                            onPress={() => aoMudarForm({ ...form, id_genero: g.id_genero })}
+                                            style={[styles.chip, ativo && styles.chipGeneroAtivo]}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>{g.nome}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+                    </>
+                )}
+
+                {form.tipo === 'MANUAL' && (
+                    <>
+                        <Text style={styles.campoLabel}>COMO O LEITOR GANHA (OPCIONAL)</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="ex: Participou do clube do livro"
+                            placeholderTextColor={t.cor.textoTerciario}
+                            value={form.criterioManual}
+                            onChangeText={(v) => aoMudarForm({ ...form, criterioManual: v })}
+                        />
+                    </>
+                )}
+
+                <View style={styles.previa}>
+                    <Text style={styles.previaLabel}>O LEITOR VAI VER</Text>
+                    <Text style={styles.previaTexto}>{previaDoCriterio(form, generos)}</Text>
+                    <Text style={styles.previaDica}>
+                        {form.tipo === 'MANUAL'
+                            ? 'Nunca desbloqueia sozinha: use o botão de presente para conceder.'
+                            : 'Desbloqueia sozinha quando o leitor atingir a quantidade.'}
+                    </Text>
+                </View>
             </AdminModal>
 
             <EmojiPicker
@@ -130,10 +221,23 @@ const styles = StyleSheet.create({
         borderWidth: 1.5, borderColor: t.cor.borda, borderRadius: t.raio.sm,
         padding: 12, fontSize: 14.5, marginBottom: t.espaco.md, color: t.cor.texto,
     },
-    avisoCriterio: {
-        fontSize: 11.5, color: t.cor.textoSecundario, lineHeight: 17,
-        backgroundColor: t.cor.fundo, borderRadius: t.raio.sm, padding: 10, marginBottom: t.espaco.md,
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: t.espaco.md },
+    chip: {
+        paddingVertical: 7, paddingHorizontal: 11, borderRadius: t.raio.pill,
+        borderWidth: 1.5, borderColor: t.cor.borda, backgroundColor: t.cor.superficie,
     },
+    chipAtivo: { backgroundColor: t.categoria.conquistas.icone, borderColor: t.categoria.conquistas.icone },
+    chipGeneroAtivo: { backgroundColor: t.categoria.generos.icone, borderColor: t.categoria.generos.icone },
+    chipTexto: { fontSize: 12.5, fontWeight: '600', color: t.cor.textoSecundario },
+    chipTextoAtivo: { color: t.cor.superficie },
+    aviso: { fontSize: 12, color: t.cor.textoTerciario, marginBottom: t.espaco.md },
+    previa: {
+        backgroundColor: t.categoria.conquistas.fundo, borderRadius: t.raio.sm,
+        padding: 12, marginBottom: t.espaco.md, gap: 4,
+    },
+    previaLabel: { fontSize: 10, fontWeight: '700', color: t.cor.destaque, letterSpacing: 0.5 },
+    previaTexto: { fontSize: 14, fontWeight: '700', color: t.cor.texto },
+    previaDica: { fontSize: 11.5, color: t.cor.textoSecundario },
     modalBotoes: { flexDirection: 'row', gap: t.espaco.sm, marginTop: t.espaco.sm },
     modalBotaoCancelar: { flex: 1, paddingVertical: 12, borderRadius: t.raio.sm, borderWidth: 1.5, borderColor: t.cor.borda, alignItems: 'center' },
     modalBotaoCancelarTexto: { color: t.cor.textoSecundario, fontWeight: '600' },

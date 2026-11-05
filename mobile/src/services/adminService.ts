@@ -1,5 +1,5 @@
 import { api } from './api';
-import { Autor, Editora, Genero, tipoCatalogo, Conquista, UsuarioAdmin } from '../types/adminTypes';
+import { Autor, Editora, Genero, tipoCatalogo, Conquista, DadosConquista, UsuarioAdmin } from '../types/adminTypes';
 
 export const adminService = {
    
@@ -49,12 +49,12 @@ export const adminService = {
         return data.conquistas;
     },
 
-    async criarConquista(dados: { nome: string; descricao?: string; icone?: string; criterio: string }): Promise<Conquista> {
+    async criarConquista(dados: DadosConquista): Promise<Conquista> {
         const { data } = await api.post('/conquistas/admin', dados);
         return data.conquista;
     },
 
-    async editarConquista(id: number, dados: Partial<Conquista>): Promise<Conquista> {
+    async editarConquista(id: number, dados: DadosConquista): Promise<Conquista> {
         const { data } = await api.put(`/conquistas/admin/${id}`, dados);
         return data.conquista;
     },
