@@ -56,7 +56,7 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
 
 - **Critério:** sem `tipo`, a conquista é `MANUAL` e usa o texto de `criterio` (compatível com o app atual).
   Com tipo automático (`LIVROS_LIDOS`, `PAGINAS_LIDAS`...), o texto é gerado a partir de `tipo` + `valor_alvo`.
-- **Progresso:** vem da tabela `estatisticas_leitor`, preenchida pelo evento do Pub/Sub (GDL-71).
+- **Progresso:** vem da tabela `estatisticas_leitor`, preenchida pelo evento do Pub/Sub (ver [Eventos](#eventos-gdl-71)).
   Enquanto não chegar nenhum evento para o leitor, `progresso` é `null`.
 - **Concessão automática:** ao abrir o catálogo, o leitor ganha o que já atingiu. Pedidos simultâneos
   não geram erro (INSERT IGNORE; era o bug do GDL-52).
@@ -85,6 +85,51 @@ curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/
 docker compose exec redis redis-cli --scan --pattern 'conquistas:catalogo:*'
 ```
 
+## Eventos (GDL-71)
+
+Além do HTTP, o serviço é um **microsserviço Redis** (`@nestjs/microservices`, aplicação híbrida).
+Ele assina o canal `estatisticas.atualizadas`, que o backend principal publica depois de cada
+escrita do leitor (GDL-70).
+
+Mensagem (formato do transporte Redis do Nest):
+
+```json
+{ "pattern": "estatisticas.atualizadas",
+  "data": { "usuarioId": 1, "geradoEm": "2026-11-04T14:51:41.114Z",
+            "estatisticas": { "livrosLidos": 2, "livrosCadastrados": 2, "paginasLidas": 675,
+                              "totalSessoes": 1, "totalAnotacoes": 1, "totalAvaliacoes": 1,
+                              "possuiMeta": true, "livrosLidosPorGenero": { "3": 2 } } } }
+```
+
+O que acontece a cada evento (`src/conquistas/eventos/`):
+
+1. **Valida** o `data`. Fora do formato: aviso no log e o evento é ignorado.
+2. **Grava** os números em `estatisticas_leitor` (base do progresso no catálogo).
+   Se chegar um evento **mais antigo** que o já gravado (coluna `gerado_em`), ele é descartado.
+3. **Concede** as conquistas automáticas atingidas, cada uma **uma vez só** (o mesmo evento
+   entregue duas vezes não duplica nada).
+4. **Invalida o cache** do catálogo daquele leitor (GDL-11).
+
+Logs:
+
+```
+[EventoEstatisticas] recebido estatisticas.atualizadas usuario=1 geradoEm=... lidos=2 cadastrados=2 paginas=675 ...
+[ConquistasService] usuario=1 desbloqueou: #24 500 páginas, #25 Fã de fantasia
+[CacheCatalogoService] cache invalidado conquistas:catalogo:v...:1 (ganhou conquista automática)
+```
+
+**Redis fora do ar:** o HTTP continua funcionando. O log avisa uma vez quando o Redis cai e uma vez
+quando volta, e a assinatura é refeita sozinha. Isso vale também se o serviço subir **antes** do Redis
+(`src/eventos/servidor-redis-eventos.ts`). Eventos publicados enquanto o Redis estava fora se perdem
+(o Pub/Sub não guarda mensagens); o próximo evento do leitor traz os números completos de novo.
+
+Para ver funcionando:
+
+```bash
+docker compose logs -f conquistas-service | grep -E "EventoEstatisticas|desbloqueou"
+docker compose exec redis redis-cli PUBSUB NUMSUB estatisticas.atualizadas   # 1 = o serviço está assinando
+```
+
 ## Autenticação (GDL-67)
 
 O serviço aceita o **mesmo token JWT** do login do backend principal (mesma `JWT_SECRET`).
@@ -109,7 +154,7 @@ só enxerga esse banco. Ele não lê nem escreve no `projeto5p` do backend princ
 |---|---|
 | Criação do banco e do usuário | `banco/init/01-gamificacao.sh` (raiz do repositório) |
 | Tabelas | migrações do TypeORM em `src/banco/migrations/` |
-| Entities | `Conquista` e `ConquistaDoUsuario` em `src/conquistas/entities/` |
+| Entities | `Conquista`, `ConquistaDoUsuario` e `EstatisticasLeitorEntity` em `src/conquistas/entities/` |
 | Cópia dos dados antigos | `banco/scripts/GDL-66_copiar_conquistas_para_gamificacao.sql` (roda como root, uma vez) |
 
 - `synchronize` está desligado: o banco só muda por migração versionada.
@@ -179,6 +224,8 @@ src/
 ├── banco/                     # TypeORM: conexão, data-source da CLI e migrações
 ├── cache/                     # CacheModule do Nest com Redis (GDL-10)
 ├── conquistas/                # contexto Gamificação: controllers, services, DTOs, entities e regras
+│   └── eventos/               # handler do evento estatisticas.atualizadas (GDL-71)
+├── eventos/                   # conexão com o Redis como microsserviço (GDL-71)
 ├── common/
 │   ├── filters/               # respostas de erro no formato { erro }
 │   └── middleware/            # log de cada requisição (método, rota, status, tempo)

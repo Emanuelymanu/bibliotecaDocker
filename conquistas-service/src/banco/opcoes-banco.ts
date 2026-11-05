@@ -4,6 +4,7 @@ import { Conquista } from '../conquistas/entities/conquista.entity';
 import { EstatisticasLeitorEntity } from '../conquistas/entities/estatisticas-leitor.entity';
 import { CriarTabelasGamificacao1793062185895 } from './migrations/1793062185895-CriarTabelasGamificacao';
 import { CriarEstatisticasLeitor1793227891240 } from './migrations/1793227891240-CriarEstatisticasLeitor';
+import { AdicionarGeradoEmEstatisticas1793803508998 } from './migrations/1793803508998-AdicionarGeradoEmEstatisticas';
 
 export interface ConfigBanco {
   host: string;
@@ -17,7 +18,11 @@ export interface ConfigBanco {
 export const ENTIDADES = [Conquista, ConquistaDoUsuario, EstatisticasLeitorEntity];
 
 
-export const MIGRACOES = [CriarTabelasGamificacao1793062185895, CriarEstatisticasLeitor1793227891240];
+export const MIGRACOES = [
+  CriarTabelasGamificacao1793062185895,
+  CriarEstatisticasLeitor1793227891240,
+  AdicionarGeradoEmEstatisticas1793803508998,
+];
 
 
 export function opcoesBanco(config: ConfigBanco): DataSourceOptions {
