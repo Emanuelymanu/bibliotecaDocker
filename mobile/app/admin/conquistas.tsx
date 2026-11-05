@@ -14,16 +14,33 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { adminService } from '@/src/services/adminService';
-import { Conquista } from '@/src/types/adminTypes';
+import { Conquista, DadosConquista, Genero } from '@/src/types/adminTypes';
 import { adminTheme as t } from '@/src/constants/adminTheme';
-import ConquistaFormModal, { FormConquista } from '@/components/admin/ConquistaFormModal';
+import ConquistaFormModal, { FormConquista, previaDoCriterio } from '@/components/admin/ConquistaFormModal';
+import { semQuantidade, textoDoCriterio } from '@/src/utils/criterioConquista';
 import ConcederConquistaModal from '@/components/admin/ConcederConquistaModal';
 
-const FORM_VAZIO: FormConquista = { nome: '', descricao: '', icone: '📖', criterio: '' };
+const FORM_VAZIO: FormConquista = {
+    nome: '',
+    descricao: '',
+    icone: '📖',
+    tipo: 'LIVROS_LIDOS',
+    quantidade: '',
+    id_genero: null,
+    criterioManual: '',
+};
+
+
+function criterioParaExibir(c: Conquista, generos: Genero[]): string {
+    if (!c.tipo || c.tipo === 'MANUAL') return c.criterio ?? '';
+    const nomeGenero = generos.find((g) => g.id_genero === c.id_genero)?.nome ?? null;
+    return textoDoCriterio(c.tipo, c.valor_alvo ?? 1, nomeGenero);
+}
 
 export default function AdminConquistasScreen() {
     const router = useRouter();
     const [conquistas, setConquistas] = useState<Conquista[]>([]);
+    const [generos, setGeneros] = useState<Genero[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [atualizando, setAtualizando] = useState(false);
 
@@ -37,8 +54,12 @@ export default function AdminConquistasScreen() {
     const carregar = useCallback(async () => {
         setCarregando(true);
         try {
-            const dados = await adminService.listarTodasConquistas();
+            const [dados, listaGeneros] = await Promise.all([
+                adminService.listarTodasConquistas(),
+                adminService.listarCatalogo('generos'),
+            ]);
             setConquistas(dados);
+            setGeneros(listaGeneros as Genero[]);
         } catch (error) {
             console.error('Erro ao carregar conquistas:', error);
             Alert.alert('Erro', 'Não foi possível carregar as conquistas');
@@ -63,25 +84,48 @@ export default function AdminConquistasScreen() {
 
     function abrirEdicao(conquista: Conquista) {
         setEditandoId(conquista.id_conquista);
+        const tipo = conquista.tipo ?? 'MANUAL';
         setForm({
             nome: conquista.nome,
             descricao: conquista.descricao || '',
             icone: conquista.icone || '📖',
-            criterio: conquista.criterio,
+            tipo,
+            quantidade: semQuantidade(tipo) ? '' : String(conquista.valor_alvo ?? ''),
+            id_genero: conquista.id_genero ?? null,
+            criterioManual: tipo === 'MANUAL' ? conquista.criterio ?? '' : '',
         });
         setModalFormAberto(true);
     }
 
     async function salvarForm() {
-        if (!form.nome.trim() || !form.descricao.trim() || !form.criterio.trim()) {
-            Alert.alert('Atenção', 'Nome, descrição e critério são obrigatórios');
+        if (!form.nome.trim() || !form.descricao.trim()) {
+            Alert.alert('Atenção', 'Nome e descrição são obrigatórios');
             return;
         }
+        const quantidade = Number(form.quantidade);
+        if (!semQuantidade(form.tipo) && (!Number.isInteger(quantidade) || quantidade < 1)) {
+            Alert.alert('Atenção', 'Informe uma quantidade maior que zero');
+            return;
+        }
+        if (form.tipo === 'LIVROS_GENERO' && !form.id_genero) {
+            Alert.alert('Atenção', 'Escolha o gênero da conquista');
+            return;
+        }
+
+        const dados: DadosConquista = {
+            nome: form.nome.trim(),
+            descricao: form.descricao.trim(),
+            icone: form.icone || null,
+            tipo: form.tipo,
+            valor_alvo: semQuantidade(form.tipo) ? 1 : quantidade,
+            id_genero: form.tipo === 'LIVROS_GENERO' ? form.id_genero : null,
+            criterio: previaDoCriterio(form, generos),
+        };
         try {
             if (editandoId) {
-                await adminService.editarConquista(editandoId, form);
+                await adminService.editarConquista(editandoId, dados);
             } else {
-                await adminService.criarConquista(form);
+                await adminService.criarConquista(dados);
             }
             setModalFormAberto(false);
             carregar();
@@ -160,7 +204,7 @@ export default function AdminConquistasScreen() {
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.itemNome}>{item.nome}</Text>
                                 {item.descricao ? <Text style={styles.itemDescricao} numberOfLines={1}>{item.descricao}</Text> : null}
-                                <Text style={styles.itemCriterio} numberOfLines={1}>{item.criterio}</Text>
+                                <Text style={styles.itemCriterio} numberOfLines={1}>{criterioParaExibir(item, generos)}</Text>
                             </View>
                             <TouchableOpacity onPress={() => setConquistaConcedendo(item)} style={[styles.botaoIcone, { backgroundColor: '#DCFCE7' }]}>
                                 <Ionicons name="gift-outline" size={16} color={t.cor.sucesso} />
@@ -177,6 +221,7 @@ export default function AdminConquistasScreen() {
                 visivel={modalFormAberto}
                 editando={!!editandoId}
                 form={form}
+                generos={generos}
                 aoMudarForm={setForm}
                 aoFechar={() => setModalFormAberto(false)}
                 aoSalvar={salvarForm}

@@ -8,6 +8,12 @@ import { Brand } from '@/constants/Brand';
 import { conquistasService, ConquistaCatalogo } from '@/src/services/conquistasService';
 import { iconeConquista } from '@/src/utils/iconeConquista';
 
+
+function progressoDoCard(c: ConquistaCatalogo): { atual: number; alvo: number } | null {
+  if (c.desbloqueada || c.progresso == null || !c.valor_alvo || c.valor_alvo <= 1) return null;
+  return { atual: Math.min(c.progresso, c.valor_alvo), alvo: c.valor_alvo };
+}
+
 export default function ConquistasScreen() {
   const router = useRouter();
   const [conquistas, setConquistas] = useState<ConquistaCatalogo[]>([]);
@@ -111,6 +117,18 @@ export default function ConquistasScreen() {
                       {c.descricao}
                     </Text>
                   )}
+                  {(() => {
+                    const p = progressoDoCard(c);
+                    if (!p) return null;
+                    return (
+                      <View style={styles.cardProgresso}>
+                        <View style={styles.cardProgressoTrack}>
+                          <View style={[styles.cardProgressoFill, { width: `${(p.atual / p.alvo) * 100}%` }]} />
+                        </View>
+                        <Text style={styles.cardProgressoTexto}>{p.atual}/{p.alvo}</Text>
+                      </View>
+                    );
+                  })()}
                   {c.desbloqueada && (
                     <View style={styles.badge}>
                       <Ionicons name="checkmark" size={11} color="#92400e" />
@@ -175,6 +193,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   badgeTexto: { fontSize: 10, fontWeight: '700', color: '#92400e' },
+  cardProgresso: { width: '100%', marginTop: 10, alignItems: 'center', gap: 4 },
+  cardProgressoTrack: { width: '100%', height: 6, borderRadius: 3, backgroundColor: Brand.border, overflow: 'hidden' },
+  cardProgressoFill: { height: 6, borderRadius: 3, backgroundColor: '#f59e0b' },
+  cardProgressoTexto: { fontSize: 10.5, fontWeight: '700', color: Brand.textSecondary },
 
   erroBox: { margin: 16, backgroundColor: Brand.dangerBg, borderRadius: 10, padding: 12, gap: 6 },
   erroTexto: { fontSize: 13, color: Brand.danger },

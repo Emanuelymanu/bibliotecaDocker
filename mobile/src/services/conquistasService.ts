@@ -8,6 +8,8 @@ export interface ConquistaCatalogo {
   icone: string | null;
   desbloqueada: boolean;
   data_conquista: string | null;
+  progresso: number | null;
+  valor_alvo: number;
 }
 
 export const conquistasService = {
