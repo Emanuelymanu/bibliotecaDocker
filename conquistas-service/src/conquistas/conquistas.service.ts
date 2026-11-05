@@ -10,6 +10,34 @@ import { CatalogoResposta, MinhasConquistasResposta } from './dto/respostas.dto'
 import { ConquistaDoUsuario } from './entities/conquista-do-usuario.entity';
 import { Conquista } from './entities/conquista.entity';
 import { EstatisticasLeitorEntity } from './entities/estatisticas-leitor.entity';
+import { EventoEstatisticasAtualizadas } from './eventos/estatisticas-atualizadas';
+
+export interface ResultadoEvento {
+
+  aplicado: boolean;
+  novas: Conquista[];
+}
+
+const COLUNAS_ESTATISTICAS = [
+  'livros_lidos',
+  'livros_cadastrados',
+  'paginas_lidas',
+  'total_sessoes',
+  'total_anotacoes',
+  'total_avaliacoes',
+  'possui_meta',
+  'livros_lidos_por_genero',
+] as const;
+
+
+const MAIS_NOVO = 'estatisticas_leitor.gerado_em IS NULL OR novo.gerado_em >= estatisticas_leitor.gerado_em';
+const SQL_GRAVAR_ESTATISTICAS = `
+  INSERT INTO estatisticas_leitor (id_usuario, ${COLUNAS_ESTATISTICAS.join(', ')}, gerado_em)
+  VALUES (?, ${COLUNAS_ESTATISTICAS.map(() => '?').join(', ')}, ?) AS novo
+  ON DUPLICATE KEY UPDATE
+    ${[...COLUNAS_ESTATISTICAS, 'gerado_em']
+      .map((c) => `${c} = IF(${MAIS_NOVO}, novo.${c}, estatisticas_leitor.${c})`)
+      .join(',\n    ')}`;
 
 
 @Injectable()
@@ -84,6 +112,40 @@ export class ConquistasService {
   }
 
  
+
+  async registrarEstatisticas(evento: EventoEstatisticasAtualizadas): Promise<ResultadoEvento> {
+    const { usuarioId, estatisticas: e, geradoEm } = evento;
+    await this.estatisticas.query(SQL_GRAVAR_ESTATISTICAS, [
+      usuarioId,
+      e.livrosLidos,
+      e.livrosCadastrados,
+      e.paginasLidas,
+      e.totalSessoes,
+      e.totalAnotacoes,
+      e.totalAvaliacoes,
+      e.possuiMeta,
+      JSON.stringify(e.livrosLidosPorGenero),
+      geradoEm,
+    ]);
+
+    const gravado = await this.estatisticas.findOneBy({ id_usuario: usuarioId });
+    if (!gravado || (gravado.gerado_em && gravado.gerado_em.getTime() > geradoEm.getTime())) {
+      this.logger.warn(
+        `usuario=${usuarioId}: evento de ${geradoEm.toISOString()} descartado, ` +
+          `já existe um mais novo (${gravado?.gerado_em?.toISOString()})`,
+      );
+      return { aplicado: false, novas: [] };
+    }
+
+    const novas = await this.concederAtingidas(usuarioId, gravado.paraRegras());
+    if (novas.length === 0) {
+      this.logger.log(`usuario=${usuarioId}: estatísticas gravadas, nenhuma conquista nova`);
+      
+      await this.cache.invalidarUsuario(usuarioId, 'estatísticas atualizadas');
+    }
+    return { aplicado: true, novas };
+  }
+
   async concederAtingidas(usuarioId: number, numeros: EstatisticasLeitor): Promise<Conquista[]> {
     const [automaticas, jaTem] = await Promise.all([
       this.conquistas.find({ where: { tipo: Not('MANUAL') }, order: { id_conquista: 'ASC' } }),

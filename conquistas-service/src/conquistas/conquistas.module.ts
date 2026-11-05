@@ -8,11 +8,12 @@ import { ConquistasService } from './conquistas.service';
 import { ConquistaDoUsuario } from './entities/conquista-do-usuario.entity';
 import { Conquista } from './entities/conquista.entity';
 import { EstatisticasLeitorEntity } from './entities/estatisticas-leitor.entity';
+import { EstatisticasEventosController } from './eventos/estatisticas-eventos.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Conquista, ConquistaDoUsuario, EstatisticasLeitorEntity])],
 
-  controllers: [AdminConquistasController, ConquistasController],
+  controllers: [AdminConquistasController, ConquistasController, EstatisticasEventosController],
   providers: [ConquistasService, AdminConquistasService, CacheCatalogoService],
   exports: [ConquistasService, CacheCatalogoService],
 })

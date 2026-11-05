@@ -32,6 +32,10 @@ export class EstatisticasLeitorEntity {
   @Column({ type: 'json' })
   livros_lidos_por_genero: Record<string, number>;
 
+
+  @Column({ type: 'datetime', precision: 3, nullable: true })
+  gerado_em: Date | null;
+
   @UpdateDateColumn({ type: 'datetime' })
   atualizado_em: Date;
 
