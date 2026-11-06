@@ -5,6 +5,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { ApenasAdmin } from '../src/auth/decorators/apenas-admin.decorator';
 import { UsuarioAtual } from '../src/auth/decorators/usuario-atual.decorator';
+import { RevogacaoTokensService } from '../src/auth/revogacao-tokens.service';
 import { UsuarioAutenticado } from '../src/auth/usuario-autenticado';
 import { BancoModule } from '../src/banco/banco.module';
 import { ConquistasModule } from '../src/conquistas/conquistas.module';
@@ -32,9 +33,13 @@ class RotasDeTesteModule {}
 class SemBancoModule {}
 
 
-function tokenDoBackendPrincipal(usuario: UsuarioAutenticado, segredo = process.env.JWT_SECRET as string) {
+function tokenDoBackendPrincipal(
+  usuario: UsuarioAutenticado,
+  segredo = process.env.JWT_SECRET as string,
+  iat = Math.floor(Date.now() / 1000),
+) {
   return jwt.sign(
-    { id: usuario.id, email: usuario.email, nome: usuario.nome, tipo_usuario: usuario.tipo_usuario },
+    { id: usuario.id, email: usuario.email, nome: usuario.nome, tipo_usuario: usuario.tipo_usuario, iat },
     segredo,
     { expiresIn: '5h' },
   );
@@ -105,5 +110,22 @@ describe('Autenticação JWT (e2e)', () => {
 
   it('/health continua público', async () => {
     await request(app.getHttpServer()).get('/health').expect(200);
+  });
+
+  it('GDL-79: admin rebaixado perde o acesso na hora; com um novo login entra com a permissão nova', async () => {
+    const rebaixado: UsuarioAutenticado = { ...administrador, id: 990179 };
+    const tokenAntigo = tokenDoBackendPrincipal(rebaixado, undefined, Math.floor(Date.now() / 1000) - 600);
+
+    await app.get(RevogacaoTokensService).revogarAte(rebaixado.id, new Date(Date.now() - 1000));
+
+    const recusado = await request(app.getHttpServer())
+      .get('/api/teste-auth/admin')
+      .set('Authorization', `Bearer ${tokenAntigo}`)
+      .expect(401);
+    expect(recusado.body.erro).toBe('Sua permissão foi alterada. Faça login novamente.');
+
+    const novoLogin = tokenDoBackendPrincipal({ ...rebaixado, tipo_usuario: 'usuario' });
+    await request(app.getHttpServer()).get('/api/teste-auth/eu').set('Authorization', `Bearer ${novoLogin}`).expect(200);
+    await request(app.getHttpServer()).get('/api/teste-auth/admin').set('Authorization', `Bearer ${novoLogin}`).expect(403);
   });
 });

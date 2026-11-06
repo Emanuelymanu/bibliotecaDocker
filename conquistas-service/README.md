@@ -138,12 +138,39 @@ O guard é **global**: toda rota exige `Authorization: Bearer <token>`, menos as
 | Decorator | Uso |
 |---|---|
 | `@Publica()` | Libera a rota sem token (ex.: `/health`) |
-| `@ApenasAdmin()` | Só `tipo_usuario: "admin"`; usuário comum recebe 403 |
+| `@ApenasAdmin()` | Só `tipo_usuario: "admin"`; usuário comum recebe 403 (e 503 se o Redis estiver fora, ver abaixo) |
 | `@UsuarioAtual()` | Injeta o usuário logado no método (`@UsuarioAtual('id')` para só o id) |
 
 Erros no mesmo formato e com as mesmas mensagens do backend principal:
 `Token de autenticação ausente`, `Token mal formatado`, `Token inválido ou expirado` (401)
 e `Acesso restrito a administradores` (403).
+
+### Revogação quando a permissão muda (GDL-79)
+
+O serviço não lê a tabela de usuários: ele confia no `tipo_usuario` que vem no token.
+Sem a revogação, um admin rebaixado continuaria admin aqui até o token vencer (até 5h).
+
+1. O backend, ao **promover** ou **rebaixar** alguém (`PUT /api/admin/usuarios/:id/promover` e `/rebaixar`),
+   publica `usuario.permissao_alterada` com `{ usuarioId, tipo_usuario, alteradoEm }`.
+2. O serviço recebe (`src/auth/eventos/`) e grava no Redis `auth:revogado:<usuarioId>` = momento da mudança,
+   com TTL de **5h** (a duração do token: depois disso todo token antigo já venceu).
+3. A cada requisição, o guard compara o `iat` do token (quando foi emitido) com esse momento.
+   Token de antes da mudança: **401** `Sua permissão foi alterada. Faça login novamente.`
+   O `iat` só tem segundos, então um token do mesmo segundo da mudança também é recusado (na dúvida, recusa).
+4. Depois de um novo login, o token novo traz a permissão nova e funciona normalmente.
+
+**Redis fora do ar:** rotas de leitor continuam funcionando; rotas `@ApenasAdmin()` respondem **503**
+(não dá para garantir que o admin ainda é admin). Se o Redis reiniciar e perder os dados, as revogações
+das últimas 5h se perdem junto.
+
+Logs:
+
+```
+[eventos] publicado usuario.permissao_alterada usuario=1 tipo=usuario (1 assinante(s))      <- backend
+[EventoPermissao] recebido usuario.permissao_alterada usuario=1 agora é usuario (em ...)    <- conquistas-service
+[EventoPermissao] usuario=1: tokens emitidos antes de ... revogados por 5h
+[JwtAuthGuard] Token recusado: usuario=1 (token diz admin, emitido ...) teve a permissão alterada em ... - GET /api/conquistas/admin/todas
+```
 
 ## Banco de dados (GDL-66)
 
@@ -222,6 +249,8 @@ src/
 ├── app.module.ts              # módulo raiz
 ├── config/                    # validação das variáveis de ambiente
 ├── banco/                     # TypeORM: conexão, data-source da CLI e migrações
+├── auth/                      # guard JWT global (GDL-67) e revogação de tokens (GDL-79)
+│   └── eventos/               # handler do evento usuario.permissao_alterada (GDL-79)
 ├── cache/                     # CacheModule do Nest com Redis (GDL-10)
 ├── conquistas/                # contexto Gamificação: controllers, services, DTOs, entities e regras
 │   └── eventos/               # handler do evento estatisticas.atualizadas (GDL-71)
