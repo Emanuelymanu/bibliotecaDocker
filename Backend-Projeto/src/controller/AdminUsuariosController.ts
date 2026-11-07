@@ -1,6 +1,15 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { usuarios } from '../models-auto/usuarios';
+import { notificarPermissaoAlterada, TipoUsuario } from '../eventos/usuarioEventos';
+
+
+async function alterarPermissao(usuario: usuarios, novoTipo: TipoUsuario): Promise<void> {
+    if (usuario.tipo_usuario === novoTipo) return; // nada mudou: nenhum token para revogar
+    usuario.tipo_usuario = novoTipo;
+    await usuario.save();
+    await notificarPermissaoAlterada(usuario.id_usuario, novoTipo);
+}
 
 export class AdminUsuariosController {
     async listar(req: Request, res: Response): Promise<Response> {
@@ -37,8 +46,7 @@ export class AdminUsuariosController {
                 return res.status(404).json({ erro: 'Usuário não encontrado' });
             }
 
-            usuario.tipo_usuario = 'admin';
-            await usuario.save();
+            await alterarPermissao(usuario, 'admin');
 
             return res.json({
                 mensagem: 'Usuário promovido a administrador',
@@ -63,8 +71,7 @@ export class AdminUsuariosController {
                 return res.status(404).json({ erro: 'Usuário não encontrado' });
             }
 
-            usuario.tipo_usuario = 'usuario';
-            await usuario.save();
+            await alterarPermissao(usuario, 'usuario');
 
             return res.json({
                 mensagem: 'Acesso de administrador removido',

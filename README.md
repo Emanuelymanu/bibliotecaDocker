@@ -139,11 +139,13 @@ e o Nginx volta a encaminhar sozinho quando o serviço subir de novo.
 Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos simples e execucao flexivel.
 ## 10) Eventos entre servicos (Redis Pub/Sub)
 
-O backend (Express) avisa o `conquistas-service` pelo Redis quando os números de um leitor mudam.
+O backend (Express) avisa o `conquistas-service` pelo Redis quando os números de um leitor mudam
+e quando a permissão de um usuário muda.
 
 | Evento | Quem publica | Quando |
 |---|---|---|
 | `estatisticas.atualizadas` | backend (GDL-70) | depois de qualquer escrita bem-sucedida em `/api/livros`, `/api/leituras`, `/api/sessoes`, `/api/metas` e `/api/anotacoes` |
+| `usuario.permissao_alterada` | backend (GDL-79) | quando um admin promove ou rebaixa um usuário; o `conquistas-service` passa a recusar os tokens antigos dessa pessoa |
 
 A mensagem segue o formato do transporte Redis do NestJS:
 
@@ -162,12 +164,14 @@ A mensagem segue o formato do transporte Redis do NestJS:
 }
 ```
 
-- O evento é publicado **depois** que a resposta é enviada: não deixa a requisição mais lenta.
+- `estatisticas.atualizadas` é publicado **depois** que a resposta é enviada: não deixa a requisição mais lenta.
+- `usuario.permissao_alterada` é publicado **antes** da resposta: quando o admin vê "rebaixado", o token antigo já não vale mais.
+  Detalhes em [conquistas-service/README.md](conquistas-service/README.md#revogação-quando-a-permissão-muda-gdl-79).
 - Com o Redis fora do ar, a requisição funciona normalmente; o log registra a falha e avisa quando o Redis volta.
 
 Para ver os eventos chegando:
 
 ```bash
-docker compose exec redis redis-cli SUBSCRIBE estatisticas.atualizadas
+docker compose exec redis redis-cli SUBSCRIBE estatisticas.atualizadas usuario.permissao_alterada
 docker compose logs -f backend | grep "\[eventos\]"
 ```
