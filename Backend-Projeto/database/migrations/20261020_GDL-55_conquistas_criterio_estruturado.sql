@@ -10,7 +10,7 @@ ALTER TABLE conquistas
     ADD CONSTRAINT fk_conquistas_genero
         FOREIGN KEY (id_genero) REFERENCES generos (id_genero) ON DELETE SET NULL;
  
-
+feature/GDL-67-jwt-conquistas-service
 CREATE TEMPORARY TABLE conversao_conquistas AS
 SELECT
     t.id_conquista,

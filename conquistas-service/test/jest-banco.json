@@ -3,6 +3,7 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".banco-spec.ts$",
+  "setupFiles": ["<rootDir>/setup-env.ts"],
   "testTimeout": 20000,
   "transform": {
     "^.+\\.ts$": "ts-jest"

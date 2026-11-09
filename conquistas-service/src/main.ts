@@ -3,10 +3,12 @@ import{ConfigService} from '@nestjs/config'
 import {NestFactory} from '@nestjs/core'
 import {AppModule} from './app.module'
 import {configurarApp} from './configurar-app'
+import {conectarEventos} from './eventos/conectar-eventos'
 
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create(AppModule);
     configurarApp(app);
+    await conectarEventos(app);
 
     const porta = app.get(ConfigService).get<number>('PORT', 3001)
     await app.listen(porta, '0.0.0.0')

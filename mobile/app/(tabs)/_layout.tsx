@@ -35,7 +35,7 @@ export default function TabLayout() {
             <Ionicons
               name={iconName}
               size={size}
-              color={color}
+              color={color as string}
             />
           );
         },

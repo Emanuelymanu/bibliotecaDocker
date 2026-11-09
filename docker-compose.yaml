@@ -60,6 +60,33 @@ services:
     networks:
       - app-network
 
+  conquistas-service:
+    build:
+      context: ./conquistas-service
+      dockerfile: Dockerfile
+    container_name: conquistas_service
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: banco
+      DB_PORT: 3306
+      DB_NAME: gamificacao
+      DB_USER: ${GAMIFICACAO_DB_USER:-gamificacao}
+      DB_PASSWORD: ${GAMIFICACAO_DB_PASSWORD:?defina GAMIFICACAO_DB_PASSWORD no .env da raiz}
+      JWT_SECRET: ${JWT_SECRET}
+      REDIS_URL: redis://redis:6379
+      CACHE_TTL_SEGUNDOS: ${CACHE_TTL_SEGUNDOS:-300}
+    depends_on:
+      banco:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "3001"
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./Frontend-Projeto/ProjetoFrontend
@@ -84,6 +111,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conquistas-proxy.conf:/etc/nginx/conquistas-proxy.conf:ro
       - ./certs:/etc/nginx/certs:ro
     networks:
       - app-network

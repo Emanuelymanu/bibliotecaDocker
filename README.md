@@ -1,5 +1,5 @@
 # Biblioteca Docker - Guia Rapido de Setup
-
+CI/CD
 Este README centraliza o passo a passo para rodar o projeto em ambiente de desenvolvimento com Docker.
 
 ## 1) Pre-requisitos
@@ -79,6 +79,7 @@ Ver logs de um servico:
 
 ```bash
 docker compose logs -f backend
+docker compose logs -f conquistas-service
 docker compose logs -f frontend
 docker compose logs -f nginx
 docker compose logs -f banco
@@ -121,6 +122,56 @@ docker compose up -d --build backend
 ## 9) Estrutura de rede e exposicao
 
 - Somente o Nginx expoe portas para fora (`80` e `443`)
-- Backend, frontend e banco ficam isolados na rede Docker interna
+- Backend, conquistas-service, frontend, banco e Redis ficam isolados na rede Docker interna
+
+Roteamento do Nginx (`nginx/nginx.conf`):
+
+| Caminho | Vai para |
+|---|---|
+| `/api/conquistas` e `/api/conquistas/*` | `conquistas-service:3001` (NestJS, GDL-73) |
+| `/api/*` (o resto) e `/upload/capa/*` | `backend:3000` (Express) |
+| `/` | `frontend:5173` |
+
+Se o `conquistas-service` estiver fora do ar, só as rotas de conquistas respondem
+`503` com `{"erro": "Serviço de conquistas indisponível..."}`; o resto do sistema continua normal,
+e o Nginx volta a encaminhar sozinho quando o serviço subir de novo.
 
 Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos simples e execucao flexivel.
+## 10) Eventos entre servicos (Redis Pub/Sub)
+
+O backend (Express) avisa o `conquistas-service` pelo Redis quando os números de um leitor mudam
+e quando a permissão de um usuário muda.
+
+| Evento | Quem publica | Quando |
+|---|---|---|
+| `estatisticas.atualizadas` | backend (GDL-70) | depois de qualquer escrita bem-sucedida em `/api/livros`, `/api/leituras`, `/api/sessoes`, `/api/metas` e `/api/anotacoes` |
+| `usuario.permissao_alterada` | backend (GDL-79) | quando um admin promove ou rebaixa um usuário; o `conquistas-service` passa a recusar os tokens antigos dessa pessoa |
+
+A mensagem segue o formato do transporte Redis do NestJS:
+
+```json
+{
+  "pattern": "estatisticas.atualizadas",
+  "data": {
+    "usuarioId": 1,
+    "estatisticas": {
+      "livrosLidos": 1, "livrosCadastrados": 1, "paginasLidas": 310,
+      "totalSessoes": 1, "totalAnotacoes": 1, "totalAvaliacoes": 1,
+      "possuiMeta": true, "livrosLidosPorGenero": { "3": 1 }
+    },
+    "geradoEm": "2026-11-04T00:34:02.515Z"
+  }
+}
+```
+
+- `estatisticas.atualizadas` é publicado **depois** que a resposta é enviada: não deixa a requisição mais lenta.
+- `usuario.permissao_alterada` é publicado **antes** da resposta: quando o admin vê "rebaixado", o token antigo já não vale mais.
+  Detalhes em [conquistas-service/README.md](conquistas-service/README.md#revogação-quando-a-permissão-muda-gdl-79).
+- Com o Redis fora do ar, a requisição funciona normalmente; o log registra a falha e avisa quando o Redis volta.
+
+Para ver os eventos chegando:
+
+```bash
+docker compose exec redis redis-cli SUBSCRIBE estatisticas.atualizadas usuario.permissao_alterada
+docker compose logs -f backend | grep "\[eventos\]"
+```

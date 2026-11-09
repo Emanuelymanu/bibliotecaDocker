@@ -1,33 +1,44 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly logger = new Logger('Erros');
 
-    catch(exception: unknown, host: ArgumentsHost): void {
-        const ctx = host.switchToHttp();
-        const res = ctx.getResponse<Response>();
-        const req = ctx.getRequest<Request>();
+  catch(excecao: unknown, host: ArgumentsHost): void {
+    const contexto = host.switchToHttp();
+    const resposta = contexto.getResponse<Response>();
+    const requisicao = contexto.getRequest<Request>();
 
-        const status = exception instanceof HttpException
-            ? exception.getStatus()
-            : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status =
+      excecao instanceof HttpException ? excecao.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-        const corpo = exception instanceof HttpException ? exception.getResponse() : null;
-        const mensagem = typeof corpo === 'object' && corpo !== null && 'message' in corpo
-            ? (corpo as { message: string | string[] }).message
-            : exception instanceof HttpException ? exception.message : 'Erro interno do servidor';
+    const mensagem =
+      excecao instanceof HttpException
+        ? this.extrairMensagem(excecao)
+        : 'Erro interno no serviço de conquistas';
 
-        if (status >= 500) {
-            this.logger.error(exception instanceof Error ? exception.stack : String(exception));
-        }
-
-        res.status(status).json({
-            statusCode: status,
-            erro: mensagem,
-            caminho: req.originalUrl,
-            timestamp: new Date().toISOString(),
-        });
+    if (status >= 500) {
+      const pilha = excecao instanceof Error ? excecao.stack : String(excecao);
+      this.logger.error(`${requisicao.method} ${requisicao.originalUrl} -> ${status}`, pilha);
     }
+
+    resposta.status(status).json({
+      erro: mensagem,
+      statusCode: status,
+      caminho: requisicao.originalUrl,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  
+  private extrairMensagem(excecao: HttpException): string {
+    const corpo = excecao.getResponse();
+    if (typeof corpo === 'string') return corpo;
+
+    const mensagem = (corpo as { message?: string | string[] }).message;
+    if (Array.isArray(mensagem)) return [...new Set(mensagem)].join('; ');
+    return mensagem ?? excecao.message;
+  }
 }

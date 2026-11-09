@@ -1,3 +1,5 @@
+import { TipoConquista } from '../utils/criterioConquista';
+
 export interface Autor{
     id_autor: number;
     nome: string;
@@ -26,6 +28,20 @@ export interface Conquista{
     nome: string;
     descricao?: string | null;
     icone?: string | null;
+    criterio: string | null;
+    tipo?: TipoConquista;
+    valor_alvo?: number;
+    id_genero?: number | null;
+}
+
+
+export interface DadosConquista {
+    nome: string;
+    descricao: string | null;
+    icone: string | null;
+    tipo: TipoConquista;
+    valor_alvo: number;
+    id_genero: number | null;
     criterio: string;
 }
 

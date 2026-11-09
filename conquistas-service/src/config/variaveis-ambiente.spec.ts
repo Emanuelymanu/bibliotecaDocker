@@ -1,8 +1,7 @@
-import 'reflect-metadata';
 import { validarAmbiente } from './variaveis-ambiente';
 
 describe('validarAmbiente', () => {
-  const banco = { DB_USER: 'gamificacao', DB_PASSWORD: 'segredo' };
+  const banco = { DB_USER: 'gamificacao', DB_PASSWORD: 'segredo', JWT_SECRET: 'segredo-jwt' };
 
   it('aplica os valores padrão quando só o obrigatório é informado', () => {
     const variaveis = validarAmbiente({ ...banco });
@@ -22,7 +21,11 @@ describe('validarAmbiente', () => {
 
   it('não sobe sem usuário e senha do banco', () => {
     expect(() => validarAmbiente({})).toThrow(/DB_USER é obrigatória/);
-    expect(() => validarAmbiente({ DB_USER: 'gamificacao' })).toThrow(/DB_PASSWORD é obrigatória/);
+    expect(() => validarAmbiente({ DB_USER: 'gamificacao', JWT_SECRET: 'x' })).toThrow(/DB_PASSWORD é obrigatória/);
+  });
+
+  it('não sobe sem o JWT_SECRET', () => {
+    expect(() => validarAmbiente({ DB_USER: 'gamificacao', DB_PASSWORD: 'segredo' })).toThrow(/JWT_SECRET é obrigatória/);
   });
 
   it('rejeita porta do banco inválida', () => {
