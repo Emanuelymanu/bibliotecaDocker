@@ -33,7 +33,7 @@ const FORM_VAZIO: FormConquista = {
 
 function criterioParaExibir(c: Conquista, generos: Genero[]): string {
     if (!c.tipo || c.tipo === 'MANUAL') return c.criterio ?? '';
-    const nomeGenero = generos.find((g) => g.id_genero === c.id_genero)?.nome ?? null;
+    const nomeGenero = generos.find((g) => g.id_genero === c.id_genero)?.nome ?? c.nome_genero ?? null;
     return textoDoCriterio(c.tipo, c.valor_alvo ?? 1, nomeGenero);
 }
 
@@ -111,6 +111,13 @@ export default function AdminConquistasScreen() {
             Alert.alert('Atenção', 'Escolha o gênero da conquista');
             return;
         }
+        // GDL-69: o serviço de conquistas guarda o nome do gênero para montar o texto do critério
+        const nomeGenero =
+            form.tipo === 'LIVROS_GENERO' ? generos.find((g) => g.id_genero === form.id_genero)?.nome ?? null : null;
+        if (form.tipo === 'LIVROS_GENERO' && !nomeGenero) {
+            Alert.alert('Atenção', 'Gênero não encontrado. Escolha o gênero de novo.');
+            return;
+        }
 
         const dados: DadosConquista = {
             nome: form.nome.trim(),
@@ -119,6 +126,7 @@ export default function AdminConquistasScreen() {
             tipo: form.tipo,
             valor_alvo: semQuantidade(form.tipo) ? 1 : quantidade,
             id_genero: form.tipo === 'LIVROS_GENERO' ? form.id_genero : null,
+            nome_genero: nomeGenero,
             criterio: previaDoCriterio(form, generos),
         };
         try {

@@ -7,6 +7,7 @@ describe('montarCriterio', () => {
         tipo: 'MANUAL',
         valor_alvo: 1,
         id_genero: null,
+        nome_genero: null,
         criterio: 'Participou do clube de leitura',
       });
     });
@@ -20,6 +21,7 @@ describe('montarCriterio', () => {
         tipo: 'LIVROS_LIDOS',
         valor_alvo: 10,
         id_genero: null,
+        nome_genero: null,
         criterio: 'Conclua 10 livros',
       });
     });
@@ -30,9 +32,32 @@ describe('montarCriterio', () => {
 
     it('LIVROS_GENERO exige o gênero', () => {
       expect(() => montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 5 })).toThrow(/Selecione o gênero/);
-      expect(montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 5, id_genero: 3 })).toMatchObject({
+    });
+
+    it('LIVROS_GENERO usa o nome do gênero no texto (GDL-69)', () => {
+      expect(montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 5, id_genero: 3, nome_genero: '  Fantasia ' })).toEqual({
+        tipo: 'LIVROS_GENERO',
+        valor_alvo: 5,
         id_genero: 3,
-        criterio: 'Conclua 5 livros de um gênero',
+        nome_genero: 'Fantasia',
+        criterio: 'Conclua 5 livros de Fantasia',
+      });
+      expect(montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 1, id_genero: 3, nome_genero: 'Terror' }).criterio).toBe(
+        'Conclua 1 livro de Terror',
+      );
+    });
+
+    it('LIVROS_GENERO sem nome_genero (ou vazio) é recusado (GDL-69)', () => {
+      expect(() => montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 5, id_genero: 3 })).toThrow(/nome_genero/);
+      expect(() => montarCriterio({ tipo: 'LIVROS_GENERO', valor_alvo: 5, id_genero: 3, nome_genero: '   ' })).toThrow(
+        /nome_genero/,
+      );
+    });
+
+    it('outros tipos ignoram o nome_genero', () => {
+      expect(montarCriterio({ tipo: 'LIVROS_LIDOS', valor_alvo: 2, nome_genero: 'Fantasia' })).toMatchObject({
+        nome_genero: null,
+        criterio: 'Conclua 2 livros',
       });
     });
 
@@ -42,25 +67,51 @@ describe('montarCriterio', () => {
   });
 
   describe('edição (junta com o que a conquista já tem)', () => {
-    const atual = { tipo: 'LIVROS_GENERO' as const, valor_alvo: 5, id_genero: 3, criterio: 'Conclua 5 livros de um gênero' };
+    const atual = {
+      tipo: 'LIVROS_GENERO' as const,
+      valor_alvo: 5,
+      id_genero: 3,
+      nome_genero: 'Fantasia',
+      criterio: 'Conclua 5 livros de Fantasia',
+    };
 
-    it('mudar só o valor_alvo mantém tipo e gênero', () => {
+    it('mudar só o valor_alvo mantém tipo, gênero e o nome salvo', () => {
       expect(montarCriterio({ valor_alvo: 8 }, atual)).toMatchObject({
         tipo: 'LIVROS_GENERO',
         valor_alvo: 8,
         id_genero: 3,
-        criterio: 'Conclua 8 livros de um gênero',
+        nome_genero: 'Fantasia',
+        criterio: 'Conclua 8 livros de Fantasia',
       });
     });
 
+    it('trocar de gênero exige o nome do gênero novo', () => {
+      expect(() => montarCriterio({ id_genero: 5 }, atual)).toThrow(/nome_genero/);
+      expect(montarCriterio({ id_genero: 5, nome_genero: 'Romance' }, atual)).toMatchObject({
+        id_genero: 5,
+        nome_genero: 'Romance',
+        criterio: 'Conclua 5 livros de Romance',
+      });
+    });
+
+    it('conquista antiga sem nome salvo: ao editar, o admin precisa informar o gênero', () => {
+      const antiga = { ...atual, nome_genero: null, criterio: 'Conclua 5 livros de um gênero' };
+      expect(() => montarCriterio({ valor_alvo: 8 }, antiga)).toThrow(/nome_genero/);
+      expect(montarCriterio({ valor_alvo: 8, nome_genero: 'Fantasia' }, antiga).criterio).toBe('Conclua 8 livros de Fantasia');
+    });
+
     it('trocar para um tipo sem gênero limpa o id_genero', () => {
-      expect(montarCriterio({ tipo: 'LIVROS_LIDOS' }, atual)).toMatchObject({ tipo: 'LIVROS_LIDOS', id_genero: null });
+      expect(montarCriterio({ tipo: 'LIVROS_LIDOS' }, atual)).toMatchObject({
+        tipo: 'LIVROS_LIDOS',
+        id_genero: null,
+        nome_genero: null,
+      });
     });
 
     it('trocar para MANUAL mantém o texto antigo se não vier um novo', () => {
       expect(montarCriterio({ tipo: 'MANUAL' }, atual)).toMatchObject({
         tipo: 'MANUAL',
-        criterio: 'Conclua 5 livros de um gênero',
+        criterio: 'Conclua 5 livros de Fantasia',
       });
     });
 

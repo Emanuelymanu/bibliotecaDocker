@@ -43,4 +43,11 @@ export class CriarConquistaDto{
   @IsInt({ message: 'id_genero deve ser um número inteiro' })
   @Min(1, { message: 'id_genero deve ser um número inteiro' })
   id_genero?: number | null;  
+
+
+  @IsOptional()
+  @Transform(aparar)
+  @IsString({ message: 'nome_genero deve ser um texto' })
+  @MaxLength(100, { message: 'nome_genero deve ter no máximo 100 caracteres' })
+  nome_genero?: string | null;
 }

@@ -56,6 +56,11 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
 
 - **Critério:** sem `tipo`, a conquista é `MANUAL` e usa o texto de `criterio` (compatível com o app atual).
   Com tipo automático (`LIVROS_LIDOS`, `PAGINAS_LIDAS`...), o texto é gerado a partir de `tipo` + `valor_alvo`.
+- **Conquista por gênero (GDL-69):** o tipo `LIVROS_GENERO` exige `id_genero` **e** `nome_genero`
+  (o serviço não acessa a tabela `generos` do backend, então o nome fica salvo na conquista).
+  Exemplo: `{ "tipo": "LIVROS_GENERO", "valor_alvo": 5, "id_genero": 3, "nome_genero": "Fantasia" }`
+  vira "Conclua 5 livros de Fantasia". Na edição, se o gênero não mudar, o nome salvo continua valendo.
+  A contagem usa sempre o `id_genero`; o nome é só para o texto.
 - **Progresso:** vem da tabela `estatisticas_leitor`, preenchida pelo evento do Pub/Sub (ver [Eventos](#eventos-gdl-71)).
   Enquanto não chegar nenhum evento para o leitor, `progresso` é `null`.
 - **Concessão automática:** ao abrir o catálogo, o leitor ganha o que já atingiu. Pedidos simultâneos
@@ -183,6 +188,7 @@ só enxerga esse banco. Ele não lê nem escreve no `projeto5p` do backend princ
 | Tabelas | migrações do TypeORM em `src/banco/migrations/` |
 | Entities | `Conquista`, `ConquistaDoUsuario` e `EstatisticasLeitorEntity` em `src/conquistas/entities/` |
 | Cópia dos dados antigos | `banco/scripts/GDL-66_copiar_conquistas_para_gamificacao.sql` (roda como root, uma vez) |
+| Nome do gênero nas conquistas antigas | `banco/scripts/GDL-69_preencher_nome_genero.sql` (roda como root, uma vez, depois da migration do GDL-69) |
 
 - `synchronize` está desligado: o banco só muda por migração versionada.
 - Ao subir, o serviço aplica as migrações pendentes sozinho.

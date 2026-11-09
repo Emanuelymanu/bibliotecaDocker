@@ -25,7 +25,7 @@ describe('opcoesBanco', () => {
     const opcoes = opcoesBanco(config);
 
     expect(opcoes.entities).toEqual([Conquista, ConquistaDoUsuario, EstatisticasLeitorEntity]);
-    expect(opcoes.migrations).toHaveLength(3);
+    expect(opcoes.migrations).toHaveLength(4);
   });
 });
 

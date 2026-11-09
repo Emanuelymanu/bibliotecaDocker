@@ -80,6 +80,32 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
       expect(generoFaltando.body.erro).toBe('Selecione o gênero para conquistas do tipo LIVROS_GENERO');
     });
 
+    it('GDL-69: conquista por gênero guarda o nome do gênero e usa no texto', async () => {
+      const criada = await criar({
+        nome: '[teste] Fã de fantasia',
+        tipo: 'LIVROS_GENERO',
+        valor_alvo: 3,
+        id_genero: 3,
+        nome_genero: 'Fantasia',
+      });
+      expect(criada.status).toBe(201);
+      expect(criada.body.conquista).toMatchObject({ id_genero: 3, nome_genero: 'Fantasia', criterio: 'Conclua 3 livros de Fantasia' });
+
+      const id = criada.body.conquista.id_conquista;
+      const editada = await http()
+        .put(`/api/conquistas/admin/${id}`)
+        .set('Authorization', token(ADMIN))
+        .send({ valor_alvo: 1 })
+        .expect(200);
+      expect(editada.body.conquista).toMatchObject({ nome_genero: 'Fantasia', criterio: 'Conclua 1 livro de Fantasia' });
+
+      const semNome = await criar({ nome: '[teste] sem nome do gênero', tipo: 'LIVROS_GENERO', valor_alvo: 2, id_genero: 3 });
+      expect(semNome.status).toBe(400);
+      expect(semNome.body.erro).toBe(
+        'Informe o nome do gênero (nome_genero) para conquistas do tipo livros de um gênero',
+      );
+    });
+
     it('guarda o ícone enviado na criação', async () => {
       const resposta = await criar({ nome: '[teste] Com ícone', icone: 'trofeu', criterio: 'Especial' });
 
@@ -137,7 +163,6 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
     });
 
     it('com estatísticas: mostra o progresso e concede o que já foi atingido', async () => {
-      // Simula o que o evento do GDL-71 vai gravar: o leitor já leu 5 livros.
       await banco.query(
         'INSERT INTO estatisticas_leitor (id_usuario, livros_lidos, livros_lidos_por_genero) VALUES (?, 5, ?)',
         [LEITOR.id, JSON.stringify({})],
@@ -159,7 +184,7 @@ describe('Conquistas (integração HTTP + MySQL)', () => {
 
     it('vários pedidos ao mesmo tempo não dão erro 500 (bug do GDL-52)', async () => {
       await banco.query('DELETE FROM usuario_conquistas WHERE id_usuario = ?', [LEITOR.id]);
-      // Apagamos direto no banco, então o cache do leitor precisa ser limpo para os pedidos irem ao banco.
+
       await app.get(CacheCatalogoService).invalidarUsuario(LEITOR.id, 'teste de concorrência');
 
       const respostas = await Promise.all(
