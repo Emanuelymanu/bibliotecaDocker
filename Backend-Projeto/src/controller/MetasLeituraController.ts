@@ -3,7 +3,6 @@ import { metas_leituras } from '../models-auto/metas_leituras';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { Op, Sequelize } from 'sequelize';
-import { verificarConquistas } from './ConquistasController';
 
 export class MetasLeituraController {
 
@@ -37,9 +36,7 @@ export class MetasLeituraController {
             if (qtd_paginas_alvo !== undefined) meta.qtd_paginas_alvo = qtd_paginas_alvo;
             await meta.save();
 
-            const novasConquistas = await verificarConquistas(usuarioId);
-
-            return res.status(201).json({ mensagem: 'Meta salva com sucesso', meta, novasConquistas });
+            return res.status(201).json({ mensagem: 'Meta salva com sucesso', meta });
         } catch (error) {
             console.error('Erro ao salvar meta:', error);
             return res.status(500).json({ erro: 'Erro interno ao salvar meta' });

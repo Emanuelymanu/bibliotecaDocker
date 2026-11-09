@@ -11,7 +11,7 @@ import {
     notificarEstatisticasAtualizadas,
     publicarEstatisticasAposEscrita,
 } from '../../eventos/estatisticasEventos';
-import { EstatisticasLeitor } from '../../conquistas/conquistas.tipos';
+import { EstatisticasLeitor } from '../../eventos/estatisticasLeitor';
 
 const estatisticas: EstatisticasLeitor = {
     livrosLidos: 3,

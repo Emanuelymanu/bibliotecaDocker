@@ -142,6 +142,11 @@ Isso atende a organizacao de ambiente de desenvolvimento com `.env`, comandos si
 O backend (Express) avisa o `conquistas-service` pelo Redis quando os números de um leitor mudam
 e quando a permissão de um usuário muda.
 
+Desde o GDL-75, **só o `conquistas-service` cuida das conquistas**: o backend não tem mais rotas,
+models nem regras de conquista; ele só calcula os números do leitor e publica o evento.
+As tabelas antigas `conquistas` e `usuario_conquistas` do banco `projeto5p` ficaram no banco como
+histórico (os dados foram copiados para o banco `gamificacao` pelo script do GDL-66).
+
 | Evento | Quem publica | Quando |
 |---|---|---|
 | `estatisticas.atualizadas` | backend (GDL-70) | depois de qualquer escrita bem-sucedida em `/api/livros`, `/api/leituras`, `/api/sessoes`, `/api/metas` e `/api/anotacoes` |

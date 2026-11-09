@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { calcularEstatisticasLeitor } from '../conquistas/estatisticasLeitor';
-import { EstatisticasLeitor } from '../conquistas/conquistas.tipos';
+import { calcularEstatisticasLeitor, EstatisticasLeitor } from './estatisticasLeitor';
 import { publicarEvento } from './publicadorEventos';
 
 

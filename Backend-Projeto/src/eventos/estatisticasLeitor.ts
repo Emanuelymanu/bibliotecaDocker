@@ -5,7 +5,18 @@ import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { metas_leituras } from '../models-auto/metas_leituras';
 import { sessoes_leitura } from '../models-auto/sessoes_leitura';
-import { EstatisticasLeitor } from './conquistas.tipos';
+
+
+export interface EstatisticasLeitor {
+    livrosLidos: number;
+    livrosCadastrados: number;
+    paginasLidas: number;
+    totalSessoes: number;
+    totalAnotacoes: number;
+    totalAvaliacoes: number;
+    possuiMeta: boolean;
+    livrosLidosPorGenero: Record<number, number>;
+}
 
 
 export async function calcularEstatisticasLeitor(usuarioId: number): Promise<EstatisticasLeitor> {

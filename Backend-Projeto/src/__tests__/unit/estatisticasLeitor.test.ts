@@ -9,7 +9,7 @@ import { leituras } from '../../models-auto/leituras';
 import { sessoes_leitura } from '../../models-auto/sessoes_leitura';
 import { anotacoes } from '../../models-auto/anotacoes';
 import { metas_leituras } from '../../models-auto/metas_leituras';
-import { calcularEstatisticasLeitor } from '../../conquistas/estatisticasLeitor';
+import { calcularEstatisticasLeitor } from '../../eventos/estatisticasLeitor';
 
 const mock = (fn: unknown) => fn as jest.Mock;
 

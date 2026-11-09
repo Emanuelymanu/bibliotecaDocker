@@ -3,7 +3,6 @@ import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { AtualizarLeituraDTO, LeituraResponse, StatusLeitura } from '../types/leituraTypes';
 import { Op } from 'sequelize';
-import { verificarConquistas } from './ConquistasController';
 
 export class AtualizarLeituraController {
     async atualizarProgresso(req: Request, res: Response): Promise<Response> {
@@ -14,10 +13,8 @@ export class AtualizarLeituraController {
             const leitura = await this.atualizarLeituraNoBanco(req);
             const resposta = this.montarRespostaLeitura(leitura);
 
-            const novasConquistas = await verificarConquistas(req.usuario!.id);
-
             return res.json({
-                mensagem: 'Progresso atualizado com sucesso', leitura: resposta, novasConquistas
+                mensagem: 'Progresso atualizado com sucesso', leitura: resposta
             });
         } catch (error) {
             console.error('Erro ao atualizar progresso', error);

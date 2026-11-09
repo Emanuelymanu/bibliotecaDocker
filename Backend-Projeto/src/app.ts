@@ -15,7 +15,6 @@ import sessoesLeituraRoutes from './routes/sessoesLeituraRoutes';
 import metasLeituraRoutes from './routes/metasLeituraRoutes';
 import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
-import conquistasRoutes from './routes/conquistasRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { publicarEstatisticasAposEscrita } from './eventos/estatisticasEventos';
 
@@ -65,7 +64,6 @@ app.use('/api/leituras', leiturasRoutes);
 app.use('/api/anotacoes', anotacoesRoutes);
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/conquistas', conquistasRoutes);
 app.use('/api/sessoes', sessoesLeituraRoutes);
 app.use('/api/metas', metasLeituraRoutes);
 app.use('/api/lista-desejos', listaDesejosRoutes);
