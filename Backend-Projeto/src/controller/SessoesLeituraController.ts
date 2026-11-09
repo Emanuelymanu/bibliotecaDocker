@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { sessoes_leitura } from '../models-auto/sessoes_leitura';
 import { leituras } from '../models-auto/leituras';
-import { verificarConquistas } from './ConquistasController';
 
 export class SessoesLeituraController {
 
@@ -42,12 +41,9 @@ export class SessoesLeituraController {
                 await leitura.save();
             }
 
-            const novasConquistas = await verificarConquistas(usuarioId);
-
             return res.status(201).json({
                 mensagem: 'Sessão de leitura registrada com sucesso',
-                sessao,
-                novasConquistas
+                sessao
             });
         } catch (error) {
             console.error('Erro ao registrar sessão de leitura:', error);

@@ -3,7 +3,6 @@ import { anotacoes } from '../models-auto/anotacoes';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { Op } from 'sequelize';
-import { verificarConquistas } from './ConquistasController';
 
 export class AnotacoesController {
     async criarAnotacao(req: Request, res: Response): Promise<Response> {
@@ -80,12 +79,9 @@ export class AnotacoesController {
                 }]
             });
 
-            const novasConquistas = await verificarConquistas(usuarioId);
-
             return res.status(201).json({
                 mensagem: 'Anotação criada com sucesso',
-                anotacao: anotacaoCompleta,
-                novasConquistas
+                anotacao: anotacaoCompleta
             });
         } catch (error) {
             console.error('Erro ao criar anotação:', error);
