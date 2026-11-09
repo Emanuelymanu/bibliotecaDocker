@@ -32,6 +32,7 @@ export interface Conquista{
     tipo?: TipoConquista;
     valor_alvo?: number;
     id_genero?: number | null;
+    nome_genero?: string | null;
 }
 
 
@@ -42,6 +43,7 @@ export interface DadosConquista {
     tipo: TipoConquista;
     valor_alvo: number;
     id_genero: number | null;
+    nome_genero: string | null;
     criterio: string;
 }
 
