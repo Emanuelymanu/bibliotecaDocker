@@ -146,6 +146,11 @@ quando volta, e a assinatura é refeita sozinha. Isso vale também se o serviço
 (`src/eventos/servidor-redis-eventos.ts`). Eventos publicados enquanto o Redis estava fora se perdem
 (o Pub/Sub não guarda mensagens); o próximo evento do leitor traz os números completos de novo.
 
+**Teste de ponta a ponta (GDL-77):** `test/fluxo-eventos.e2e-spec.ts`, roda no `npm run test:e2e`
+(precisa de MySQL e Redis, como no CI). Ele publica `estatisticas.atualizadas` no Redis exatamente como o
+backend faz, espera o serviço conceder a conquista e confere que `GET /api/conquistas/novas` devolve ela uma vez.
+Também confere que uma mensagem quebrada não derruba o consumidor.
+
 Para ver funcionando:
 
 ```bash
