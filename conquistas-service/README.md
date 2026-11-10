@@ -47,6 +47,7 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
 |---|---|---|
 | GET | `/api/conquistas` | Conquistas que o leitor já desbloqueou |
 | GET | `/api/conquistas/catalogo` | Catálogo com status e progresso do leitor |
+| GET | `/api/conquistas/novas` | Conquistas que o leitor **ainda não viu**; ao responder, elas viram "vistas" (GDL-72) |
 | GET | `/api/conquistas/admin/todas` | Todas as conquistas (admin) |
 | GET | `/api/conquistas/admin/tipos` | Tipos de critério com exemplo de texto (admin) |
 | POST | `/api/conquistas/admin` | Cria conquista (admin) |
@@ -88,6 +89,23 @@ Para ver funcionando:
 curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: MISS
 curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: HIT
 docker compose exec redis redis-cli --scan --pattern 'conquistas:catalogo:*'
+```
+
+## Aviso de conquista nova no app (GDL-72)
+
+A conquista é concedida quando chega o evento, às vezes um pouco depois da resposta do backend.
+Por isso o app pergunta em `GET /api/conquistas/novas` depois de cada ação do leitor
+(`mobile/src/services/avisoConquistas.ts`, um interceptor do axios nas mesmas rotas que publicam o evento):
+uma vez depois de 0,8 s e, se ainda não veio nada, de novo depois de 2,5 s. Abrir a tela de conquistas também confere.
+
+- A coluna `visualizada` em `usuario_conquistas` guarda se o leitor já foi avisado.
+  Conquistas antigas entraram como vistas (ninguém recebe de uma vez o aviso de tudo o que já tinha).
+- Cada conquista aparece **uma vez só**, mesmo com duas chamadas ao mesmo tempo (`SELECT ... FOR UPDATE`).
+- Vale também para conquista manual concedida pelo admin.
+
+```
+[ConquistasService] usuario=1 desbloqueou: #129 Três sessões
+[ConquistasService] usuario=1 foi avisado de 1 conquista(s) nova(s): #129 Três sessões
 ```
 
 ## Eventos (GDL-71)

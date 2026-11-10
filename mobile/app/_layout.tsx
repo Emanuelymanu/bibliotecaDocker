@@ -2,11 +2,15 @@ import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { View, ActivityIndicator, LogBox } from 'react-native';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { ativarAvisoDeConquistas } from '@/src/services/avisoConquistas';
 
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
     'InteractionManager has been deprecated',
 ]);
+
+
+ativarAvisoDeConquistas();
 
 
 function RotasProtegidas() {

@@ -26,6 +26,17 @@ export interface MinhasConquistasResposta {
   conquistas: { id_conquista: number; data_conquista: string | null; conquista: Conquista }[];
 }
 
+
+export interface NovasConquistasResposta {
+  conquistas: {
+    id_conquista: number;
+    nome: string;
+    descricao: string | null;
+    icone: string | null;
+    data_conquista: string | null;
+  }[];
+}
+
 export interface TipoComExemplo {
   tipo: TipoConquista;
   exemplo: string;

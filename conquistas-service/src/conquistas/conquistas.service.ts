@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { dataHojeBrasil } from '../common/utils/datas';
 import { inserirSeNovo } from '../common/utils/inserir-se-novo';
 import { CacheCatalogoService, OrigemCatalogo } from './cache-catalogo.service';
 import { atingiuCriterio, calcularProgresso } from './conquistas.regras';
 import { EstatisticasLeitor } from './conquistas.tipos';
-import { CatalogoResposta, MinhasConquistasResposta } from './dto/respostas.dto';
+import { CatalogoResposta, MinhasConquistasResposta, NovasConquistasResposta } from './dto/respostas.dto';
 import { ConquistaDoUsuario } from './entities/conquista-do-usuario.entity';
 import { Conquista } from './entities/conquista.entity';
 import { EstatisticasLeitorEntity } from './entities/estatisticas-leitor.entity';
@@ -112,6 +112,43 @@ export class ConquistasService {
   }
 
  
+  async buscarNovas(usuarioId: number): Promise<NovasConquistasResposta> {
+    const pendentes = await this.desbloqueios.manager.transaction(async (transacao) => {
+      const repositorio = transacao.getRepository(ConquistaDoUsuario);
+      const naoVistas = await repositorio
+        .createQueryBuilder('uc')
+        .innerJoinAndSelect('uc.conquista', 'c')
+        .where('uc.id_usuario = :usuarioId AND uc.visualizada = :vista', { usuarioId, vista: false })
+        .orderBy('uc.data_conquista', 'ASC')
+        .addOrderBy('uc.id_conquista', 'ASC')
+        .setLock('pessimistic_write')
+        .getMany();
+
+      if (naoVistas.length > 0) {
+        await repositorio.update(
+          { id_usuario: usuarioId, id_conquista: In(naoVistas.map((r) => r.id_conquista)) },
+          { visualizada: true },
+        );
+      }
+      return naoVistas;
+    });
+
+    if (pendentes.length > 0) {
+      this.logger.log(
+        `usuario=${usuarioId} foi avisado de ${pendentes.length} conquista(s) nova(s): ` +
+          pendentes.map((r) => `#${r.id_conquista} ${r.conquista.nome}`).join(', '),
+      );
+    }
+    return {
+      conquistas: pendentes.map((r) => ({
+        id_conquista: r.id_conquista,
+        nome: r.conquista.nome,
+        descricao: r.conquista.descricao,
+        icone: r.conquista.icone,
+        data_conquista: r.data_conquista,
+      })),
+    };
+  }
 
   async registrarEstatisticas(evento: EventoEstatisticasAtualizadas): Promise<ResultadoEvento> {
     const { usuarioId, estatisticas: e, geradoEm } = evento;
