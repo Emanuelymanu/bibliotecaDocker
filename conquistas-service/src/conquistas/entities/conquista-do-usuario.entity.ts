@@ -13,6 +13,10 @@ export class ConquistaDoUsuario {
   @Column({ type: 'date', nullable: true })
   data_conquista: string | null;
 
+
+  @Column({ type: 'boolean', default: false })
+  visualizada: boolean;
+
   @ManyToOne(() => Conquista, (conquista) => conquista.desbloqueios, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_conquista', foreignKeyConstraintName: 'fk_usuario_conquistas_conquista' })
   conquista: Conquista;

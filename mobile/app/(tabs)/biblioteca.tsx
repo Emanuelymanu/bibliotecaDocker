@@ -13,7 +13,6 @@ import { LivroDetalhesSheet } from '@/components/biblioteca/LivroDetalhesSheet';
 import { FILTROS, STATUS_LABEL, STATUS_TOM } from '@/src/constants/livroForm';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
 import { livrosService, LivroCompleto, CadastrarLivroPayload } from '@/src/services/livrosService';
-import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 import { CapaSelecionada } from '@/src/types/livro';
 
 export default function BibliotecaScreen() {
@@ -76,12 +75,11 @@ export default function BibliotecaScreen() {
     if (!selecionada || !statusPendente || statusPendente === selecionada.status) return;
     try {
       setSalvandoStatus(true);
-      const novasConquistas = await leiturasService.atualizarStatus(selecionada.id_leitura, statusPendente);
+      await leiturasService.atualizarStatus(selecionada.id_leitura, statusPendente);
       setLeituras((lista) =>
         lista.map((l) => (l.id_leitura === selecionada.id_leitura ? { ...l, status: statusPendente as LeituraItem['status'] } : l))
       );
       setSelecionada((sel) => (sel ? { ...sel, status: statusPendente as LeituraItem['status'] } : sel));
-      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível atualizar o status.');
       console.error(e);
@@ -250,7 +248,7 @@ export default function BibliotecaScreen() {
               titulo={item.livro?.titulo ?? 'Sem título'}
               autor={item.livro?.autor}
               capa={item.livro?.capa}
-              badgeNota={item.avaliacao != null ? item.avaliacao.toFixed(1) : undefined}
+              badgeNota={item.avaliacao != null ? Number(item.avaliacao).toFixed(1) : undefined}
               statusLabel={STATUS_LABEL[item.status]}
               statusTom={STATUS_TOM[item.status]}
               width="47%"

@@ -104,7 +104,9 @@ export class leituras extends Model<leiturasAttributes, leiturasCreationAttribut
         allowNull: true
       },
       avaliacao: {
-        type: DataTypes.BOOLEAN,
+        // A coluna é tinyint(1) no MySQL, mas guarda a nota (não é booleano).
+        // Com BOOLEAN o Sequelize transformava a nota em true/false.
+        type: DataTypes.TINYINT,
         allowNull: true
       },
       resenha: {
