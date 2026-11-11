@@ -7,6 +7,10 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { configurarApp } from '../src/configurar-app';
 import { CacheCatalogoService } from '../src/conquistas/cache-catalogo.service';
+import {
+  CHAVE_ESTATISTICAS_PENDENTES,
+  EstatisticasPendentesService,
+} from '../src/conquistas/eventos/estatisticas-pendentes.service';
 import { conectarEventos } from '../src/eventos/conectar-eventos';
 import { opcoesRedisDaUrl } from '../src/eventos/servidor-redis-eventos';
 
@@ -43,7 +47,7 @@ describe('Fluxo de eventos: Redis -> conquistas-service -> /novas (e2e)', () => 
   let app: INestApplication;
   let publicador: Redis;
   let banco: DataSource;
-  const ids = { tresSessoes: 0, primeiroLivro: 0 };
+  const ids = { tresSessoes: 0, primeiroLivro: 0, duasAvaliacoes: 0 };
 
   const http = () => request(app.getHttpServer());
 
@@ -76,7 +80,7 @@ describe('Fluxo de eventos: Redis -> conquistas-service -> /novas (e2e)', () => 
     publicador = new Redis(opcoesRedisDaUrl(url));
     await limpar();
 
-    // espera o serviço estar assinando o canal antes de publicar
+
     const inicio = Date.now();
     for (;;) {
       const [, assinantes] = (await publicador.pubsub('NUMSUB', CANAL)) as [string, number];
@@ -90,6 +94,7 @@ describe('Fluxo de eventos: Redis -> conquistas-service -> /novas (e2e)', () => 
         .conquista.id_conquista as number;
     ids.primeiroLivro = await criar({ nome: '[teste-fluxo] Primeiro livro', tipo: 'LIVROS_LIDOS', valor_alvo: 1 });
     ids.tresSessoes = await criar({ nome: '[teste-fluxo] Três sessões', tipo: 'SESSOES', valor_alvo: 3 });
+    ids.duasAvaliacoes = await criar({ nome: '[teste-fluxo] Duas avaliações', tipo: 'AVALIACOES', valor_alvo: 2 });
   });
 
   afterAll(async () => {
@@ -100,6 +105,7 @@ describe('Fluxo de eventos: Redis -> conquistas-service -> /novas (e2e)', () => 
 
   async function limpar() {
     await banco.query('DELETE FROM usuario_conquistas WHERE id_usuario = ?', [LEITOR.id]);
+    await publicador?.hdel(CHAVE_ESTATISTICAS_PENDENTES, String(LEITOR.id));
     await banco.query('DELETE FROM estatisticas_leitor WHERE id_usuario = ?', [LEITOR.id]);
     await banco.query("DELETE FROM conquistas WHERE nome LIKE '[teste-fluxo]%'");
     await app.get(CacheCatalogoService).invalidarUsuario(LEITOR.id, 'limpeza do teste');
@@ -142,5 +148,24 @@ describe('Fluxo de eventos: Redis -> conquistas-service -> /novas (e2e)', () => 
 
     const novas = await esperarNovas(ids.tresSessoes);
     expect(novas.map((c) => c.id_conquista)).toContain(ids.tresSessoes);
+  });
+
+  it('GDL-76: evento guardado enquanto o serviço estava fora é processado quando ele volta', async () => {
+    await publicador.hset(
+      CHAVE_ESTATISTICAS_PENDENTES,
+      String(LEITOR.id),
+      JSON.stringify({
+        usuarioId: LEITOR.id,
+        estatisticas: estatisticas({ livrosLidos: 1, livrosCadastrados: 1, totalSessoes: 3, totalAvaliacoes: 2 }),
+        geradoEm: new Date().toISOString(),
+      }),
+    );
+
+    
+    await app.get(EstatisticasPendentesService).processar();
+
+    const novas = await esperarNovas(ids.duasAvaliacoes);
+    expect(novas.map((c) => c.id_conquista)).toContain(ids.duasAvaliacoes);
+    expect(await publicador.hexists(CHAVE_ESTATISTICAS_PENDENTES, String(LEITOR.id))).toBe(0);
   });
 });
