@@ -173,6 +173,16 @@ A mensagem segue o formato do transporte Redis do NestJS:
 - `usuario.permissao_alterada` é publicado **antes** da resposta: quando o admin vê "rebaixado", o token antigo já não vale mais.
   Detalhes em [conquistas-service/README.md](conquistas-service/README.md#revogação-quando-a-permissão-muda-gdl-79).
 - Com o Redis fora do ar, a requisição funciona normalmente; o log registra a falha e avisa quando o Redis volta.
+- Com o **`conquistas-service` fora do ar** (GDL-76), o app continua salvando leituras, sessões, metas e anotações.
+  O evento é publicado para 0 assinantes, então o backend guarda a última estatística de cada leitor no hash
+  `eventos:pendentes:estatisticas.atualizadas`. Quando o serviço volta, ele processa o que ficou guardado
+  e concede as conquistas pendentes, que aparecem no app como novas:
+  ```
+  [eventos] ninguém recebeu estatisticas.atualizadas usuario=1: guardado para o conquistas-service processar quando voltar   <- backend
+  [EventosPendentes] processando 1 evento(s) guardado(s) enquanto o serviço estava fora do ar                            <- conquistas-service
+  [ConquistasService] usuario=1 desbloqueou: #156 Quatro sessões
+  ```
+  Enquanto ele está fora, só as telas de conquistas ficam indisponíveis (o Nginx responde 502).
 
 Para ver os eventos chegando:
 

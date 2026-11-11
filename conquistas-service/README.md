@@ -141,6 +141,12 @@ Logs:
 [CacheCatalogoService] cache invalidado conquistas:catalogo:v...:1 (ganhou conquista automática)
 ```
 
+**Serviço fora do ar (GDL-76):** quando o backend publica e ninguém está ouvindo, ele guarda a última
+estatística do leitor no hash `eventos:pendentes:estatisticas.atualizadas` (campo = usuarioId).
+Ao subir, e depois a cada 30 s, o serviço processa esse hash (`src/conquistas/eventos/estatisticas-pendentes.service.ts`),
+concede as conquistas e apaga cada item, a menos que o backend tenha guardado uma versão mais nova enquanto isso.
+Se o banco estiver fora, o item fica guardado para a próxima vez.
+
 **Redis fora do ar:** o HTTP continua funcionando. O log avisa uma vez quando o Redis cai e uma vez
 quando volta, e a assinatura é refeita sozinha. Isso vale também se o serviço subir **antes** do Redis
 (`src/eventos/servidor-redis-eventos.ts`). Eventos publicados enquanto o Redis estava fora se perdem
