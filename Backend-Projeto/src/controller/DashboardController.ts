@@ -5,6 +5,7 @@ import { leituras } from '../models-auto/leituras';
 import { generos } from '../models-auto/generos';
 import { Op, Sequelize } from 'sequelize';
 import { DashboardEstatisticas, DashboardResponse } from '../types/dashoboardTypes';
+import { logErro } from '../logger';
 
 export class DashboardController {
 
@@ -96,7 +97,7 @@ export class DashboardController {
 
             return res.json(dashboard);
         } catch (error) {
-            console.error('Erro ao obter dashboard:', error);
+            logErro(req, 'Erro ao obter dashboard', error);
             return res.status(500).json({ erro: 'Erro interno ao carregar dashboard' });
         }
     }

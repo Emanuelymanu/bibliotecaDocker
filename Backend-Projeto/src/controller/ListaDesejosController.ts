@@ -3,6 +3,7 @@ import { lista_livros } from '../models-auto/lista_livros';
 import { livros } from '../models-auto/livros';
 import { autores } from '../models-auto/autores';
 import { editoras } from '../models-auto/editoras';
+import { logErro } from '../logger';
 
 export class ListaDesejosController {
 
@@ -39,7 +40,7 @@ export class ListaDesejosController {
 
             return res.status(201).json({ mensagem: 'Livro adicionado à lista de desejos', item });
         } catch (error) {
-            console.error('Erro ao adicionar à lista de desejos:', error);
+            logErro(req, 'Erro ao adicionar à lista de desejos', error);
             return res.status(500).json({ erro: 'Erro interno ao adicionar à lista de desejos' });
         }
     }
@@ -79,7 +80,7 @@ export class ListaDesejosController {
 
             return res.json({ total: resposta.length, lista_desejos: resposta });
         } catch (error) {
-            console.error('Erro ao listar lista de desejos:', error);
+            logErro(req, 'Erro ao listar lista de desejos', error);
             return res.status(500).json({ erro: 'Erro interno ao listar lista de desejos' });
         }
     }
@@ -105,7 +106,7 @@ export class ListaDesejosController {
             await item.destroy();
             return res.json({ mensagem: 'Livro removido da lista de desejos' });
         } catch (error) {
-            console.error('Erro ao remover da lista de desejos:', error);
+            logErro(req, 'Erro ao remover da lista de desejos', error);
             return res.status(500).json({ erro: 'Erro interno ao remover da lista de desejos' });
         }
     }

@@ -1,12 +1,14 @@
 import {Logger} from '@nestjs/common';
 import{ConfigService} from '@nestjs/config'
 import {NestFactory} from '@nestjs/core'
+import {Logger as LoggerPino} from 'nestjs-pino'
 import {AppModule} from './app.module'
 import {configurarApp} from './configurar-app'
 import {conectarEventos} from './eventos/conectar-eventos'
 
 async function bootstrap(): Promise<void> {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { bufferLogs: true });
+    app.useLogger(app.get(LoggerPino));
     configurarApp(app);
     await conectarEventos(app);
 
