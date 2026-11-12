@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { HttpError } from '../utils/HttpError';
+import { logErro } from '../logger';
 
 const authService = new AuthService();
 
@@ -20,7 +21,7 @@ export class CadastroController {
             if (error.name === 'SequelizeValidationError') {
                 return res.status(400).json({ erro: error.errors.map((e: any) => e.message) });
             }
-            console.error('Erro no cadastro:', error);
+            logErro(req, 'Erro no cadastro', error);
             return res.status(500).json({ erro: error.message });
         }
     }

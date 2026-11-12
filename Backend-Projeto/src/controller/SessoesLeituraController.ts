@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { sessoes_leitura } from '../models-auto/sessoes_leitura';
 import { leituras } from '../models-auto/leituras';
+import { logErro } from '../logger';
 
 export class SessoesLeituraController {
 
@@ -46,7 +47,7 @@ export class SessoesLeituraController {
                 sessao
             });
         } catch (error) {
-            console.error('Erro ao registrar sessão de leitura:', error);
+            logErro(req, 'Erro ao registrar sessão de leitura', error);
             return res.status(500).json({ erro: 'Erro interno ao registrar sessão' });
         }
     }
@@ -78,7 +79,7 @@ export class SessoesLeituraController {
 
             return res.json({ sessoes, total_sessoes: sessoes.length, total_minutos: totalMinutos });
         } catch (error) {
-            console.error('Erro ao listar sessões:', error);
+            logErro(req, 'Erro ao listar sessões', error);
             return res.status(500).json({ erro: 'Erro interno ao listar sessões' });
         }
     }
@@ -109,7 +110,7 @@ export class SessoesLeituraController {
                 total_minutos: totalMinutos
             });
         } catch (error) {
-            console.error('Erro ao listar sessões do usuário:', error);
+            logErro(req, 'Erro ao listar sessões do usuário', error);
             return res.status(500).json({ erro: 'Erro interno ao listar sessões do usuário' });
         }
     }
@@ -138,7 +139,7 @@ export class SessoesLeituraController {
             await sessao.destroy();
             return res.json({ mensagem: 'Sessão removida com sucesso' });
         } catch (error) {
-            console.error('Erro ao deletar sessão:', error);
+            logErro(req, 'Erro ao deletar sessão', error);
             return res.status(500).json({ erro: 'Erro interno ao deletar sessão' });
         }
     }

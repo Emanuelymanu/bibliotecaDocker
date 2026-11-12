@@ -38,6 +38,10 @@
     "ioredis": "^5.11.1",
     "keyv": "^5.6.0",
     "mysql2": "^3.24.6",
+    "nestjs-pino": "^4.6.1",
+    "pino": "^9.14.0",
+    "pino-http": "^10.5.0",
+    "pino-pretty": "^13.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "typeorm": "^0.3.31"

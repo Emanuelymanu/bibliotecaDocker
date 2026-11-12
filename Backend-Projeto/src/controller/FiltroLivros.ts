@@ -6,6 +6,7 @@ import { editoras } from '../models-auto/editoras';
 import { generos } from '../models-auto/generos';
 import { Op } from 'sequelize';
 import { fetchFromGoogle } from '../services/googleBooksService';
+import { logErro } from '../logger';
 
 function formatarLivro(livro: any) {
     const dados = livro.get ? livro.get({ plain: true }) : livro;
@@ -55,7 +56,7 @@ export class FiltroLivros {
                 }
             });
         } catch (error) {
-            console.error('Erro ao obter opções:', error);
+            logErro(req, 'Erro ao obter opções', error);
             return res.status(500).json({ erro: 'Erro interno ao carregar opções' });
         }
     }
@@ -98,7 +99,7 @@ export class FiltroLivros {
                 livros: rows
             });
         } catch (error) {
-            console.error('Erro ao buscar por status:', error);
+            logErro(req, 'Erro ao buscar por status', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
@@ -142,12 +143,12 @@ export class FiltroLivros {
                     livrosResponse.push(...extras);
                 }
             } catch (err) {
-                console.error('Erro ao buscar na Google Books API:', err);
+                logErro(req, 'Erro ao buscar na Google Books API', err);
             }
 
             return res.json({ genero, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
-            console.error('Erro ao buscar por gênero:', error);
+            logErro(req, 'Erro ao buscar por gênero', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
@@ -191,12 +192,12 @@ export class FiltroLivros {
                     livrosResponse.push(...extras);
                 }
             } catch (err) {
-                console.error('Erro ao buscar na Google Books API:', err);
+                logErro(req, 'Erro ao buscar na Google Books API', err);
             }
 
             return res.json({ editora, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
-            console.error('Erro ao buscar por editora:', error);
+            logErro(req, 'Erro ao buscar por editora', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
@@ -240,12 +241,12 @@ export class FiltroLivros {
                     livrosResponse.push(...extras);
                 }
             } catch (err) {
-                console.error('Erro ao buscar na Google Books API:', err);
+                logErro(req, 'Erro ao buscar na Google Books API', err);
             }
 
             return res.json({ autor, total: livrosResponse.length, pagina, totalPaginas: Math.ceil(count / limite), livros: livrosResponse });
         } catch (error) {
-            console.error('Erro ao buscar por autor:', error);
+            logErro(req, 'Erro ao buscar por autor', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar livros' });
         }
     }
