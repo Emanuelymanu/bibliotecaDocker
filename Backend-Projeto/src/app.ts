@@ -17,8 +17,12 @@ import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
 import adminRoutes from './routes/adminRoutes';
 import { publicarEstatisticasAposEscrita } from './eventos/estatisticasEventos';
+import { logDe, logErro, logRequisicoes } from './logger';
 
 const app = express();
+
+
+app.use(logRequisicoes);
 
 const allowedOrigins = [
   'http://localhost',
@@ -78,7 +82,7 @@ const tratarErros: ErrorRequestHandler = (err, req, res, next) => {
   }
 
   if (err) {
-    console.error('Erro não tratado:', err);
+    logErro(req, 'Erro não tratado', err);
     return res.status(400).json({ erro: err.message || 'Erro na requisição' });
   }
 
@@ -88,10 +92,10 @@ app.use(tratarErros);
 
 sequelize.authenticate()
   .then(() => {
-    console.log('Conexão com o banco de dados estabelecida com sucesso.');
+    logDe('banco').debug('Conexão com o banco de dados estabelecida com sucesso.');
   })
   .catch((err) => {
-    console.error('Erro ao conectar ao banco de dados:', err);
+    logDe('banco').error({ err }, 'Erro ao conectar ao banco de dados');
   });
 
 export default app;

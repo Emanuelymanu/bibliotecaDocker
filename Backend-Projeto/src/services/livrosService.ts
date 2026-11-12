@@ -11,6 +11,7 @@ import { HttpError } from '../utils/HttpError';
 import { AtualizarLivroDTO, LivroResponse } from '../types/livroTypes';
 import { normalizarTexto, normalizarInteiro, normalizarLista, normalizarTextoOpcional, normalizarInteiroOpcional } from '../utils/normalizadores';
 import { traduzirGeneros } from '../utils/traducaoGeneros';
+import { logDe } from '../logger';
 
 interface CadastrarLivroInput {
     id_google?: string;
@@ -55,7 +56,7 @@ function removerArquivoCapaSeExistir(capa: string | null | undefined) {
             if (fs.existsSync(caminho)) fs.unlinkSync(caminho);
         }
     } catch (err) {
-        console.error('Erro ao remover arquivo de capa:', err);
+        logDe('livros').warn({ err }, 'Erro ao remover arquivo de capa');
     }
 }
 

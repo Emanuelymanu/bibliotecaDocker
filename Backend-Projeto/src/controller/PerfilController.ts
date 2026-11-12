@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { HttpError } from '../utils/HttpError';
+import { logErro } from '../logger';
 
 const authService = new AuthService();
 
@@ -34,7 +35,7 @@ export class PerfilController {
             if (error instanceof HttpError) {
                 return res.status(error.status).json({ erro: error.message });
             }
-            console.error('Erro ao atualizar perfil:', error);
+            logErro(req, 'Erro ao atualizar perfil', error);
             return res.status(500).json({ erro: 'Erro interno ao atualizar perfil' });
         }
     }

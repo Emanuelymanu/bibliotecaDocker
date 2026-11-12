@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { LivrosService } from '../services/livrosService';
 import { HttpError } from '../utils/HttpError';
+import { logErro } from '../logger';
 
 const livrosService = new LivrosService();
 
@@ -15,7 +16,7 @@ export class CadastrarLivrosController {
                 `${req.protocol}://${req.get('host')}`
             );
 
-            console.log('Livro vinculado com sucesso. ID Local:', livro.id_livro);
+            req.log.info({ livro: livro.id_livro, usuario: req.usuario?.id }, 'Livro vinculado à estante');
 
             return res.status(201).json({
                 mensagem: 'Livro adicionado à sua estante com sucesso!',
@@ -25,7 +26,7 @@ export class CadastrarLivrosController {
             if (error instanceof HttpError) {
                 return res.status(error.status).json({ message: error.message });
             }
-            console.error('Erro ao cadastrar livro:', error);
+            logErro(req, 'Erro ao cadastrar livro', error);
             return res.status(500).json({ message: 'Erro interno ao cadastrar livro' });
         }
     }

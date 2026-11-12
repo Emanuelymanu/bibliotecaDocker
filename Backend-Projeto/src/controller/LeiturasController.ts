@@ -6,6 +6,7 @@ import { StatusLeitura, CriarLeituraDTO, LeituraResponse, ListarLeiturasQuery } 
 import { Op } from 'sequelize';
 import { anotacoes } from '../models-auto/anotacoes';
 import { normalizarLista } from '../utils/normalizadores';
+import { logErro } from '../logger';
 
 
 interface CriarLeituraGoogleDTO extends CriarLeituraDTO {
@@ -86,7 +87,7 @@ export class LeiturasController {
             mensagem: 'Leitura iniciada com sucesso!', leitura: resposta
          });
       } catch (error) {
-         console.error('Erro ao iniciar leitura:', error);
+         logErro(req, 'Erro ao iniciar leitura', error);
          return res.status(500).json({ erro: 'Erro interno ao iniciar leitura' });
       }
    }
@@ -191,7 +192,7 @@ export class LeiturasController {
 
          return res.json(leitura);
       } catch (error) {
-         console.error('Erro ao buscar leitura:', error);
+         logErro(req, 'Erro ao buscar leitura', error);
          return res.status(500).json({ erro: 'Erro interno ao buscar leitura' });
       }
    }
@@ -261,7 +262,7 @@ export class LeiturasController {
             leituras: leiturasResponse
          });
       } catch (error) {
-         console.error('Erro ao listar leituras:', error);
+         logErro(req, 'Erro ao listar leituras', error);
          return res.status(500).json({ erro: 'Erro interno ao listar leituras' });
       }
    }
@@ -289,7 +290,7 @@ export class LeiturasController {
          await leitura.destroy();
          return res.json({ mensagem: 'Leitura deletada com sucesso' });
       } catch (error) {
-         console.error('Erro ao deletar leitura:', error);
+         logErro(req, 'Erro ao deletar leitura', error);
          return res.status(500).json({ erro: 'Erro interno ao deletar leitura' });
       }
    }

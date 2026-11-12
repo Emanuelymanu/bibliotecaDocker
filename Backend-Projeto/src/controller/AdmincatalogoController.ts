@@ -7,6 +7,7 @@ import { livro_generos } from '../models-auto/livro_generos'
 import { livros } from '../models-auto/livros'
 import { sequelize } from '../models-auto'
 import { Transaction } from 'sequelize'
+import { logErro } from '../logger';
 
 export class AdmincatalogoController {
     async listarAutores(req: Request, res: Response): Promise<Response> {
@@ -23,7 +24,7 @@ export class AdmincatalogoController {
 
             return res.json({ autores: resposta })
         } catch (error) {
-            console.error('Erro ao listar autores', error)
+            logErro(req, 'Erro ao listar autores', error)
             return res.status(500).json({ erro: 'Erro interno ao listar autores' })
         }
     }
@@ -49,7 +50,7 @@ export class AdmincatalogoController {
                 mensagem: 'Autor atualizado com sucesso', autor
             })
         } catch (error) {
-            console.error('Erro ao editar autor', error)
+            logErro(req, 'Erro ao editar autor', error)
             return res.status(500).json({
                 erro: 'Erro interno ao editar autor'
             })
@@ -83,7 +84,7 @@ export class AdmincatalogoController {
                 mensagem: "Autor removido com sucesso"
             })
         } catch (error) {
-            console.error('Erro ao deletar autor', error)
+            logErro(req, 'Erro ao deletar autor', error)
             return res.status(500).json({
                 erro: 'Erro interno ao deletar autor'
             })
@@ -149,7 +150,7 @@ export class AdmincatalogoController {
                 mensagem: 'Autores mesclados com sucesso'
             })
         } catch (error) {
-            console.error('Erro ao mesclar autores', error)
+            logErro(req, 'Erro ao mesclar autores', error)
             return res.status(500).json({
                 erro: 'Erro interno ao mesclar autores'
             })
@@ -168,7 +169,7 @@ export class AdmincatalogoController {
             }));
             return res.json({ editoras: resposta });
         } catch (error) {
-            console.error('Erro ao listar editoras:', error);
+            logErro(req, 'Erro ao listar editoras', error);
             return res.status(500).json({ erro: 'Erro interno ao listar editoras' });
         }
     }
@@ -187,7 +188,7 @@ export class AdmincatalogoController {
             await editora.save();
             return res.json({ mensagem: 'Editora atualizada com sucesso', editora });
         } catch (error) {
-            console.error('Erro ao editar editora:', error);
+            logErro(req, 'Erro ao editar editora', error);
             return res.status(500).json({ erro: 'Erro interno ao editar editora' });
         }
     }
@@ -211,7 +212,7 @@ export class AdmincatalogoController {
             await editora.destroy();
             return res.json({ mensagem: 'Editora removida com sucesso' });
         } catch (error) {
-            console.error('Erro ao deletar editora:', error);
+            logErro(req, 'Erro ao deletar editora', error);
             return res.status(500).json({ erro: 'Erro interno ao deletar editora' });
         }
     }
@@ -242,7 +243,7 @@ export class AdmincatalogoController {
  
             return res.json({ mensagem: `Editora "${origem.nome}" mesclada em "${destino.nome}" com sucesso` });
         } catch (error) {
-            console.error('Erro ao mesclar editoras:', error);
+            logErro(req, 'Erro ao mesclar editoras', error);
             return res.status(500).json({ erro: 'Erro interno ao mesclar editoras' });
         }
     }
@@ -260,7 +261,7 @@ export class AdmincatalogoController {
             }));
             return res.json({ generos: resposta });
         } catch (error) {
-            console.error('Erro ao listar gêneros:', error);
+            logErro(req, 'Erro ao listar gêneros', error);
             return res.status(500).json({ erro: 'Erro interno ao listar gêneros' });
         }
     }
@@ -278,7 +279,7 @@ export class AdmincatalogoController {
             await genero.save();
             return res.json({ mensagem: 'Gênero atualizado com sucesso', genero });
         } catch (error) {
-            console.error('Erro ao editar gênero:', error);
+            logErro(req, 'Erro ao editar gênero', error);
             return res.status(500).json({ erro: 'Erro interno ao editar gênero' });
         }
     }
@@ -302,7 +303,7 @@ export class AdmincatalogoController {
             await genero.destroy();
             return res.json({ mensagem: 'Gênero removido com sucesso' });
         } catch (error) {
-            console.error('Erro ao deletar gênero:', error);
+            logErro(req, 'Erro ao deletar gênero', error);
             return res.status(500).json({ erro: 'Erro interno ao deletar gênero' });
         }
     }
@@ -347,7 +348,7 @@ export class AdmincatalogoController {
  
             return res.json({ mensagem: `Gênero "${origem.nome}" mesclado em "${destino.nome}" com sucesso` });
         } catch (error) {
-            console.error('Erro ao mesclar gêneros:', error);
+            logErro(req, 'Erro ao mesclar gêneros', error);
             return res.status(500).json({ erro: 'Erro interno ao mesclar gêneros' });
         }
     }

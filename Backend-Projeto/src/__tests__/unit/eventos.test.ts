@@ -5,6 +5,7 @@ import {
     definirFabricaParaTestes,
     encerrarPublicador,
     guardarPendente,
+    logEventos,
     publicarEvento,
 } from '../../eventos/publicadorEventos';
 import {
@@ -43,8 +44,8 @@ describe('publicarEvento (GDL-70)', () => {
 
     beforeEach(() => {
         process.env.REDIS_URL = 'redis://teste:6379';
-        jest.spyOn(console, 'log').mockImplementation(() => undefined);
-        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'info').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'error').mockImplementation(() => undefined);
     });
 
     afterEach(async () => {
@@ -65,8 +66,8 @@ describe('publicarEvento (GDL-70)', () => {
             'estatisticas.atualizadas',
             JSON.stringify({ pattern: 'estatisticas.atualizadas', data: { usuarioId: 7 } }),
         );
-        expect(console.log).toHaveBeenCalledWith(
-            '[eventos] publicado estatisticas.atualizadas usuario=7 (1 assinante(s))',
+        expect(logEventos.info).toHaveBeenCalledWith(
+            'publicado estatisticas.atualizadas usuario=7 (1 assinante(s))',
         );
     });
 
@@ -88,8 +89,8 @@ describe('publicarEvento (GDL-70)', () => {
         definirFabricaParaTestes(() => cliente);
 
         await expect(publicarEvento('estatisticas.atualizadas', {}, 'usuario=7')).resolves.toBeNull();
-        expect(console.error).toHaveBeenCalledWith(
-            '[eventos] falha ao publicar estatisticas.atualizadas usuario=7: conexão recusada',
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao publicar estatisticas.atualizadas usuario=7: conexão recusada',
         );
     });
 
@@ -112,7 +113,7 @@ describe('publicarEvento (GDL-70)', () => {
 });
 
 describe('notificarEstatisticasAtualizadas (GDL-70)', () => {
-    beforeEach(() => jest.spyOn(console, 'error').mockImplementation(() => undefined));
+    beforeEach(() => jest.spyOn(logEventos, 'error').mockImplementation(() => undefined));
     afterEach(() => jest.restoreAllMocks());
 
     it('publica usuarioId, estatísticas e o momento do cálculo', async () => {
@@ -136,8 +137,8 @@ describe('notificarEstatisticasAtualizadas (GDL-70)', () => {
             notificarEstatisticasAtualizadas(7, async () => { throw new Error('banco fora'); }, publicar),
         ).resolves.toBeUndefined();
         expect(publicar).not.toHaveBeenCalled();
-        expect(console.error).toHaveBeenCalledWith(
-            '[eventos] falha ao montar estatisticas.atualizadas usuario=7: banco fora',
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao montar estatisticas.atualizadas usuario=7: banco fora',
         );
     });
 });
@@ -147,9 +148,9 @@ describe('conquistas-service fora do ar (GDL-76)', () => {
     let avisos: jest.SpyInstance;
 
     beforeEach(() => {
-        avisos = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-        jest.spyOn(console, 'log').mockImplementation(() => undefined);
-        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        avisos = jest.spyOn(logEventos, 'warn').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'info').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'error').mockImplementation(() => undefined);
     });
     afterEach(async () => {
         jest.restoreAllMocks();
@@ -170,7 +171,7 @@ describe('conquistas-service fora do ar (GDL-76)', () => {
             { usuarioId: 7, estatisticas, geradoEm: expect.any(String) },
         );
         expect(avisos).toHaveBeenCalledWith(
-            '[eventos] ninguém recebeu estatisticas.atualizadas usuario=7: guardado para o conquistas-service processar quando voltar',
+            'ninguém recebeu estatisticas.atualizadas usuario=7: guardado para o conquistas-service processar quando voltar',
         );
     });
 
@@ -200,8 +201,8 @@ describe('conquistas-service fora do ar (GDL-76)', () => {
         definirFabricaParaTestes(() => clienteFalso({ hSet: jest.fn().mockRejectedValue(new Error('OOM')) }));
 
         await expect(guardarPendente(CHAVE_ESTATISTICAS_PENDENTES, '7', {})).resolves.toBe(false);
-        expect(console.error).toHaveBeenCalledWith(
-            '[eventos] falha ao guardar evento pendente em eventos:pendentes:estatisticas.atualizadas (7): OOM',
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao guardar evento pendente em eventos:pendentes:estatisticas.atualizadas (7): OOM',
         );
     });
 });

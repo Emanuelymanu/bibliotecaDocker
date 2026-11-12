@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import { LivrosService } from '../services/livrosService';
 import { HttpError } from '../utils/HttpError';
+import { logErro } from '../logger';
 
 const livrosService = new LivrosService();
 
@@ -22,12 +23,12 @@ export class EditarLivrosController {
             return res.json({ mensagem: 'Livro atualizado com sucesso', livro });
         } catch (error) {
             if (file) {
-                try { fs.unlinkSync(file.path); } catch (err) { console.error('Erro ao remover arquivo:', err); }
+                try { fs.unlinkSync(file.path); } catch (err) { logErro(req, 'Erro ao remover arquivo', err); }
             }
             if (error instanceof HttpError) {
                 return res.status(error.status).json({ message: error.message });
             }
-            console.error('Erro ao atualizar livro:', error);
+            logErro(req, 'Erro ao atualizar livro', error);
             return res.status(500).json({ message: 'Erro interno ao atualizar livro' });
         }
     }
@@ -41,7 +42,7 @@ export class EditarLivrosController {
             if (error instanceof HttpError) {
                 return res.status(error.status).json({ message: error.message });
             }
-            console.error('Erro ao deletar livro:', error);
+            logErro(req, 'Erro ao deletar livro', error);
             return res.status(500).json({ message: 'Erro interno ao deletar livro' });
         }
     }
