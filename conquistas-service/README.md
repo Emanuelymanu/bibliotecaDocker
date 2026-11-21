@@ -200,7 +200,7 @@ das últimas 5h se perdem junto.
 Logs:
 
 ```
-[eventos] publicado usuario.permissao_alterada usuario=1 tipo=usuario (1 assinante(s))      <- backend
+[backend:eventos] publicado usuario.permissao_alterada usuario=1 tipo=usuario (1 assinante(s))      <- backend
 [EventoPermissao] recebido usuario.permissao_alterada usuario=1 agora é usuario (em ...)    <- conquistas-service
 [EventoPermissao] usuario=1: tokens emitidos antes de ... revogados por 5h
 [JwtAuthGuard] Token recusado: usuario=1 (token diz admin, emitido ...) teve a permissão alterada em ... - GET /api/conquistas/admin/todas

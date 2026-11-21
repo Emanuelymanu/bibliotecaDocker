@@ -178,7 +178,7 @@ A mensagem segue o formato do transporte Redis do NestJS:
   `eventos:pendentes:estatisticas.atualizadas`. Quando o serviço volta, ele processa o que ficou guardado
   e concede as conquistas pendentes, que aparecem no app como novas:
   ```
-  [eventos] ninguém recebeu estatisticas.atualizadas usuario=1: guardado para o conquistas-service processar quando voltar   <- backend
+  [backend:eventos] ninguém recebeu estatisticas.atualizadas usuario=1: guardado para o conquistas-service processar quando voltar   <- backend
   [EventosPendentes] processando 1 evento(s) guardado(s) enquanto o serviço estava fora do ar                            <- conquistas-service
   [ConquistasService] usuario=1 desbloqueou: #156 Quatro sessões
   ```
@@ -188,5 +188,30 @@ Para ver os eventos chegando:
 
 ```bash
 docker compose exec redis redis-cli SUBSCRIBE estatisticas.atualizadas usuario.permissao_alterada
-docker compose logs -f backend | grep "\[eventos\]"
+docker compose logs -f backend | Select-String "backend:eventos"     # PowerShell (no Linux/Mac: grep)
 ```
+
+## 11) Logs (GDL-34)
+
+Os dois serviços usam um logger estruturado ([pino](https://getpino.io)). Cada linha tem horário, nível,
+serviço e, quando vem de uma requisição, o id da requisição e o usuário logado:
+
+```
+[15:20:43.772] INFO:  [backend] GET /api/metas 200 56ms {"reqId":"8724ce16-...","usuario":1}
+[15:20:43.801] INFO:  [backend:eventos] publicado estatisticas.atualizadas usuario=1 (1 assinante(s))
+[15:20:43.803] INFO:  [conquistas:EventoEstatisticas] recebido estatisticas.atualizadas usuario=1 ...
+[15:20:49.800] ERROR: [backend] Erro ao listar metas {"reqId":"16221dd7-...","rota":"GET /api/metas","usuario":1}
+[15:20:49.801] ERROR: [backend] GET /api/metas 500 {"reqId":"16221dd7-...","usuario":1}
+```
+
+- **Uma linha por requisição**: método, rota, status e tempo. Nível pelo status: 2xx/3xx `INFO`, 4xx `WARN`, 5xx `ERROR`.
+  O `/health` (healthcheck do Docker) não é registrado.
+- **Erros** saem com a rota, o usuário e a pilha do erro, e o mesmo `reqId` da linha da requisição.
+- Toda resposta traz o cabeçalho `X-Request-Id`; para ver tudo de uma requisição:
+  `docker compose logs backend conquistas-service | Select-String "16221dd7"`.
+- O SQL do Sequelize só aparece com `LOG_NIVEL=debug`. Token e senha nunca vão para o log.
+
+| Variável | Valores | Padrão |
+|---|---|---|
+| `LOG_NIVEL` | `debug`, `info`, `warn`, `error` | `info` (nos testes, `silent`) |
+| `LOG_FORMATO` | `texto` (uma linha legível) ou `json` (um objeto por linha, para ferramentas de log) | `texto` |

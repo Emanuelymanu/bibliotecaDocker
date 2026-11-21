@@ -3,6 +3,7 @@ import { anotacoes } from '../models-auto/anotacoes';
 import { leituras } from '../models-auto/leituras';
 import { AtualizarAnotacaoDTO } from '../types/anotacoesTypes';
 import { Op } from 'sequelize';
+import { logErro } from '../logger';
 
 export class AtualizarAnotacao {
     async atualizarAnotacao(req: Request, res: Response): Promise<Response> {
@@ -48,7 +49,7 @@ export class AtualizarAnotacao {
                 anotacao
             })
         } catch (error) {
-            console.error('Erro ao atualizar anotação:', error);
+            logErro(req, 'Erro ao atualizar anotação', error);
             return res.status(500).json({
                 erro: 'Erro interno ao atualizar anotações'
             })

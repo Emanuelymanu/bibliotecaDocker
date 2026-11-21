@@ -7,6 +7,7 @@ import { generos } from '../models-auto/generos';
 import { Op, Sequelize } from 'sequelize';
 import { ListarLivrosQuery } from '../types/livroTypes';
 import { fetchFromGoogle } from '../services/googleBooksService';
+import { logErro } from '../logger';
 
 function formatarLivro(livro: any) {
     const dados = livro.get ? livro.get({ plain: true }) : livro;
@@ -161,7 +162,7 @@ export class ListarLivrosController {
                         livrosResponse = items.map(formatarItemGoogle);
                     }
                 } catch (err) {
-                    console.error('Erro ao buscar na Google Books API:', err);
+                    logErro(req, 'Erro ao buscar na Google Books API', err);
                 }
             }
 
@@ -183,7 +184,7 @@ export class ListarLivrosController {
             });
 
         } catch (error) {
-            console.error('Erro ao listar livros:', error);
+            logErro(req, 'Erro ao listar livros', error);
             return res.status(500).json({ erro: 'Erro interno ao listar livros' });
         }
     }
@@ -220,7 +221,7 @@ export class ListarLivrosController {
 
             return res.json({ livros: top5 });
         } catch (error) {
-            console.error('Erro ao listar top avaliados:', error);
+            logErro(req, 'Erro ao listar top avaliados', error);
             return res.status(500).json({ erro: 'Erro interno ao listar top avaliados' });
         }
     }

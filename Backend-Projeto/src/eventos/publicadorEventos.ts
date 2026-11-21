@@ -1,4 +1,8 @@
 import { createClient } from "redis";
+import { logDe } from "../logger";
+
+
+export const logEventos = logDe('eventos');
 
 export interface ClienteRedis{
     isReady: boolean;
@@ -33,11 +37,11 @@ const fabricaPadrao: FabricaCliente = (url) => createClient({
     }
 
     function log(mensagem: string): void{
-        console.log(`[eventos] ${mensagem}`)
+        logEventos.info(mensagem)
     }
 
     function logErro(mensagem: string): void{
-        console.error(`[eventos] ${mensagem}`)
+        logEventos.error(mensagem)
     }
 
     function marcarDisponibilidade(disponivel: boolean, motivo?: string): void{
@@ -100,7 +104,7 @@ const fabricaPadrao: FabricaCliente = (url) => createClient({
     }
  }
 
-
+ 
  export async function guardarPendente(chave: string, campo: string, data: unknown): Promise<boolean>{
     try{
         const redis = await clientePronto()

@@ -6,6 +6,7 @@ import { EditarLivrosController } from '../controller/EditarLivrosController';
 import { ListarLivrosController } from '../controller/ListarLivrosController';
 import { upload } from '../config/multer';
 import { FiltroLivros } from '../controller/FiltroLivros';
+import { logErro } from '../logger';
 
 
 const router = Router();
@@ -46,7 +47,7 @@ router.get('/buscar', async (req, res) => {
         const status = axiosError.response?.status;
         const message = axiosError.response?.data?.error?.message || axiosError.message || 'Erro ao buscar na Google Books API';
 
-        console.error('Erro ao buscar na Google Books API:', err);
+        logErro(req, 'Erro ao buscar na Google Books API', err);
 
         if (status === 429) {
             return res.status(429).json({
