@@ -17,6 +17,7 @@ import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
 import adminRoutes from './routes/adminRoutes';
 import { publicarEstatisticasAposEscrita } from './eventos/estatisticasEventos';
+import { invalidarDashboardAposEscrita } from './cache/cacheDashboard';
 import { logDe, logErro, logRequisicoes } from './logger';
 
 const app = express();
@@ -59,6 +60,7 @@ app.use(express.json());
 app.use(
   ['/api/livros', '/api/leituras', '/api/anotacoes', '/api/sessoes', '/api/metas'],
   publicarEstatisticasAposEscrita(),
+  invalidarDashboardAposEscrita(),
 );
 
 app.use('/api/auth', authRoutes);
