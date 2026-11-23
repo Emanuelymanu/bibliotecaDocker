@@ -215,3 +215,27 @@ serviço e, quando vem de uma requisição, o id da requisição e o usuário lo
 |---|---|---|
 | `LOG_NIVEL` | `debug`, `info`, `warn`, `error` | `info` (nos testes, `silent`) |
 | `LOG_FORMATO` | `texto` (uma linha legível) ou `json` (um objeto por linha, para ferramentas de log) | `texto` |
+## 12) Cache da dashboard (GDL-12)
+
+`GET /api/dashboard` usa **cache-aside** no Redis, com uma chave por leitor (`dashboard:usuario:<id>`):
+
+1. procura a chave no Redis; se achar (**HIT**), devolve direto, sem consultar o MySQL;
+2. se não achar (**MISS**), monta a dashboard no banco, guarda no Redis com TTL e devolve.
+
+- **TTL**: `CACHE_DASHBOARD_TTL` em segundos (padrão `300`, 5 minutos).
+- **Invalidação**: qualquer escrita que deu certo em `/api/livros`, `/api/leituras` (ex.: iniciar uma leitura),
+  `/api/anotacoes`, `/api/sessoes` ou `/api/metas` apaga a chave do leitor; o próximo GET já vem do banco.
+- **Redis fora do ar**: a dashboard continua respondendo, só que sempre do banco. O log avisa uma vez quando o
+  Redis cai e outra quando volta.
+- A resposta traz o cabeçalho `X-Cache: HIT` ou `X-Cache: MISS`, e o log mostra cada caso:
+
+```
+[18:55:12.595] INFO: [backend:cache] MISS dashboard usuario=1
+[18:55:12.595] INFO: [backend] GET /api/dashboard 200 18ms {"reqId":"dcd8fdfe-...","usuario":1}
+[18:55:12.613] INFO: [backend:cache] HIT dashboard usuario=1
+[18:55:12.613] INFO: [backend] GET /api/dashboard 200 1ms {"reqId":"4ae1d85e-...","usuario":1}
+[18:55:12.669] INFO: [backend:cache] dashboard invalidada usuario=1 (POST /api/leituras/iniciar)
+```
+
+Os números totais de usuários e de livros do sistema podem ficar até um TTL atrasados quando *outra* pessoa
+cadastra algo, porque só a escrita do próprio leitor apaga a dashboard dele.

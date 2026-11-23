@@ -2,8 +2,10 @@ import app from "./app";
 import { sequelize } from "./models-auto";
 import { initModels } from "./models-auto/init-models";
 import { logger } from "./logger";
+import { iniciarCacheDashboard } from "./cache/cacheDashboard";
 
 initModels(sequelize);
+iniciarCacheDashboard();
 
 const port = 3000;
 const shouldSyncSchema = process.env.DB_SYNC !== "false";

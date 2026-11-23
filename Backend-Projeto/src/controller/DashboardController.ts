@@ -6,6 +6,7 @@ import { generos } from '../models-auto/generos';
 import { Op, Sequelize } from 'sequelize';
 import { DashboardEstatisticas, DashboardResponse } from '../types/dashoboardTypes';
 import { logErro } from '../logger';
+import { obterDashboardComCache } from '../cache/cacheDashboard';
 
 export class DashboardController {
 
@@ -15,94 +16,95 @@ export class DashboardController {
             if (!req.usuario) {
                 return res.status(401).json({ erro: 'Usuário não autenticado' });
             }
-            const usuarioId = req.usuario.id;
-
-
-            const totalUsuarios = await usuarios.count();
-            const totalLivros = await livros.count();
-            const totalLeituras = await leituras.count({ where: { id_usuario: usuarioId } });
-            const livrosLidos = await leituras.count({ where: { id_usuario: usuarioId, status: 'lido' } });
-            const livrosLendo = await leituras.count({ where: { id_usuario: usuarioId, status: 'lendo' } });
-            const livrosQueroLer = await leituras.count({ where: { id_usuario: usuarioId, status: 'quero_ler' } });
-            const leiturasConcluidas = await leituras.findAll({
-                where: { id_usuario: usuarioId, status: 'lido' },
-                include: [{ model: livros, as: 'id_livro_livro', attributes: ['num_paginas'] }]
-            });
-            const totalPaginas = leiturasConcluidas.reduce((total, leitura) => {
-                return total + (leitura.id_livro_livro?.num_paginas || 0);
-            }, 0);
-            const estatisticas: DashboardEstatisticas = {
-                total_usuarios: totalUsuarios,
-                total_livros: totalLivros,
-                total_leituras: totalLeituras,
-                total_paginas_lidas: totalPaginas,
-                livros_lidos: livrosLidos,
-                livros_lendo: livrosLendo,
-                livros_quero_ler: livrosQueroLer
-            };
-
-
-            const leiturasComGeneros = await leituras.findAll({
-                where: { id_usuario: usuarioId, status: 'lido' },
-                include: [{
-                    model: livros,
-                    as: 'id_livro_livro',
-                    attributes: ['id_livro'],
-                    include: [{
-                        model: generos,
-                        as: 'generos',
-                        attributes: ['nome'],
-                        through: { attributes: [] }
-                    }]
-                }],
-                attributes: []
-            });
-            const contagem: { [key: string]: number } = {};
-            leiturasComGeneros.forEach(leitura => {
-                const generosLivro = leitura.id_livro_livro?.generos || [];
-                generosLivro.forEach((genero) => {
-                    if (genero.nome) {
-                        contagem[genero.nome] = (contagem[genero.nome] || 0) + 1;
-                    }
-                });
-            });
-            const generosMaisLidos = Object.entries(contagem)
-                .map(([genero, quantidade]) => ({ genero, quantidade }))
-                .sort((a, b) => b.quantidade - a.quantidade)
-                .slice(0, 5);
-
-
-            const ultimosLivros = await leituras.findAll({
-                where: { id_usuario: usuarioId, status: 'lido' },
-                include: [{ model: livros, as: 'id_livro_livro' }],
-                order: [['data_conclusao', 'DESC']],
-                limit: 5
-            });
-            const ultimosLivrosFormatados = ultimosLivros.map(l => l.id_livro_livro);
-
-
-            const avaliacaoObj = await leituras.findOne({
-                where: { id_usuario: usuarioId, status: 'lido', avaliacao: { [Op.not]: null } },
-                attributes: [[Sequelize.fn('AVG', Sequelize.col('avaliacao')), 'media']],
-                raw: true
-            });
-            const avaliacaoMedia = avaliacaoObj?.media ? Number(avaliacaoObj.media) : 0;
-
-            const dashboard: DashboardResponse = {
-                estatisticas,
-                ultimos_livros: ultimosLivrosFormatados,
-                generos_mais_lidos: generosMaisLidos,
-                avaliacao_media: avaliacaoMedia
-            };
-
-            return res.json(dashboard);
+            const { dados, origem } = await obterDashboardComCache(req.usuario.id, () =>
+                this.montarDashboard(req.usuario!.id),
+            );
+            res.setHeader('X-Cache', origem);
+            return res.json(dados);
         } catch (error) {
             logErro(req, 'Erro ao obter dashboard', error);
             return res.status(500).json({ erro: 'Erro interno ao carregar dashboard' });
         }
     }
 
+    async montarDashboard(usuarioId: number): Promise<DashboardResponse> {
+        const totalUsuarios = await usuarios.count();
+        const totalLivros = await livros.count();
+        const totalLeituras = await leituras.count({ where: { id_usuario: usuarioId } });
+        const livrosLidos = await leituras.count({ where: { id_usuario: usuarioId, status: 'lido' } });
+        const livrosLendo = await leituras.count({ where: { id_usuario: usuarioId, status: 'lendo' } });
+        const livrosQueroLer = await leituras.count({ where: { id_usuario: usuarioId, status: 'quero_ler' } });
+        const leiturasConcluidas = await leituras.findAll({
+            where: { id_usuario: usuarioId, status: 'lido' },
+            include: [{ model: livros, as: 'id_livro_livro', attributes: ['num_paginas'] }]
+        });
+        const totalPaginas = leiturasConcluidas.reduce((total, leitura) => {
+            return total + (leitura.id_livro_livro?.num_paginas || 0);
+        }, 0);
+        const estatisticas: DashboardEstatisticas = {
+            total_usuarios: totalUsuarios,
+            total_livros: totalLivros,
+            total_leituras: totalLeituras,
+            total_paginas_lidas: totalPaginas,
+            livros_lidos: livrosLidos,
+            livros_lendo: livrosLendo,
+            livros_quero_ler: livrosQueroLer
+        };
 
 
+        const leiturasComGeneros = await leituras.findAll({
+            where: { id_usuario: usuarioId, status: 'lido' },
+            include: [{
+                model: livros,
+                as: 'id_livro_livro',
+                attributes: ['id_livro'],
+                include: [{
+                    model: generos,
+                    as: 'generos',
+                    attributes: ['nome'],
+                    through: { attributes: [] }
+                }]
+            }],
+            attributes: []
+        });
+        const contagem: { [key: string]: number } = {};
+        leiturasComGeneros.forEach(leitura => {
+            const generosLivro = leitura.id_livro_livro?.generos || [];
+            generosLivro.forEach((genero) => {
+                if (genero.nome) {
+                    contagem[genero.nome] = (contagem[genero.nome] || 0) + 1;
+                }
+            });
+        });
+        const generosMaisLidos = Object.entries(contagem)
+            .map(([genero, quantidade]) => ({ genero, quantidade }))
+            .sort((a, b) => b.quantidade - a.quantidade)
+            .slice(0, 5);
 
+
+        const ultimosLivros = await leituras.findAll({
+            where: { id_usuario: usuarioId, status: 'lido' },
+            include: [{ model: livros, as: 'id_livro_livro' }],
+            order: [['data_conclusao', 'DESC']],
+            limit: 5
+        });
+        const ultimosLivrosFormatados = ultimosLivros.map(l => l.id_livro_livro);
+
+
+        const avaliacaoObj = await leituras.findOne({
+            where: { id_usuario: usuarioId, status: 'lido', avaliacao: { [Op.not]: null } },
+            attributes: [[Sequelize.fn('AVG', Sequelize.col('avaliacao')), 'media']],
+            raw: true
+        });
+        const avaliacaoMedia = avaliacaoObj?.media ? Number(avaliacaoObj.media) : 0;
+
+        const dashboard: DashboardResponse = {
+            estatisticas,
+            ultimos_livros: ultimosLivrosFormatados,
+            generos_mais_lidos: generosMaisLidos,
+            avaliacao_media: avaliacaoMedia
+        };
+
+        return dashboard;
+    }
 }
