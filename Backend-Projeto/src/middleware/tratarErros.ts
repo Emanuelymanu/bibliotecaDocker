@@ -1,18 +1,19 @@
-import { ErrorRequestHandler, RequestHandler } from "express";
-import multer from "multer";
-import { logErro, logger } from "../logger";
-import { HttpError } from "../utils/HttpError";
+import { ErrorRequestHandler, RequestHandler } from 'express';
+import multer from 'multer';
+import { logErro, logger } from '../logger';
+import { HttpError } from '../utils/HttpError';
 
-export interface RespostaErro{
+
+export interface RespostaErro {
     erro: string;
     statusCode: number;
-    detalhes?: string [];
+    detalhes?: string[];
 }
 
-const MENSAGEM_ERRO_INTERNO = 'Erro interno do servidor. Tente novamente em instantes.'
+const MENSAGEM_ERRO_INTERNO = 'Erro interno do servidor. Tente novamente em instantes.';
 
-type ErroSequelize = Error & {erros?: {message: string}[]}
-type ErroBodyParser = Error & {type?: string; status?: number}
+type ErroSequelize = Error & { errors?: { message: string }[] };
+type ErroBodyParser = Error & { type?: string; status?: number };
 
 export function converterErro(erro: unknown): RespostaErro {
     if (erro instanceof HttpError) {
@@ -35,7 +36,7 @@ export function converterErro(erro: unknown): RespostaErro {
             return { erro: 'Corpo da requisição muito grande', statusCode: 413 };
         }
 
-        const detalhes = (erro as ErroSequelize).erros?.map((e) => e.message);
+        const detalhes = (erro as ErroSequelize).errors?.map((e) => e.message);
         switch (erro.name) {
             case 'SequelizeValidationError':
                 return { erro: 'Dados inválidos', statusCode: 400, detalhes };
