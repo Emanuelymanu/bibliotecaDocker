@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import { LivrosService } from '../services/livrosService';
-import { HttpError } from '../utils/HttpError';
 import { logErro } from '../logger';
 
 const livrosService = new LivrosService();
+
 
 export class EditarLivrosController {
 
@@ -25,25 +25,13 @@ export class EditarLivrosController {
             if (file) {
                 try { fs.unlinkSync(file.path); } catch (err) { logErro(req, 'Erro ao remover arquivo', err); }
             }
-            if (error instanceof HttpError) {
-                return res.status(error.status).json({ message: error.message });
-            }
-            logErro(req, 'Erro ao atualizar livro', error);
-            return res.status(500).json({ message: 'Erro interno ao atualizar livro' });
+            throw error;
         }
     }
 
     async deletarLivro(req: Request, res: Response): Promise<Response> {
-        try {
-            const id = Number(req.params.id);
-            await livrosService.deletarLivro(id, req.usuario);
-            return res.json({ message: 'Livro deletado com sucesso' });
-        } catch (error) {
-            if (error instanceof HttpError) {
-                return res.status(error.status).json({ message: error.message });
-            }
-            logErro(req, 'Erro ao deletar livro', error);
-            return res.status(500).json({ message: 'Erro interno ao deletar livro' });
-        }
+        const id = Number(req.params.id);
+        await livrosService.deletarLivro(id, req.usuario);
+        return res.json({ message: 'Livro deletado com sucesso' });
     }
 }

@@ -1,8 +1,9 @@
 import 'dotenv/config';
-import express, { ErrorRequestHandler } from 'express';
+import express from 'express';
 import cors from 'cors';
-import multer from 'multer';
 import path from 'path';
+import { rotaNaoEncontrada, tratarErros } from './middleware/tratarErros';
+import { HttpError } from './utils/HttpError';
 import { sequelize } from './models-auto';
 import './models-auto/livros';
 import authRoutes from './routes/authRoutes';
@@ -46,7 +47,7 @@ app.use(cors({
       return callback(null, origin);
     }
 
-    return callback(new Error('Origem não permitida pelo CORS'));
+    return callback(new HttpError(403, 'Origem não permitida pelo CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -73,21 +74,8 @@ app.use('/api/metas', metasLeituraRoutes);
 app.use('/api/lista-desejos', listaDesejosRoutes);
 app.use('/api/admin', adminRoutes);
 
-const tratarErros: ErrorRequestHandler = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ erro: 'Arquivo maior que o limite permitido (5MB)' });
-    }
-    return res.status(400).json({ erro: `Erro no upload: ${err.message}` });
-  }
 
-  if (err) {
-    logErro(req, 'Erro não tratado', err);
-    return res.status(400).json({ erro: err.message || 'Erro na requisição' });
-  }
-
-  next();
-};
+app.use('/api', rotaNaoEncontrada);
 app.use(tratarErros);
 
 sequelize.authenticate()
