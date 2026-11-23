@@ -1,6 +1,6 @@
 # Versionamento e releases
 
-O `CHANGELOG.md` segue Keep a Changelog e Versionamento Semântico. Cada versão tem tag e Release no GitHub (GDL-41), e a tag dispara a publicação das imagens (ver [CI/CD](../devops/ci-cd.md)).
+O `CHANGELOG.md` segue Keep a Changelog e Versionamento Semântico. Cada versão tem uma tag no Git e uma Release no GitHub com as notas do CHANGELOG (GDL-41); a partir da v1.2.0, a tag também dispara a publicação das imagens (ver [CI/CD](../devops/ci-cd.md)).
 
 | Versão | Data | Conteúdo principal |
 |---|---|---|

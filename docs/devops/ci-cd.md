@@ -3,7 +3,7 @@
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — Jira GDL-16.
 
 ## Quando roda
-- Pull request para `dev` ou `main` (bloqueia o merge se falhar).
+- Pull request para `dev` ou `main`: o resultado aparece no PR, e a equipe só faz merge com o CI verde e revisão aprovada.
 - Push em `dev` ou `main`.
 - Tag `v*` (ex.: `v1.2.0`) — além dos testes, publica as imagens.
 - Manualmente (`workflow_dispatch`).
@@ -31,4 +31,5 @@ PR / push ──► backend ──┐
 
 ## Outras verificações
 - Commitlint + Husky validam a mensagem de commit (`type(scope): mensagem`).
-- Gitflow: tudo entra em `dev` por PR revisado; `main` só recebe release.
+- Gitflow: tudo entra em `dev` por PR; `main` só recebe release.
+- Para o GitHub **impedir** o merge com CI vermelho, ative em *Settings → Branches* a regra da `dev` com "Require status checks to pass" e "Require a pull request before merging".

@@ -6,6 +6,15 @@
 ## Contexto
 O backend principal concentrava identidade, catálogo, acompanhamento de leitura e gamificação. A regra de conquistas por texto livre gerava bugs (GDL-51, GDL-52, GDL-53, GDL-54) e misturava responsabilidades. A extração precisava manter o app funcionando durante a migração.
 
+## Alternativas consideradas
+
+| Alternativa | Prós | Contras | Por que não |
+|---|---|---|---|
+| **Manter o monólito como estava** | Zero custo de migração; um só deploy | Gamificação continuaria misturada com leitura, com regras por texto livre e bugs recorrentes | Não resolvia o problema de acoplamento que gerou os bugs |
+| **Monólito modular (modulith)** no próprio Express | Fronteira de módulo sem custo de rede; uma só implantação | Mesmo banco e mesmo processo: uma falha nas conquistas ainda derrubava o salvamento de progresso (GDL-53); não exercita mensageria nem implantação independente | Isolamento de falha e evolução independente eram objetivos da disciplina e do projeto |
+| **Quebrar tudo em microsserviços** (identidade, catálogo, leitura, gamificação) | Máximo isolamento | Muito custo para uma equipe de 2 pessoas; Catálogo e Leitura compartilham dados e mudam juntos | Complexidade sem benefício proporcional (YAGNI) |
+| **Extrair só a Gamificação para NestJS** (escolhida) | Isola o contexto mais instável e com regras próprias; serviço novo pequeno; migração gradual | Dois serviços para operar; consistência eventual | — |
+
 ## Decisão
 Manter o Backend Principal em Express e extrair o contexto Gamificação para um serviço NestJS independente, com schema `gamificacao`. Migrar em etapas (*strangler fig*): primeiro o serviço novo, depois o roteamento no Nginx, depois a comunicação por eventos e, por último, a remoção do código antigo.
 

@@ -23,18 +23,20 @@ Fonte: Jira, projeto **GDL** (board 34), consultado em 23/11/2026. Responsáveis
 | Sprint 4 — Nest e Cache | 27/10 – 02/11 | Conquistas servidas pelo NestJS (banco próprio, JWT e módulo) com cache-aside e invalidação | GDL-10, 11, 66, 67, 68, 19, 20, 21–25 |
 | Sprint 5 — Eventos | 03/11 – 09/11 | Monólito publica eventos e o serviço consome; serviço no Compose e no Nginx; revogação de admin; CI/CD; modelo de domínio e OpenAPI | GDL-16, 17, 18, 27–30, 39, 40, 41, 57, 58, 60, 70, 71, 73, 74, 79 |
 | Sprint 6 — Migração | 09/11 – 20/11 | Código antigo removido; sistema resiliente com o serviço fora; teste do fluxo; qualidade, SLO, observabilidade | GDL-26, 31, 32, 33, 51, 54, 69, 72, 75, 76, 77 |
-| Sprint 7 — Finalização | 20/11 – 23/11 | Logger, tratamento central de erros, cache da dashboard, apresentação | GDL-34 (feito), GDL-12 e GDL-35 (em andamento), GDL-42 |
+| Sprint 7 — Finalização | 20/11 – 23/11 | Logger, tratamento central de erros, cache da dashboard, apresentação | GDL-34 (feito); GDL-12, GDL-35 e GDL-80 (em revisão); GDL-32 (reaberto); GDL-42 |
 
-Na Sprint 6 o time não fechou GDL-34, GDL-35, GDL-12 e GDL-42; eles foram levados para a Sprint 7 (replanejamento registrado no Jira).
+Na Sprint 6 o time não fechou GDL-34, GDL-35, GDL-12 e GDL-42; eles foram levados para a Sprint 7 (replanejamento registrado no Jira). Na revisão final, o time encontrou o GDL-32 marcado como Feito sem implementação e o reabriu — exemplo de inspeção e adaptação.
 
 ## Backlog restante (priorizado)
 | Prioridade | Issue | Tipo | Item | Status |
 |---|---|---|---|---|
-| 1 | GDL-35 | Tarefa | Middleware central de tratamento de erros | Fazendo |
-| 2 | GDL-12 | História | Cache da dashboard do usuário | Fazendo (branch enviada, aguardando PR) |
-| 3 | GDL-42 | Tarefa | Preparar apresentação final | A fazer |
-| 4 | GDL-36 | Tarefa | Criar DTOs para livros e leituras | Fora das sprints |
-| 5 | GDL-37 | Tarefa | Mover regras de negócio para services | Fora das sprints |
+| 1 | GDL-35 | Tarefa | Middleware central de tratamento de erros | Em revisão (PR #50) |
+| 2 | GDL-12 | História | Cache da dashboard do usuário | Em revisão (PR #48) |
+| 3 | GDL-32 | História | Resiliência da integração com Google Books | Reaberto: estava como Feito sem código; implementação em PR |
+| 4 | GDL-80 | Tarefa | Documentação final | Em revisão (PR #49) |
+| 5 | GDL-42 | Tarefa | Preparar apresentação final | A fazer |
+| 6 | GDL-36 | Tarefa | Criar DTOs para livros e leituras | Fora das sprints |
+| 7 | GDL-37 | Tarefa | Mover regras de negócio para services | Fora das sprints |
 | — | GDL-61 | Tarefa | ConquistaService no Express | Cancelado (substituído pela extração para o NestJS) |
 
 ## Bugs registrados e corrigidos

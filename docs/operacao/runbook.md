@@ -3,7 +3,7 @@
 ## API indisponível
 1. Verificar `docker compose ps`.
 2. Consultar `docker compose logs --tail=200 backend conquistas-service nginx`; use o `X-Request-Id` da resposta para achar todas as linhas da requisição.
-3. Verificar `https://estantedigital.local/health` e a rota afetada.
+3. Verificar a rota afetada. `https://estantedigital.local/health` só confirma que o Nginx está no ar; a saúde dos serviços é a coluna STATUS do `docker compose ps`.
 4. Se NestJS estiver indisponível, confirmar resposta 503 e se rotas Express continuam respondendo.
 5. Não remover volumes durante diagnóstico.
 

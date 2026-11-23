@@ -8,7 +8,7 @@ Jira GDL-17. Estratégia escolhida: **deploy simples por versão com rollback pa
 3. PR da release para `main`; depois do merge, criar a tag `vx.y.z` e a Release no GitHub.
 4. A tag dispara o job `deploy`, que publica as imagens versionadas no GHCR.
 5. No servidor: `git checkout vx.y.z` e `docker compose up -d --build` (ou usar as imagens `:vx.y.z`).
-6. Verificar: `docker compose ps` (todos `healthy`/`running`), `https://estantedigital.local/health`, login, uma rota do Express e `/api/conquistas/catalogo`.
+6. Verificar: `docker compose ps` (MySQL, Redis e conquistas-service `healthy`; demais `running`), login no app, uma rota do Express (ex.: `/api/dashboard`) e `/api/conquistas/catalogo`. O `/health` do Nginx só indica que o proxy está no ar, não que os serviços estão saudáveis.
 
 ## Rollback
 1. Identificar a última versão estável (tag anterior, ex.: `v1.1.0`).

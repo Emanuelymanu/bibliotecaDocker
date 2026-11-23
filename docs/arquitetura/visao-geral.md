@@ -36,10 +36,10 @@ O código antigo de conquistas do Express foi removido (GDL-75): a extração da
 Os dois schemas ficam no mesmo servidor MySQL, com credenciais distintas. O isolamento é lógico, não físico. `id_usuario` e `id_genero` no schema de gamificação não têm FK para o schema principal; por isso a conquista guarda também `nome_genero` (GDL-69).
 
 ## Observabilidade
-Os dois serviços usam logger estruturado (pino): uma linha por requisição com `reqId`, usuário, status e duração; cabeçalho `X-Request-Id`; logs de publicação e consumo de eventos e de cache. Ver [observabilidade](../operacao/observabilidade.md).
+Erros têm o mesmo formato nos dois serviços (`{ erro, statusCode }`, GDL-35). Os dois serviços usam logger estruturado (pino): uma linha por requisição com `reqId`, usuário, status e duração; cabeçalho `X-Request-Id`; logs de publicação e consumo de eventos e de cache. Ver [observabilidade](../operacao/observabilidade.md).
 
 ## Riscos e limites
 - Controllers Express ainda acessam modelos Sequelize diretamente em vários fluxos (GDL-36 e GDL-37 no backlog).
 - `ListarLivrosController` inclui leituras do usuário para filtrar/apresentar o catálogo.
-- `googleBooksService` não tem timeout nem retry explícitos.
+- Dados do Google Books podem vir sem páginas ou gênero (ver QS-13).
 - Redis Pub/Sub entrega no máximo uma vez; a perda é coberta pelo snapshot cumulativo e pelo hash de pendentes, não por fila persistente.

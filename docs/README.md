@@ -15,14 +15,14 @@
 ## Estado do sistema
 | Componente | Estado |
 |---|---|
-| Backend Principal | Express 5, TypeScript, Sequelize, MySQL; catálogo, leituras, sessões, metas, anotações, lista de desejos, perfil, dashboard (com cache), autenticação e administração; publica eventos no Redis |
+| Backend Principal | Express 5, TypeScript, Sequelize, MySQL; catálogo, leituras, sessões, metas, anotações, lista de desejos, perfil, dashboard (com cache), autenticação e administração; publica eventos no Redis; Google Books com timeout, retry e circuit breaker |
 | Conquistas Service | NestJS, TypeORM; rotas do leitor (`/api/conquistas`, `/catalogo`, `/novas`) e do admin, DTOs, regras estruturadas, JWT com revogação, cache, consumo de eventos, migrações |
 | Nginx | Único ponto de entrada (HTTPS); `/api/conquistas` → NestJS, demais `/api/` → Express, `/` → frontend; 503 JSON se o NestJS cair |
 | MySQL | MySQL 8, schemas `projeto5p` e `gamificacao`, usuário separado para a gamificação |
 | Redis | Cache (catálogo e dashboard), Pub/Sub (`estatisticas.atualizadas`, `usuario.permissao_alterada`), eventos pendentes, revogação de tokens |
 | Docker Compose | MySQL, Redis, backend, conquistas-service, frontend e Nginx, com healthchecks |
 | CI/CD | GitHub Actions: build e testes dos três projetos (NestJS com MySQL e Redis reais), build das imagens, publicação no GHCR por tag |
-| Logs | pino nos dois serviços, uma linha por requisição, `X-Request-Id` |
+| Logs e erros | pino nos dois serviços, uma linha por requisição, `X-Request-Id`; formato único de erro `{ erro, statusCode }` |
 | Jira | Projeto GDL, 7 sprints, histórias com critérios de aceite |
 | Releases | v1.0.0, v1.1.0, v1.2.0; v1.3.0 ao fim da Sprint 7 |
 

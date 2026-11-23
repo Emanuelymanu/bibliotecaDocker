@@ -12,10 +12,12 @@ Os cenários diferenciam comportamento implementado (com evidência) de metas pr
 | QS-06 | Segurança | Admin rebaixado tenta usar token antigo | **Implementado:** evento `usuario.permissao_alterada` → 401; com Redis fora, rotas de admin respondem 503 (GDL-79) |
 | QS-07 | Recuperação | Container cai | `restart: always`; healthcheck no MySQL, Redis e conquistas-service (`/health`) |
 | QS-08 | Recuperabilidade | Perda de dados | Backup automatizado não implementado; volume MySQL não é backup |
-| QS-09 | Integração externa | Google Books lento/indisponível | Sem timeout/retry explícito no `axios.get` — pendente |
+| QS-09 | Integração externa | Google Books lento/indisponível → busca responde em até ~9 s no pior caso e depois em milissegundos | **Implementado (GDL-32):** timeout de 4 s, 1 nova tentativa, circuit breaker (3 falhas → 30 s) e fallback: 503 amigável na busca, só livros locais nas listagens; testes em `googleBooksService.test.ts` |
 | QS-10 | Segurança | Tentativas repetidas de login | Rate limiting não implementado — pendente |
 | QS-11 | Transporte | Tráfego HTTPS | TLS 1.2/1.3 no Nginx; porta 80 também aceita HTTP, sem redirect global |
 | QS-12 | Manutenibilidade | Critério novo de conquista | Regras tipadas e puras, com testes; uma única implementação (NestJS) |
+| QS-13 | Qualidade de dados externos | Google Books não informa páginas ou gênero | Livro gravado com 0 páginas / sem gênero: o leitor pode deixar de ganhar conquista de páginas ou gênero, mas nunca ganha uma indevida. Ao editar o livro, o evento recalcula as estatísticas e a conquista é concedida de forma retroativa |
+| QS-14 | Tratamento de erros | Erro inesperado no backend | **Implementado (GDL-35):** resposta 500 genérica `{ erro, statusCode }` sem detalhes internos; pilha e `reqId` no log; 4xx com mensagem clara e log de aviso |
 
 ## Metas propostas
 p95 menor que 500 ms em endpoints críticos e taxa de 5xx menor que 1% (ver [SLI/SLO](../operacao/slis-slos.md)). Não declarar metas atingidas sem medição com ambiente, carga, data e resultado.
