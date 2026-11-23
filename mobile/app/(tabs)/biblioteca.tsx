@@ -167,7 +167,7 @@ export default function BibliotecaScreen() {
       setCadastroAberto(false);
       await carregar(filtro);
     } catch (e: any) {
-      const mensagem = e?.response?.data?.message ?? 'Não foi possível cadastrar o livro.';
+      const mensagem = e?.response?.data?.erro ?? e?.response?.data?.message ?? 'Não foi possível cadastrar o livro.';
       Alert.alert('Erro', mensagem);
       console.error(e);
     }
