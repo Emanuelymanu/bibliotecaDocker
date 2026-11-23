@@ -162,7 +162,8 @@ export class ListarLivrosController {
                         livrosResponse = items.map(formatarItemGoogle);
                     }
                 } catch (err) {
-                    logErro(req, 'Erro ao buscar na Google Books API', err);
+                    // Fallback do GDL-32: sem o Google, a resposta traz só os livros locais.
+                    req.log.warn({ motivo: (err as Error).message }, 'Google Books indisponível: respondendo só com livros locais');
                 }
             }
 
