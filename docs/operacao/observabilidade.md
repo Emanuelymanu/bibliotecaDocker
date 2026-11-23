@@ -7,7 +7,7 @@
 - **Eventos:** publicação, recebimento, evento ignorado, evento atrasado descartado, pendentes guardados/processados, queda e volta do Redis (logado uma vez).
 - **Cache:** HIT/MISS/invalidação da dashboard (Express) e do catálogo (NestJS).
 - **Segurança:** recusa de token revogado e 503 de admin com Redis fora.
-- **Erros (GDL-35):** 4xx saem como WARN com a mensagem e a rota; 5xx como ERROR com a pilha; o cliente recebe `{ erro, statusCode }` com o mesmo `X-Request-Id`.
+- **Erros (GDL-35):** 4xx saem como WARN com a mensagem e a rota; 5xx como ERROR com a pilha; o cliente recebe `{ erro, statusCode }` com o mesmo `X-Request-Id`. Controllers antigos com `try/catch` próprio registram com `logErro` (mesma pilha e `reqId`).
 - **Google Books (GDL-32):** tentativas que falharam, abertura e fechamento do circuito.
 - Token e senha nunca vão para o log (`redact`). SQL do Sequelize só com `LOG_NIVEL=debug`.
 - Nginx registra `$request_time` e `$upstream_response_time`.

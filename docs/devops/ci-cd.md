@@ -3,7 +3,7 @@
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — Jira GDL-16.
 
 ## Quando roda
-- Pull request para `dev` ou `main`: o resultado aparece no PR, e a equipe só faz merge com o CI verde e revisão aprovada.
+- Pull request para `dev` ou `main`: o resultado aparece no PR. Cada PR é revisado pelo outro integrante; até o PR #47 a revisão foi feita fora do GitHub (conversa e testes locais), e a partir da Sprint 7 a aprovação passa a ser registrada pelo botão **Review** do GitHub.
 - Push em `dev` ou `main`.
 - Tag `v*` (ex.: `v1.2.0`) — além dos testes, publica as imagens.
 - Manualmente (`workflow_dispatch`).
