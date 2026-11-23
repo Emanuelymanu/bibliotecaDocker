@@ -17,7 +17,7 @@ Os cenários diferenciam comportamento implementado (com evidência) de metas pr
 | QS-11 | Transporte | Tráfego HTTPS | TLS 1.2/1.3 no Nginx; porta 80 também aceita HTTP, sem redirect global |
 | QS-12 | Manutenibilidade | Critério novo de conquista | Regras tipadas e puras, com testes; uma única implementação (NestJS) |
 | QS-13 | Qualidade de dados externos | Google Books não informa páginas ou gênero | Livro gravado com 0 páginas / sem gênero: o leitor pode deixar de ganhar conquista de páginas ou gênero, mas nunca ganha uma indevida. Ao editar o livro, o evento recalcula as estatísticas e a conquista é concedida de forma retroativa |
-| QS-14 | Tratamento de erros | Erro inesperado no backend | **Implementado (GDL-35):** resposta 500 genérica `{ erro, statusCode }` sem detalhes internos; pilha e `reqId` no log; 4xx com mensagem clara e log de aviso |
+| QS-14 | Tratamento de erros | Erro inesperado no backend | **Implementado para erros lançados (GDL-35); controllers antigos com `try/catch` próprio também respondem 500 genérico:** resposta 500 genérica `{ erro, statusCode }` sem detalhes internos; pilha e `reqId` no log; 4xx com mensagem clara e log de aviso |
 
 ## Metas propostas
 p95 menor que 500 ms em endpoints críticos e taxa de 5xx menor que 1% (ver [SLI/SLO](../operacao/slis-slos.md)). Não declarar metas atingidas sem medição com ambiente, carga, data e resultado.

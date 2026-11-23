@@ -24,8 +24,7 @@ info:
     - Se o Conquistas Service estiver fora do ar, o Nginx responde 503 JSON nas rotas /api/conquistas; as demais
     rotas continuam funcionando.
 
-    - Erros seguem um formato único nos dois serviços: `{ "erro": "...", "statusCode": 400 }` (tratamento central
-    no Express — GDL-35). Rotas /api inexistentes respondem 404 nesse formato.'
+    - Erros: no Conquistas Service e nos erros tratados pelo middleware central do Express (GDL-35) a resposta é `{ "erro": "...", "statusCode": 400 }`; alguns controllers antigos do Express ainda respondem só `{ "erro": "..." }`. Rotas /api inexistentes respondem 404 em JSON.'
 servers:
 - url: https://estantedigital.local
   description: Nginx em ambiente local (Docker Compose); domínio configurado no nginx.conf

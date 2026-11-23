@@ -22,7 +22,7 @@
 | Redis | Cache (catálogo e dashboard), Pub/Sub (`estatisticas.atualizadas`, `usuario.permissao_alterada`), eventos pendentes, revogação de tokens |
 | Docker Compose | MySQL, Redis, backend, conquistas-service, frontend e Nginx, com healthchecks |
 | CI/CD | GitHub Actions: build e testes dos três projetos (NestJS com MySQL e Redis reais), build das imagens, publicação no GHCR por tag |
-| Logs e erros | pino nos dois serviços, uma linha por requisição, `X-Request-Id`; formato único de erro `{ erro, statusCode }` |
+| Logs e erros | pino nos dois serviços, uma linha por requisição, `X-Request-Id`; tratamento central de erros no Express (GDL-35) e filtro global no NestJS, com resposta `{ erro, statusCode }` |
 | Jira | Projeto GDL, 7 sprints, histórias com critérios de aceite |
 | Releases | v1.0.0, v1.1.0, v1.2.0; v1.3.0 ao fim da Sprint 7 |
 

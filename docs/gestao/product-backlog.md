@@ -1,43 +1,33 @@
-# Product Backlog e Sprints
+# Observabilidade
 
-Fonte: Jira, projeto **GDL** (board 34), consultado em 23/11/2026. Responsáveis: Emanuely Bueno (desenvolvimento) e João Vitor Quinto (documentação de arquitetura e gestão).
+## Implementado (GDL-34)
+- **Logger estruturado (pino)** no Express (`src/logger.ts`) e no NestJS (`nestjs-pino`).
+- **Uma linha por requisição:** método, rota, status, duração, `reqId` e usuário. Nível pelo status: 2xx/3xx INFO, 4xx WARN, 5xx ERROR. `/health` não é registrado.
+- **`X-Request-Id`** em toda resposta; erros saem com a rota, o usuário, a pilha e o mesmo `reqId`.
+- **Eventos:** publicação, recebimento, evento ignorado, evento atrasado descartado, pendentes guardados/processados, queda e volta do Redis (logado uma vez).
+- **Cache:** HIT/MISS/invalidação da dashboard (Express) e do catálogo (NestJS).
+- **Segurança:** recusa de token revogado e 503 de admin com Redis fora.
+- **Erros (GDL-35):** 4xx saem como WARN com a mensagem e a rota; 5xx como ERROR com a pilha; o cliente recebe `{ erro, statusCode }` com o mesmo `X-Request-Id`. Controllers antigos com `try/catch` próprio registram com `logErro` (mesma pilha e `reqId`).
+- **Google Books (GDL-32):** tentativas que falharam, abertura e fechamento do circuito.
+- Token e senha nunca vão para o log (`redact`). SQL do Sequelize só com `LOG_NIVEL=debug`.
+- Nginx registra `$request_time` e `$upstream_response_time`.
 
-## Épicos
-| Épico | Tema |
-|---|---|
-| GDL-6 | MVP — funcionalidades já entregues (GDL-43 a GDL-50) |
-| GDL-1 | Cache e Mensageria com Redis |
-| GDL-2 | Infraestrutura e Entrega Contínua |
-| GDL-3 | Documentação de Arquitetura |
-| GDL-4 | Qualidade de Código e Observabilidade |
-| GDL-5 | Gestão do Projeto |
-| GDL-7 | Conquistas com critério estruturado |
-| GDL-8 | Microsserviço de Gamificação |
+| Variável | Valores | Padrão |
+|---|---|---|
+| `LOG_NIVEL` | `debug`, `info`, `warn`, `error` | `info` (testes: `silent`) |
+| `LOG_FORMATO` | `texto` (legível) ou `json` (uma linha JSON por evento) | `texto` |
 
-## Sprints
+## Onde ver
+```
+docker compose logs -f backend conquistas-service
+docker compose logs backend conquistas-service | Select-String "<reqId>"
+```
 
-| Sprint | Período | Objetivo | Issues concluídas |
-|---|---|---|---|
-| Sprint 2 | 13/10 – 19/10 | Corrigir segurança e repositório | GDL-13, 14, 15, 38 (bugs) |
-| Sprint 3 — Cache com Redis | 19/10 – 27/10 | Redis no Compose; base do serviço NestJS; correções de conquistas | GDL-9, 52, 53, 55, 62, 64, 65, 78 |
-| Sprint 4 — Nest e Cache | 27/10 – 02/11 | Conquistas servidas pelo NestJS (banco próprio, JWT e módulo) com cache-aside e invalidação | GDL-10, 11, 66, 67, 68, 19, 20, 21–25 |
-| Sprint 5 — Eventos | 03/11 – 09/11 | Monólito publica eventos e o serviço consome; serviço no Compose e no Nginx; revogação de admin; CI/CD; modelo de domínio e OpenAPI | GDL-16, 17, 18, 27–30, 39, 40, 41, 57, 58, 60, 70, 71, 73, 74, 79 |
-| Sprint 6 — Migração | 09/11 – 20/11 | Código antigo removido; sistema resiliente com o serviço fora; teste do fluxo; qualidade, SLO, observabilidade | GDL-26, 31, 32, 33, 51, 54, 69, 72, 75, 76, 77 |
-| Sprint 7 — Finalização | 20/11 – 23/11 | Logger, tratamento central de erros, cache da dashboard, apresentação | GDL-34 (feito); GDL-12, GDL-35 e GDL-80 (em revisão); GDL-32 (reaberto); GDL-42 |
+## Métricas a coletar (plano)
+- Latência p50/p95/p99 por rota (a partir da linha de requisição).
+- Taxa 4xx/5xx por rota.
+- Proporção HIT/MISS do cache.
+- Eventos publicados × recebidos; pendentes guardados.
+- Reinícios e healthchecks dos containers.
 
-Na Sprint 6 o time não fechou GDL-34, GDL-35, GDL-12 e GDL-42; eles foram levados para a Sprint 7 (replanejamento registrado no Jira). Na revisão final, o time encontrou o GDL-32 marcado como Feito sem implementação e o reabriu — exemplo de inspeção e adaptação.
-
-## Backlog restante (priorizado)
-| Prioridade | Issue | Tipo | Item | Status |
-|---|---|---|---|---|
-| 1 | GDL-35 | Tarefa | Middleware central de tratamento de erros | Em revisão (PR #50) |
-| 2 | GDL-12 | História | Cache da dashboard do usuário | Em revisão (PR #48) |
-| 3 | GDL-32 | História | Resiliência da integração com Google Books | Reaberto: estava como Feito sem código; implementação em PR |
-| 4 | GDL-80 | Tarefa | Documentação final | Em revisão (PR #49) |
-| 5 | GDL-42 | Tarefa | Preparar apresentação final | A fazer |
-| 6 | GDL-36 | Tarefa | Criar DTOs para livros e leituras | Fora das sprints |
-| 7 | GDL-37 | Tarefa | Mover regras de negócio para services | Fora das sprints |
-| — | GDL-61 | Tarefa | ConquistaService no Express | Cancelado (substituído pela extração para o NestJS) |
-
-## Bugs registrados e corrigidos
-GDL-13 (porta MySQL exposta), GDL-14 (backend fora do Nginx), GDL-15 (`.env` versionado), GDL-38 (testes ignorados), GDL-51 (acento), GDL-52 (chave duplicada), GDL-53 (falha nas conquistas derrubava o progresso), GDL-54 (palavras parecidas), GDL-78 (`package.json` ignorado).
+Prometheus/Grafana não estão implementados; com `LOG_FORMATO=json` os logs podem ser enviados a uma ferramenta de agregação
