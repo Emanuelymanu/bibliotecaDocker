@@ -66,6 +66,7 @@ describe('Evento estatisticas.atualizadas (integração com MySQL)', () => {
       tipo: 'LIVROS_GENERO',
       valor_alvo: 2,
       id_genero: GENERO,
+      nome_genero: 'Fantasia',
     });
   });
 

@@ -1,8 +1,9 @@
 import 'dotenv/config';
-import express, { ErrorRequestHandler } from 'express';
+import express from 'express';
 import cors from 'cors';
-import multer from 'multer';
 import path from 'path';
+import { rotaNaoEncontrada, tratarErros } from './middleware/tratarErros';
+import { HttpError } from './utils/HttpError';
 import { sequelize } from './models-auto';
 import './models-auto/livros';
 import authRoutes from './routes/authRoutes';
@@ -15,11 +16,15 @@ import sessoesLeituraRoutes from './routes/sessoesLeituraRoutes';
 import metasLeituraRoutes from './routes/metasLeituraRoutes';
 import listaDesejosRoutes from './routes/listaDesejosRoutes';
 import { Sequelize } from 'sequelize';
-import conquistasRoutes from './routes/conquistasRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { publicarEstatisticasAposEscrita } from './eventos/estatisticasEventos';
+import { invalidarDashboardAposEscrita } from './cache/cacheDashboard';
+import { logDe, logErro, logRequisicoes } from './logger';
 
 const app = express();
+
+
+app.use(logRequisicoes);
 
 const allowedOrigins = [
   'http://localhost',
@@ -43,7 +48,7 @@ app.use(cors({
       return callback(null, origin);
     }
 
-    return callback(new Error('Origem não permitida pelo CORS'));
+    return callback(new HttpError(403, 'Origem não permitida pelo CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -56,6 +61,7 @@ app.use(express.json());
 app.use(
   ['/api/livros', '/api/leituras', '/api/anotacoes', '/api/sessoes', '/api/metas'],
   publicarEstatisticasAposEscrita(),
+  invalidarDashboardAposEscrita(),
 );
 
 app.use('/api/auth', authRoutes);
@@ -65,35 +71,21 @@ app.use('/api/leituras', leiturasRoutes);
 app.use('/api/anotacoes', anotacoesRoutes);
 app.use('/api/perfil', perfilRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/conquistas', conquistasRoutes);
 app.use('/api/sessoes', sessoesLeituraRoutes);
 app.use('/api/metas', metasLeituraRoutes);
 app.use('/api/lista-desejos', listaDesejosRoutes);
 app.use('/api/admin', adminRoutes);
 
-const tratarErros: ErrorRequestHandler = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ erro: 'Arquivo maior que o limite permitido (5MB)' });
-    }
-    return res.status(400).json({ erro: `Erro no upload: ${err.message}` });
-  }
 
-  if (err) {
-    console.error('Erro não tratado:', err);
-    return res.status(400).json({ erro: err.message || 'Erro na requisição' });
-  }
-
-  next();
-};
+app.use('/api', rotaNaoEncontrada);
 app.use(tratarErros);
 
 sequelize.authenticate()
   .then(() => {
-    console.log('Conexão com o banco de dados estabelecida com sucesso.');
+    logDe('banco').debug('Conexão com o banco de dados estabelecida com sucesso.');
   })
   .catch((err) => {
-    console.error('Erro ao conectar ao banco de dados:', err);
+    logDe('banco').error({ err }, 'Erro ao conectar ao banco de dados');
   });
 
 export default app;

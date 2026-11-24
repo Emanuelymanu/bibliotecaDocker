@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import { AxiosError } from 'axios';
 import { CadastrarLivrosController } from '../controller/CadastrarLivrosController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { EditarLivrosController } from '../controller/EditarLivrosController';
 import { ListarLivrosController } from '../controller/ListarLivrosController';
 import { upload } from '../config/multer';
 import { FiltroLivros } from '../controller/FiltroLivros';
+import { logErro } from '../logger';
+import { fetchFromGoogle, MENSAGEM_INDISPONIVEL } from '../services/googleBooksService';
+import { HttpError } from '../utils/HttpError';
 
 
 const router = Router();
@@ -32,30 +34,22 @@ router.get('/editora/:editora', (req, res) => filtroLivros.buscarPorEditora(req,
 router.get('/status/leitura', authMiddleware, (req, res) => filtroLivros.buscarPorStatusLeitura(req, res));
 
 
+// GDL-32: timeout, retry e circuit breaker ficam no googleBooksService. Se o Google
+// não responder, a busca devolve 503 com mensagem amigável (o app mostra o campo `erro`).
 router.get('/buscar', async (req, res) => {
     const { query } = req.query;
     if (!query) {
         return res.status(400).json({ erro: 'Query obrigatória' });
     }
     try {
-        const { fetchFromGoogle } = require('../services/googleBooksService');
         const items = await fetchFromGoogle(query as string);
-        res.json({ livros: items });
+        return res.json({ livros: items });
     } catch (err) {
-        const axiosError = err as AxiosError<{ error?: { message?: string } }>;
-        const status = axiosError.response?.status;
-        const message = axiosError.response?.data?.error?.message || axiosError.message || 'Erro ao buscar na Google Books API';
-
-        console.error('Erro ao buscar na Google Books API:', err);
-
-        if (status === 429) {
-            return res.status(429).json({
-                erro: 'Limite de requisições da Google Books API atingido',
-                detalhe: message
-            });
+        if (err instanceof HttpError) {
+            return res.status(err.status).json({ erro: err.message });
         }
-
-        res.status(500).json({ erro: 'Erro ao buscar na Google Books API', detalhe: message });
+        logErro(req, 'Erro ao buscar na Google Books API', err);
+        return res.status(503).json({ erro: MENSAGEM_INDISPONIVEL });
     }
 });
 

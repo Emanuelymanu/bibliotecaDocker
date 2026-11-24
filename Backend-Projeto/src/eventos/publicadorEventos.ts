@@ -1,9 +1,14 @@
 import { createClient } from "redis";
+import { logDe } from "../logger";
+
+
+export const logEventos = logDe('eventos');
 
 export interface ClienteRedis{
     isReady: boolean;
     connect(): Promise<unknown>
     publish(canal: string, mensagem: string): Promise<number>;
+    hSet(chave: string, campo: string, valor: string): Promise<number>;
     quit(): Promise<unknown>
     on(evento: string, ouvinte: (...args: any[])=> void): unknown
 }
@@ -32,11 +37,11 @@ const fabricaPadrao: FabricaCliente = (url) => createClient({
     }
 
     function log(mensagem: string): void{
-        console.log(`[eventos] ${mensagem}`)
+        logEventos.info(mensagem)
     }
 
     function logErro(mensagem: string): void{
-        console.error(`[eventos] ${mensagem}`)
+        logEventos.error(mensagem)
     }
 
     function marcarDisponibilidade(disponivel: boolean, motivo?: string): void{
@@ -70,17 +75,22 @@ const fabricaPadrao: FabricaCliente = (url) => createClient({
         return cliente
     }
 
- export async function publicarEvento(pattern: string, data: unknown, descricao = ''): Promise<number | null>{
+ async function clientePronto(): Promise<ClienteRedis | null>{
     const redis = obterCliente()
     if(!redis) return null
+    if(!redis.isReady && conectando){
+        await Promise.race([conectando, esperar(ESPERA_CONEXAO_MS)])
+    }
+    if(!redis.isReady){
+        throw new Error('Redis não conectado')
+    }
+    return redis
+ }
 
+ export async function publicarEvento(pattern: string, data: unknown, descricao = ''): Promise<number | null>{
     try{
-        if(!redis.isReady && conectando){
-            await Promise.race([conectando, esperar(ESPERA_CONEXAO_MS)])
-        }
-        if(!redis.isReady){
-            throw new Error('Redis não conectado')
-        }
+        const redis = await clientePronto()
+        if(!redis) return null
 
         const mensagem = JSON.stringify({pattern, data})
         const assinantes = await redis.publish(pattern, mensagem)
@@ -91,6 +101,20 @@ const fabricaPadrao: FabricaCliente = (url) => createClient({
         const motivo = erro instanceof Error ? erro.message: String(erro)
         logErro(`falha ao publicar ${pattern}${descricao ? ` ${descricao}` : ''}: ${motivo}`);
         return null;
+    }
+ }
+
+ 
+ export async function guardarPendente(chave: string, campo: string, data: unknown): Promise<boolean>{
+    try{
+        const redis = await clientePronto()
+        if(!redis) return false
+        await redis.hSet(chave, campo, JSON.stringify(data))
+        return true
+    }catch(erro){
+        const motivo = erro instanceof Error ? erro.message: String(erro)
+        logErro(`falha ao guardar evento pendente em ${chave} (${campo}): ${motivo}`)
+        return false
     }
  }
 

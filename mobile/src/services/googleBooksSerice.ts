@@ -12,6 +12,7 @@ export interface Livro {
   total_avaliacoes?: number;
   editora?: string;
   generos?: string[];
+  descricao?: string;
 }
 
 interface GoogleBooksItem {
@@ -30,6 +31,7 @@ interface GoogleBooksItem {
     averageRating?: number;
     ratingsCount?: number;
     categories?: string[];
+    description?: string;
   };
 }
 
@@ -46,6 +48,7 @@ function mapearItemGoogle(item: GoogleBooksItem): Livro {
     total_avaliacoes: item.volumeInfo.ratingsCount || 0,
     editora: item.volumeInfo.publisher,
     generos: item.volumeInfo.categories,
+    descricao: limparDescricao(item.volumeInfo.description),
   };
 }
 
@@ -64,6 +67,22 @@ export async function buscarLivrosNaAPI(termoBusca: string): Promise<Livro[]> {
     console.error('Erro ao buscar livros:', error);
     throw new Error(mensagem);
   }
+}
+
+// O Google às vezes manda a sinopse com tags HTML (<p>, <br>, <b>...).
+function limparDescricao(descricao?: string): string | undefined {
+  if (!descricao) return undefined;
+  const texto = descricao
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return texto || undefined;
 }
 
 function extrairAno(dataPublicacao?: string): number | undefined {

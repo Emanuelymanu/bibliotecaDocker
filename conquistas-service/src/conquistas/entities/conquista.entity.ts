@@ -29,6 +29,10 @@ export class Conquista {
   @Column({ type: 'int', nullable: true })
   id_genero: number | null;
 
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  nome_genero: string | null;
+
   @OneToMany(() => ConquistaDoUsuario, (desbloqueio) => desbloqueio.conquista)
   desbloqueios: ConquistaDoUsuario[];
 }

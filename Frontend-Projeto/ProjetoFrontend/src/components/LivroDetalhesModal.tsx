@@ -41,7 +41,8 @@ export default function LivroDetalhesModal({
     } catch (err: any) {
         Swal.fire(
             "Erro",
-            err?.response?.data?.message ||
+            err?.response?.data?.erro ||
+                err?.response?.data?.message ||
                 "Não foi possível adicionar o livro.",
             "error"
         );

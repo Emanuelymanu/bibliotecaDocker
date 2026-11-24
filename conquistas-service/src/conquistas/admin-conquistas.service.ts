@@ -55,7 +55,7 @@ export class AdminConquistasService{
     if (dados.descricao !== undefined) conquista.descricao = dados.descricao;
     if (dados.icone !== undefined) conquista.icone = dados.icone;
  
-    const mexeuNoCriterio = (['tipo', 'valor_alvo', 'id_genero', 'criterio'] as const).some((c) => dados[c] !== undefined);
+    const mexeuNoCriterio = (['tipo', 'valor_alvo', 'id_genero', 'nome_genero', 'criterio'] as const).some((c) => dados[c] !== undefined);
     if (mexeuNoCriterio) {
       Object.assign(conquista, this.montar(dados, conquista));
     }

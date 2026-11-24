@@ -18,7 +18,6 @@ import { useRouter } from 'expo-router';
 
 import { Brand } from '@/constants/Brand';
 import { metasService, Meta, Progresso } from '@/src/services/metasService';
-import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 
 const ANO_ATUAL = new Date().getFullYear();
 
@@ -59,10 +58,9 @@ export default function MetasScreen() {
 
   async function salvarMeta(livrosAlvo: number, paginasAlvo: number) {
     try {
-      const { novasConquistas } = await metasService.salvar(ANO_ATUAL, livrosAlvo || undefined, paginasAlvo || undefined);
+      await metasService.salvar(ANO_ATUAL, livrosAlvo || undefined, paginasAlvo || undefined);
       setEditorAberto(false);
       await carregar();
-      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível salvar a meta.');
       console.error(e);

@@ -47,6 +47,7 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
 |---|---|---|
 | GET | `/api/conquistas` | Conquistas que o leitor já desbloqueou |
 | GET | `/api/conquistas/catalogo` | Catálogo com status e progresso do leitor |
+| GET | `/api/conquistas/novas` | Conquistas que o leitor **ainda não viu**; ao responder, elas viram "vistas" (GDL-72) |
 | GET | `/api/conquistas/admin/todas` | Todas as conquistas (admin) |
 | GET | `/api/conquistas/admin/tipos` | Tipos de critério com exemplo de texto (admin) |
 | POST | `/api/conquistas/admin` | Cria conquista (admin) |
@@ -56,6 +57,11 @@ Todas exigem `Authorization: Bearer <token>`; as de `/admin` exigem perfil admin
 
 - **Critério:** sem `tipo`, a conquista é `MANUAL` e usa o texto de `criterio` (compatível com o app atual).
   Com tipo automático (`LIVROS_LIDOS`, `PAGINAS_LIDAS`...), o texto é gerado a partir de `tipo` + `valor_alvo`.
+- **Conquista por gênero (GDL-69):** o tipo `LIVROS_GENERO` exige `id_genero` **e** `nome_genero`
+  (o serviço não acessa a tabela `generos` do backend, então o nome fica salvo na conquista).
+  Exemplo: `{ "tipo": "LIVROS_GENERO", "valor_alvo": 5, "id_genero": 3, "nome_genero": "Fantasia" }`
+  vira "Conclua 5 livros de Fantasia". Na edição, se o gênero não mudar, o nome salvo continua valendo.
+  A contagem usa sempre o `id_genero`; o nome é só para o texto.
 - **Progresso:** vem da tabela `estatisticas_leitor`, preenchida pelo evento do Pub/Sub (ver [Eventos](#eventos-gdl-71)).
   Enquanto não chegar nenhum evento para o leitor, `progresso` é `null`.
 - **Concessão automática:** ao abrir o catálogo, o leitor ganha o que já atingiu. Pedidos simultâneos
@@ -83,6 +89,23 @@ Para ver funcionando:
 curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: MISS
 curl -i -H "Authorization: Bearer <token>" http://localhost:3001/api/conquistas/catalogo   # X-Cache: HIT
 docker compose exec redis redis-cli --scan --pattern 'conquistas:catalogo:*'
+```
+
+## Aviso de conquista nova no app (GDL-72)
+
+A conquista é concedida quando chega o evento, às vezes um pouco depois da resposta do backend.
+Por isso o app pergunta em `GET /api/conquistas/novas` depois de cada ação do leitor
+(`mobile/src/services/avisoConquistas.ts`, um interceptor do axios nas mesmas rotas que publicam o evento):
+uma vez depois de 0,8 s e, se ainda não veio nada, de novo depois de 2,5 s. Abrir a tela de conquistas também confere.
+
+- A coluna `visualizada` em `usuario_conquistas` guarda se o leitor já foi avisado.
+  Conquistas antigas entraram como vistas (ninguém recebe de uma vez o aviso de tudo o que já tinha).
+- Cada conquista aparece **uma vez só**, mesmo com duas chamadas ao mesmo tempo (`SELECT ... FOR UPDATE`).
+- Vale também para conquista manual concedida pelo admin.
+
+```
+[ConquistasService] usuario=1 desbloqueou: #129 Três sessões
+[ConquistasService] usuario=1 foi avisado de 1 conquista(s) nova(s): #129 Três sessões
 ```
 
 ## Eventos (GDL-71)
@@ -118,10 +141,21 @@ Logs:
 [CacheCatalogoService] cache invalidado conquistas:catalogo:v...:1 (ganhou conquista automática)
 ```
 
+**Serviço fora do ar (GDL-76):** quando o backend publica e ninguém está ouvindo, ele guarda a última
+estatística do leitor no hash `eventos:pendentes:estatisticas.atualizadas` (campo = usuarioId).
+Ao subir, e depois a cada 30 s, o serviço processa esse hash (`src/conquistas/eventos/estatisticas-pendentes.service.ts`),
+concede as conquistas e apaga cada item, a menos que o backend tenha guardado uma versão mais nova enquanto isso.
+Se o banco estiver fora, o item fica guardado para a próxima vez.
+
 **Redis fora do ar:** o HTTP continua funcionando. O log avisa uma vez quando o Redis cai e uma vez
 quando volta, e a assinatura é refeita sozinha. Isso vale também se o serviço subir **antes** do Redis
 (`src/eventos/servidor-redis-eventos.ts`). Eventos publicados enquanto o Redis estava fora se perdem
 (o Pub/Sub não guarda mensagens); o próximo evento do leitor traz os números completos de novo.
+
+**Teste de ponta a ponta (GDL-77):** `test/fluxo-eventos.e2e-spec.ts`, roda no `npm run test:e2e`
+(precisa de MySQL e Redis, como no CI). Ele publica `estatisticas.atualizadas` no Redis exatamente como o
+backend faz, espera o serviço conceder a conquista e confere que `GET /api/conquistas/novas` devolve ela uma vez.
+Também confere que uma mensagem quebrada não derruba o consumidor.
 
 Para ver funcionando:
 
@@ -166,7 +200,7 @@ das últimas 5h se perdem junto.
 Logs:
 
 ```
-[eventos] publicado usuario.permissao_alterada usuario=1 tipo=usuario (1 assinante(s))      <- backend
+[backend:eventos] publicado usuario.permissao_alterada usuario=1 tipo=usuario (1 assinante(s))      <- backend
 [EventoPermissao] recebido usuario.permissao_alterada usuario=1 agora é usuario (em ...)    <- conquistas-service
 [EventoPermissao] usuario=1: tokens emitidos antes de ... revogados por 5h
 [JwtAuthGuard] Token recusado: usuario=1 (token diz admin, emitido ...) teve a permissão alterada em ... - GET /api/conquistas/admin/todas
@@ -183,6 +217,7 @@ só enxerga esse banco. Ele não lê nem escreve no `projeto5p` do backend princ
 | Tabelas | migrações do TypeORM em `src/banco/migrations/` |
 | Entities | `Conquista`, `ConquistaDoUsuario` e `EstatisticasLeitorEntity` em `src/conquistas/entities/` |
 | Cópia dos dados antigos | `banco/scripts/GDL-66_copiar_conquistas_para_gamificacao.sql` (roda como root, uma vez) |
+| Nome do gênero nas conquistas antigas | `banco/scripts/GDL-69_preencher_nome_genero.sql` (roda como root, uma vez, depois da migration do GDL-69) |
 
 - `synchronize` está desligado: o banco só muda por migração versionada.
 - Ao subir, o serviço aplica as migrações pendentes sozinho.

@@ -5,6 +5,8 @@ import { EstatisticasLeitorEntity } from '../conquistas/entities/estatisticas-le
 import { CriarTabelasGamificacao1793062185895 } from './migrations/1793062185895-CriarTabelasGamificacao';
 import { CriarEstatisticasLeitor1793227891240 } from './migrations/1793227891240-CriarEstatisticasLeitor';
 import { AdicionarGeradoEmEstatisticas1793803508998 } from './migrations/1793803508998-AdicionarGeradoEmEstatisticas';
+import { AdicionarNomeGeneroConquistas1794225600000 } from './migrations/1794225600000-AdicionarNomeGeneroConquistas';
+import { AdicionarVisualizadaUsuarioConquistas1794251400000 } from './migrations/1794251400000-AdicionarVisualizadaUsuarioConquistas';
 
 export interface ConfigBanco {
   host: string;
@@ -22,6 +24,8 @@ export const MIGRACOES = [
   CriarTabelasGamificacao1793062185895,
   CriarEstatisticasLeitor1793227891240,
   AdicionarGeradoEmEstatisticas1793803508998,
+  AdicionarNomeGeneroConquistas1794225600000,
+  AdicionarVisualizadaUsuarioConquistas1794251400000,
 ];
 
 

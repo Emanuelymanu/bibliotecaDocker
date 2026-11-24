@@ -2,10 +2,11 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { usuarios } from '../models-auto/usuarios';
 import { notificarPermissaoAlterada, TipoUsuario } from '../eventos/usuarioEventos';
+import { logErro } from '../logger';
 
 
 async function alterarPermissao(usuario: usuarios, novoTipo: TipoUsuario): Promise<void> {
-    if (usuario.tipo_usuario === novoTipo) return; // nada mudou: nenhum token para revogar
+    if (usuario.tipo_usuario === novoTipo) return; 
     usuario.tipo_usuario = novoTipo;
     await usuario.save();
     await notificarPermissaoAlterada(usuario.id_usuario, novoTipo);
@@ -33,7 +34,7 @@ export class AdminUsuariosController {
 
             return res.json({ usuarios: lista });
         } catch (error) {
-            console.error('Erro ao listar usuários (admin):', error);
+            logErro(req, 'Erro ao listar usuários (admin)', error);
             return res.status(500).json({ erro: 'Erro interno ao listar usuários' });
         }
     }
@@ -53,7 +54,7 @@ export class AdminUsuariosController {
                 usuario: { id_usuario: usuario.id_usuario, nome: usuario.nome, email: usuario.email, tipo_usuario: usuario.tipo_usuario },
             });
         } catch (error) {
-            console.error('Erro ao promover usuário:', error);
+            logErro(req, 'Erro ao promover usuário', error);
             return res.status(500).json({ erro: 'Erro interno ao promover usuário' });
         }
     }
@@ -78,7 +79,7 @@ export class AdminUsuariosController {
                 usuario: { id_usuario: usuario.id_usuario, nome: usuario.nome, email: usuario.email, tipo_usuario: usuario.tipo_usuario },
             });
         } catch (error) {
-            console.error('Erro ao rebaixar usuário:', error);
+            logErro(req, 'Erro ao rebaixar usuário', error);
             return res.status(500).json({ erro: 'Erro interno ao rebaixar usuário' });
         }
     }

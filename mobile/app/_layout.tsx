@@ -2,11 +2,21 @@ import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { View, ActivityIndicator, LogBox } from 'react-native';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { ativarAvisoDeConquistas } from '@/src/services/avisoConquistas';
 
+// Erros de requisição (axios) já são tratados nas telas com mensagens próprias,
+// então não precisam abrir a tela vermelha do Expo. Eles continuam no terminal.
 LogBox.ignoreLogs([
     'SafeAreaView has been deprecated',
     'InteractionManager has been deprecated',
+    'AxiosError',
+    'Network Error',
+    'Request failed with status code',
+    'timeout of',
 ]);
+
+
+ativarAvisoDeConquistas();
 
 
 function RotasProtegidas() {

@@ -2,7 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { UsuarioAtual } from '../auth/decorators/usuario-atual.decorator';
 import { ConquistasService } from './conquistas.service';
-import { CatalogoResposta, MinhasConquistasResposta } from './dto/respostas.dto';
+import { CatalogoResposta, MinhasConquistasResposta, NovasConquistasResposta } from './dto/respostas.dto';
 
 
 @Controller('conquistas')
@@ -17,6 +17,11 @@ export class ConquistasController {
 
 
  
+  @Get('novas')
+  buscarNovas(@UsuarioAtual('id') usuarioId: number): Promise<NovasConquistasResposta> {
+    return this.conquistas.buscarNovas(usuarioId);
+  }
+
   @Get('catalogo')
   async listarCatalogo(
     @UsuarioAtual('id') usuarioId: number,

@@ -4,14 +4,17 @@ import {
     ClienteRedis,
     definirFabricaParaTestes,
     encerrarPublicador,
+    guardarPendente,
+    logEventos,
     publicarEvento,
 } from '../../eventos/publicadorEventos';
 import {
+    CHAVE_ESTATISTICAS_PENDENTES,
     EVENTO_ESTATISTICAS_ATUALIZADAS,
     notificarEstatisticasAtualizadas,
     publicarEstatisticasAposEscrita,
 } from '../../eventos/estatisticasEventos';
-import { EstatisticasLeitor } from '../../conquistas/conquistas.tipos';
+import { EstatisticasLeitor } from '../../eventos/estatisticasLeitor';
 
 const estatisticas: EstatisticasLeitor = {
     livrosLidos: 3,
@@ -24,11 +27,12 @@ const estatisticas: EstatisticasLeitor = {
     livrosLidosPorGenero: { 2: 3 },
 };
 
-function clienteFalso(opcoes: { pronto?: boolean; publish?: jest.Mock } = {}) {
+function clienteFalso(opcoes: { pronto?: boolean; publish?: jest.Mock; hSet?: jest.Mock } = {}) {
     const cliente = {
         isReady: opcoes.pronto ?? true,
         connect: jest.fn().mockResolvedValue(undefined),
         publish: opcoes.publish ?? jest.fn().mockResolvedValue(1),
+        hSet: opcoes.hSet ?? jest.fn().mockResolvedValue(1),
         quit: jest.fn().mockResolvedValue(undefined),
         on: jest.fn(),
     };
@@ -40,8 +44,8 @@ describe('publicarEvento (GDL-70)', () => {
 
     beforeEach(() => {
         process.env.REDIS_URL = 'redis://teste:6379';
-        jest.spyOn(console, 'log').mockImplementation(() => undefined);
-        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'info').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'error').mockImplementation(() => undefined);
     });
 
     afterEach(async () => {
@@ -62,8 +66,8 @@ describe('publicarEvento (GDL-70)', () => {
             'estatisticas.atualizadas',
             JSON.stringify({ pattern: 'estatisticas.atualizadas', data: { usuarioId: 7 } }),
         );
-        expect(console.log).toHaveBeenCalledWith(
-            '[eventos] publicado estatisticas.atualizadas usuario=7 (1 assinante(s))',
+        expect(logEventos.info).toHaveBeenCalledWith(
+            'publicado estatisticas.atualizadas usuario=7 (1 assinante(s))',
         );
     });
 
@@ -85,8 +89,8 @@ describe('publicarEvento (GDL-70)', () => {
         definirFabricaParaTestes(() => cliente);
 
         await expect(publicarEvento('estatisticas.atualizadas', {}, 'usuario=7')).resolves.toBeNull();
-        expect(console.error).toHaveBeenCalledWith(
-            '[eventos] falha ao publicar estatisticas.atualizadas usuario=7: conexão recusada',
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao publicar estatisticas.atualizadas usuario=7: conexão recusada',
         );
     });
 
@@ -109,7 +113,7 @@ describe('publicarEvento (GDL-70)', () => {
 });
 
 describe('notificarEstatisticasAtualizadas (GDL-70)', () => {
-    beforeEach(() => jest.spyOn(console, 'error').mockImplementation(() => undefined));
+    beforeEach(() => jest.spyOn(logEventos, 'error').mockImplementation(() => undefined));
     afterEach(() => jest.restoreAllMocks());
 
     it('publica usuarioId, estatísticas e o momento do cálculo', async () => {
@@ -133,8 +137,72 @@ describe('notificarEstatisticasAtualizadas (GDL-70)', () => {
             notificarEstatisticasAtualizadas(7, async () => { throw new Error('banco fora'); }, publicar),
         ).resolves.toBeUndefined();
         expect(publicar).not.toHaveBeenCalled();
-        expect(console.error).toHaveBeenCalledWith(
-            '[eventos] falha ao montar estatisticas.atualizadas usuario=7: banco fora',
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao montar estatisticas.atualizadas usuario=7: banco fora',
+        );
+    });
+});
+
+describe('conquistas-service fora do ar (GDL-76)', () => {
+    const urlOriginal = process.env.REDIS_URL;
+    let avisos: jest.SpyInstance;
+
+    beforeEach(() => {
+        avisos = jest.spyOn(logEventos, 'warn').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'info').mockImplementation(() => undefined);
+        jest.spyOn(logEventos, 'error').mockImplementation(() => undefined);
+    });
+    afterEach(async () => {
+        jest.restoreAllMocks();
+        await encerrarPublicador();
+        definirFabricaParaTestes(null);
+        process.env.REDIS_URL = urlOriginal;
+    });
+
+    it('ninguém ouvindo (0 assinantes): guarda o evento para o serviço processar quando voltar', async () => {
+        const publicar = jest.fn().mockResolvedValue(0);
+        const guardar = jest.fn().mockResolvedValue(true);
+
+        await notificarEstatisticasAtualizadas(7, async () => estatisticas, publicar, guardar);
+
+        expect(guardar).toHaveBeenCalledWith(
+            CHAVE_ESTATISTICAS_PENDENTES,
+            '7',
+            { usuarioId: 7, estatisticas, geradoEm: expect.any(String) },
+        );
+        expect(avisos).toHaveBeenCalledWith(
+            'ninguém recebeu estatisticas.atualizadas usuario=7: guardado para o conquistas-service processar quando voltar',
+        );
+    });
+
+    it('serviço ouvindo: não guarda nada', async () => {
+        const guardar = jest.fn();
+        await notificarEstatisticasAtualizadas(7, async () => estatisticas, jest.fn().mockResolvedValue(1), guardar);
+        expect(guardar).not.toHaveBeenCalled();
+    });
+
+    it('Redis fora (publicação falhou): não tenta guardar', async () => {
+        const guardar = jest.fn();
+        await notificarEstatisticasAtualizadas(7, async () => estatisticas, jest.fn().mockResolvedValue(null), guardar);
+        expect(guardar).not.toHaveBeenCalled();
+    });
+
+    it('guardarPendente grava o JSON do evento no hash, com o usuário como campo', async () => {
+        process.env.REDIS_URL = 'redis://teste:6379';
+        const cliente = clienteFalso();
+        definirFabricaParaTestes(() => cliente);
+
+        await expect(guardarPendente(CHAVE_ESTATISTICAS_PENDENTES, '7', { usuarioId: 7 })).resolves.toBe(true);
+        expect(cliente.hSet).toHaveBeenCalledWith(CHAVE_ESTATISTICAS_PENDENTES, '7', '{"usuarioId":7}');
+    });
+
+    it('guardarPendente nunca lança: devolve false e registra a falha', async () => {
+        process.env.REDIS_URL = 'redis://teste:6379';
+        definirFabricaParaTestes(() => clienteFalso({ hSet: jest.fn().mockRejectedValue(new Error('OOM')) }));
+
+        await expect(guardarPendente(CHAVE_ESTATISTICAS_PENDENTES, '7', {})).resolves.toBe(false);
+        expect(logEventos.error).toHaveBeenCalledWith(
+            'falha ao guardar evento pendente em eventos:pendentes:estatisticas.atualizadas (7): OOM',
         );
     });
 });

@@ -1,5 +1,4 @@
 import { api } from './api';
-import { ConquistaDesbloqueada } from '../utils/celebrarConquistas';
 
 export interface Sessao {
   id_sessao: number;
@@ -43,9 +42,9 @@ export const sessoesService = {
     };
   },
 
-  async registrar(payload: NovaSessaoPayload): Promise<{ sessao: Sessao; novasConquistas: ConquistaDesbloqueada[] }> {
+  async registrar(payload: NovaSessaoPayload): Promise<Sessao> {
     const { data } = await api.post('/sessoes', payload);
-    return { sessao: data.sessao, novasConquistas: data.novasConquistas ?? [] };
+    return data.sessao;
   },
 
   async deletar(idSessao: number): Promise<void> {

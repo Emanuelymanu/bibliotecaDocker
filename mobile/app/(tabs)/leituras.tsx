@@ -21,7 +21,6 @@ import { Brand } from '@/constants/Brand';
 import { BookCard } from '@/components/BookCard';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
 import { anotacoesService, Anotacao } from '@/src/services/anotacoesService';
-import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 
 export default function LeiturasScreen() {
   const [leituras, setLeituras] = useState<LeituraItem[]>([]);
@@ -138,14 +137,13 @@ function LeituraSheet({
     }
     setSalvando(true);
     try {
-      const novasConquistas = await leiturasService.atualizarProgresso(leitura.id_leitura, { pagina_atual: valor });
+      await leiturasService.atualizarProgresso(leitura.id_leitura, { pagina_atual: valor });
       if (numPaginas != null && valor === numPaginas) {
         Alert.alert('Parabéns! ', 'Livro marcado como lido automaticamente.');
         onFinalizada(leitura.id_leitura);
       } else {
         onClose();
       }
-      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível atualizar o progresso.');
       console.error(e);
@@ -157,9 +155,8 @@ function LeituraSheet({
   async function marcarComoLido() {
     setSalvando(true);
     try {
-      const novasConquistas = await leiturasService.atualizarProgresso(leitura.id_leitura, { status: 'lido' });
+      await leiturasService.atualizarProgresso(leitura.id_leitura, { status: 'lido' });
       onFinalizada(leitura.id_leitura);
-      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível marcar como lido.');
       console.error(e);

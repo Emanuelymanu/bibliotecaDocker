@@ -1,0 +1,3064 @@
+openapi: 3.0.3
+info:
+  title: Gerenciamento de Leituras (Estante Digital) – API
+  version: 1.3.0
+  description: 'Endpoints do sistema publicados pelo Nginx: Backend Principal (Express) e Conquistas Service (NestJS).
+
+
+    Observações:
+
+    - Todas as rotas passam pelo Nginx (HTTPS) e, exceto as marcadas como públicas, exigem o token JWT no cabeçalho
+    `Authorization: Bearer <token>`.
+
+    - Rotas de administração exigem perfil de administrador, verificado no banco a cada requisição.
+
+    - Os formatos de resposta descrevem os campos principais; campos adicionais podem existir.
+
+    - Os códigos de erro listados em cada operação são os principais retornados pelo código.
+
+    - As rotas /api/conquistas são encaminhadas pelo Nginx ao Conquistas Service (NestJS). As demais rotas /api/
+    são encaminhadas ao Backend Principal (Express).
+
+    - Toda resposta traz o cabeçalho `X-Request-Id`, o mesmo id que aparece nos logs da requisição.
+
+    - Se o Conquistas Service estiver fora do ar, o Nginx responde 503 JSON nas rotas /api/conquistas; as demais
+    rotas continuam funcionando.
+
+    - Erros: no Conquistas Service e nos erros tratados pelo middleware central do Express (GDL-35) a resposta é `{ "erro": "...", "statusCode": 400 }`; alguns controllers antigos do Express ainda respondem só `{ "erro": "..." }`. Rotas /api inexistentes respondem 404 em JSON.'
+servers:
+- url: https://estantedigital.local
+  description: Nginx em ambiente local (Docker Compose); domínio configurado no nginx.conf
+tags:
+- name: Autenticação
+  description: Cadastro e login. Rotas públicas.
+- name: Perfil
+  description: Dados do usuário autenticado.
+- name: Livros
+  description: Catálogo de livros, busca, filtros e capas. Algumas rotas de consulta são públicas.
+- name: Leituras
+  description: 'Leitura de cada usuário: status, progresso e avaliação.'
+- name: Sessões de leitura
+  description: Sessões de leitura de cada leitura.
+- name: Anotações
+  description: Anotações de cada leitura.
+- name: Metas de leitura
+  description: Meta anual de livros e páginas.
+- name: Lista de desejos
+  description: Livros que o usuário deseja ler.
+- name: Conquistas
+  description: Conquistas do usuário. Atendidas pelo Conquistas Service (NestJS).
+- name: Administração
+  description: 'Operações restritas a administradores: catálogo, usuários e conquistas.'
+security:
+- bearerAuth: []
+paths:
+  /health:
+    get:
+      tags:
+      - Infraestrutura
+      summary: Liveness do Nginx
+      security: []
+      description: 'Respondido pelo próprio Nginx (texto `healthy`), sem consultar os serviços: indica só que o
+        proxy está no ar. A saúde do MySQL, do Redis e do Conquistas Service é verificada pelos healthchecks do
+        Docker Compose (`docker compose ps`).'
+      responses:
+        '200':
+          description: Nginx ativo
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: healthy
+  /api/auth/login:
+    post:
+      tags:
+      - Autenticação
+      summary: Autentica o usuário e devolve o token JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                senha:
+                  type: string
+              required:
+              - email
+              - senha
+      responses:
+        '200':
+          description: Login bem-sucedido. O token tem validade de 5 horas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioResumo'
+        '400':
+          description: Email e senha são obrigatórios ou o formato do email é inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '401':
+          description: Email ou senha inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/auth/cadastro:
+    post:
+      tags:
+      - Autenticação
+      summary: Cadastra um novo usuário
+      description: Exige CPF válido, e-mail válido e senha conforme a regra do campo `senha`. E-mail ou CPF já cadastrados
+        também respondem 400.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                cpf:
+                  type: string
+                  description: CPF válido (com ou sem máscara).
+                senha:
+                  type: string
+                  description: A senha deve ter no mínimo 6 caracteres, contendo apenas letras e números, com ao
+                    menos uma letra e um número.
+              required:
+              - nome
+              - email
+              - cpf
+              - senha
+      responses:
+        '201':
+          description: Usuário cadastrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioResumo'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/auth/perfil:
+    get:
+      tags:
+      - Perfil
+      summary: Consulta o perfil do usuário autenticado (mesmo perfil, pela rota de autenticação)
+      description: 'A mesma operação existe em /api/auth/perfil.
+
+
+        Mesma implementação de `GET /api/perfil`.'
+      responses:
+        '200':
+          description: Dados do usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResumo'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    put:
+      tags:
+      - Perfil
+      summary: Edita o perfil do usuário autenticado (mesmo perfil, pela rota de autenticação)
+      description: 'A mesma operação existe em /api/auth/perfil.
+
+
+        Mesma implementação de `PUT /api/perfil`.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                cpf:
+                  type: string
+                senha:
+                  type: string
+              description: Todos os campos são opcionais.
+      responses:
+        '200':
+          description: Perfil atualizado.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/perfil:
+    get:
+      tags:
+      - Perfil
+      summary: Consulta o perfil do usuário autenticado
+      description: A mesma operação existe em /api/auth/perfil.
+      responses:
+        '200':
+          description: Dados do usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResumo'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    put:
+      tags:
+      - Perfil
+      summary: Edita o perfil do usuário autenticado
+      description: A mesma operação existe em /api/auth/perfil.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                cpf:
+                  type: string
+                senha:
+                  type: string
+              description: Todos os campos são opcionais.
+      responses:
+        '200':
+          description: Perfil atualizado.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros:
+    get:
+      tags:
+      - Livros
+      summary: Lista os livros do acervo, com filtros e paginação (rota alternativa)
+      description: 'A mesma operação existe em GET /api/livros.
+
+
+        Mesma implementação de `GET /api/livros/listar`.'
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 100).
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+      - name: busca
+        in: query
+        required: false
+        description: Texto de busca.
+        schema:
+          type: string
+      - name: genero
+        in: query
+        required: false
+        description: Nome do gênero.
+        schema:
+          type: string
+      - name: editora
+        in: query
+        required: false
+        description: Nome da editora.
+        schema:
+          type: string
+      - name: autor
+        in: query
+        required: false
+        description: Nome do autor.
+        schema:
+          type: string
+      - name: tipo_obra
+        in: query
+        required: false
+        description: Tipo da obra.
+        schema:
+          type: string
+          enum:
+          - unico
+          - trilogia
+          - serie
+          - colecao
+      - name: avaliacao_min
+        in: query
+        required: false
+        description: Avaliação média mínima.
+        schema:
+          type: number
+      - name: avaliacao_max
+        in: query
+        required: false
+        description: Avaliação média máxima.
+        schema:
+          type: number
+      - name: ordenar_por
+        in: query
+        required: false
+        description: Campo de ordenação (padrão titulo).
+        schema:
+          type: string
+      - name: ordem
+        in: query
+        required: false
+        description: ASC (padrão) ou DESC.
+        schema:
+          type: string
+          enum:
+          - ASC
+          - DESC
+      responses:
+        '200':
+          description: Lista paginada de livros.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    limite:
+                      type: integer
+                    filtros_aplicados:
+                      type: object
+                      properties:
+                        busca:
+                          type: string
+                        genero:
+                          type: string
+                        editora:
+                          type: string
+                        autor:
+                          type: string
+                        tipo_obra:
+                          type: string
+                        avaliacao:
+                          type: string
+                          description: Intervalo no formato "min - max".
+                    ordenacao:
+                      type: object
+                      properties:
+                        campo:
+                          type: string
+                        direcao:
+                          type: string
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/listar:
+    get:
+      tags:
+      - Livros
+      summary: Lista os livros do acervo, com filtros e paginação
+      description: A mesma operação existe em GET /api/livros.
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 100).
+        schema:
+          type: integer
+          default: 100
+          minimum: 1
+      - name: busca
+        in: query
+        required: false
+        description: Texto de busca.
+        schema:
+          type: string
+      - name: genero
+        in: query
+        required: false
+        description: Nome do gênero.
+        schema:
+          type: string
+      - name: editora
+        in: query
+        required: false
+        description: Nome da editora.
+        schema:
+          type: string
+      - name: autor
+        in: query
+        required: false
+        description: Nome do autor.
+        schema:
+          type: string
+      - name: tipo_obra
+        in: query
+        required: false
+        description: Tipo da obra.
+        schema:
+          type: string
+          enum:
+          - unico
+          - trilogia
+          - serie
+          - colecao
+      - name: avaliacao_min
+        in: query
+        required: false
+        description: Avaliação média mínima.
+        schema:
+          type: number
+      - name: avaliacao_max
+        in: query
+        required: false
+        description: Avaliação média máxima.
+        schema:
+          type: number
+      - name: ordenar_por
+        in: query
+        required: false
+        description: Campo de ordenação (padrão titulo).
+        schema:
+          type: string
+      - name: ordem
+        in: query
+        required: false
+        description: ASC (padrão) ou DESC.
+        schema:
+          type: string
+          enum:
+          - ASC
+          - DESC
+      responses:
+        '200':
+          description: Lista paginada de livros.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    limite:
+                      type: integer
+                    filtros_aplicados:
+                      type: object
+                      properties:
+                        busca:
+                          type: string
+                        genero:
+                          type: string
+                        editora:
+                          type: string
+                        autor:
+                          type: string
+                        tipo_obra:
+                          type: string
+                        avaliacao:
+                          type: string
+                          description: Intervalo no formato "min - max".
+                    ordenacao:
+                      type: object
+                      properties:
+                        campo:
+                          type: string
+                        direcao:
+                          type: string
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/top-avaliados:
+    get:
+      tags:
+      - Livros
+      summary: Lista os livros mais bem avaliados
+      responses:
+        '200':
+          description: Ranking de livros.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  livros:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Livro'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/filtros/opcoes:
+    get:
+      tags:
+      - Livros
+      summary: Obtém as opções disponíveis para os filtros
+      security: []
+      responses:
+        '200':
+          description: Opções de filtro.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generos:
+                    type: array
+                    items:
+                      type: string
+                  editoras:
+                    type: array
+                    items:
+                      type: string
+                  autores:
+                    type: array
+                    items:
+                      type: string
+                  tipos_obra:
+                    type: array
+                    items:
+                      type: string
+                  avaliacoes:
+                    type: object
+                    properties:
+                      min:
+                        type: number
+                      max:
+                        type: number
+                      step:
+                        type: number
+                  ordenacao:
+                    type: object
+                    properties:
+                      campos:
+                        type: array
+                        items:
+                          type: string
+                      direcoes:
+                        type: array
+                        items:
+                          type: string
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/genero/{genero}:
+    get:
+      tags:
+      - Livros
+      summary: Lista livros por gênero
+      description: Combina livros do MySQL com resultados da Google Books API; se a API externa falhar, a rota segue
+        com os resultados locais.
+      security: []
+      parameters:
+      - name: genero
+        in: path
+        required: true
+        description: Nome do gênero.
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 10).
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: Lista paginada de livros.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/autor/{autor}:
+    get:
+      tags:
+      - Livros
+      summary: Lista livros por autor
+      description: Combina livros do MySQL com resultados da Google Books API; se a API externa falhar, a rota segue
+        com os resultados locais.
+      security: []
+      parameters:
+      - name: autor
+        in: path
+        required: true
+        description: Nome do autor.
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 10).
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: Lista paginada de livros.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/editora/{editora}:
+    get:
+      tags:
+      - Livros
+      summary: Lista livros por editora
+      description: Combina livros do MySQL com resultados da Google Books API; se a API externa falhar, a rota segue
+        com os resultados locais.
+      security: []
+      parameters:
+      - name: editora
+        in: path
+        required: true
+        description: Nome do editora.
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 10).
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: Lista paginada de livros.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/status/leitura:
+    get:
+      tags:
+      - Livros
+      summary: Lista os livros do usuário filtrados pelo status de leitura
+      parameters:
+      - name: status
+        in: query
+        required: false
+        description: Status de leitura.
+        schema:
+          type: string
+          enum:
+          - nao_lido
+          - quero_ler
+          - lendo
+          - lido
+          - abandonado
+          - relendo
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 10).
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    status_filtrado:
+                      type: string
+                    livros:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/livros/buscar:
+    get:
+      tags:
+      - Livros
+      summary: Busca livros diretamente na Google Books API
+      description: Busca na Google Books API com timeout (`GOOGLE_BOOKS_TIMEOUT_MS`, padrão 4 s), uma nova tentativa
+        em falha temporária e circuit breaker (3 falhas seguidas → 30 s sem chamar o Google). Se o Google não responder,
+        devolve 503 com mensagem amigável.
+      security: []
+      parameters:
+      - name: query
+        in: query
+        required: true
+        description: Texto da busca.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Resultados no formato do Google Books (volumeInfo).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  livros:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                      description: Item no formato da Google Books API (campo volumeInfo); só o endereço das imagens
+                        é normalizado para HTTPS.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '429':
+          description: Limite de uso da Google Books API atingido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '503':
+          description: Google Books indisponível (timeout, erro ou circuito aberto).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                erro: A busca no Google Books está indisponível no momento. Tente novamente em alguns instantes.
+  /api/livros/cadastrar:
+    post:
+      tags:
+      - Livros
+      summary: Cadastra um livro e o vincula à estante do usuário
+      description: 'A mesma operação existe em POST /api/livros/cadastrar-com-google. O título e ao menos um autor
+        (campo `autor` ou `autores`) são obrigatórios. Se o livro já estiver na estante do usuário, responde 409.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                id_google:
+                  type: string
+                autor:
+                  type: string
+                autores:
+                  type: string
+                  description: Lista de autores.
+                subtitulo:
+                  type: string
+                tipo_obra:
+                  type: string
+                  enum:
+                  - unico
+                  - trilogia
+                  - serie
+                  - colecao
+                ano_publicacao:
+                  type: integer
+                num_paginas:
+                  type: integer
+                editora:
+                  type: string
+                generos:
+                  type: string
+                  description: Lista de gêneros.
+                capa:
+                  type: string
+                  format: binary
+                  description: Imagem da capa (até 5 MB).
+              required:
+              - titulo
+      responses:
+        '201':
+          description: Livro cadastrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  livro:
+                    $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: Este livro já está na estante do usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/livros/cadastrar-com-google:
+    post:
+      tags:
+      - Livros
+      summary: Cadastra um livro e o vincula à estante do usuário (livro vindo da busca no Google Books)
+      description: 'A mesma operação existe em POST /api/livros/cadastrar-com-google. O título e ao menos um autor
+        (campo `autor` ou `autores`) são obrigatórios. Se o livro já estiver na estante do usuário, responde 409.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.
+
+
+        Mesma implementação de `POST /api/livros/cadastrar`.'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                id_google:
+                  type: string
+                autor:
+                  type: string
+                autores:
+                  type: string
+                  description: Lista de autores.
+                subtitulo:
+                  type: string
+                tipo_obra:
+                  type: string
+                  enum:
+                  - unico
+                  - trilogia
+                  - serie
+                  - colecao
+                ano_publicacao:
+                  type: integer
+                num_paginas:
+                  type: integer
+                editora:
+                  type: string
+                generos:
+                  type: string
+                  description: Lista de gêneros.
+                capa:
+                  type: string
+                  format: binary
+                  description: Imagem da capa (até 5 MB).
+              required:
+              - titulo
+      responses:
+        '201':
+          description: Livro cadastrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  livro:
+                    $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: Este livro já está na estante do usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/livros/editar/{id}:
+    put:
+      tags:
+      - Livros
+      summary: Edita os dados de um livro
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador do livro.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                autores:
+                  type: string
+                  description: Lista de autores.
+                subtitulo:
+                  type: string
+                tipo_obra:
+                  type: string
+                  enum:
+                  - unico
+                  - trilogia
+                  - serie
+                  - colecao
+                ano_publicacao:
+                  type: integer
+                num_paginas:
+                  type: integer
+                editora:
+                  type: string
+                generos:
+                  type: string
+                  description: Lista de gêneros.
+                capa:
+                  type: string
+                  format: binary
+                  description: Imagem da capa (até 5 MB).
+              description: Todos os campos são opcionais.
+      responses:
+        '200':
+          description: Livro atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Livro'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '403':
+          description: O livro foi cadastrado por outro usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+      description: 'Somente o usuário que cadastrou o livro pode editá-lo ou excluí-lo.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+  /api/livros/deletar/{id}:
+    delete:
+      tags:
+      - Livros
+      summary: Remove um livro
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador do livro.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Livro removido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '403':
+          description: O livro foi cadastrado por outro usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+      description: 'Somente o usuário que cadastrou o livro pode editá-lo ou excluí-lo.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+  /upload/capa/{arquivo}:
+    get:
+      tags:
+      - Livros
+      summary: Obtém a imagem de capa enviada
+      description: Arquivo estático servido pelo Backend Principal.
+      security: []
+      parameters:
+      - name: arquivo
+        in: path
+        required: true
+        description: Nome do arquivo da capa.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Imagem da capa.
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+  /api/leituras/iniciar:
+    post:
+      tags:
+      - Leituras
+      summary: Inicia a leitura de um livro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_livro:
+                  type: integer
+                id_google:
+                  type: string
+                titulo:
+                  type: string
+                autor:
+                  type: string
+                num_paginas:
+                  type: integer
+                capa:
+                  type: string
+              description: Informe o livro do acervo (id_livro) ou os dados para cadastrá-lo.
+      responses:
+        '201':
+          description: Leitura iniciada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  leitura:
+                    $ref: '#/components/schemas/Leitura'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/leituras/listar:
+    get:
+      tags:
+      - Leituras
+      summary: Lista as leituras do usuário
+      parameters:
+      - name: status
+        in: query
+        required: false
+        description: Status de leitura.
+        schema:
+          type: string
+          enum:
+          - nao_lido
+          - quero_ler
+          - lendo
+          - lido
+          - abandonado
+          - relendo
+      - name: page
+        in: query
+        required: false
+        description: Número da página (padrão 1).
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        required: false
+        description: Itens por página (padrão 10).
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: Lista paginada de leituras.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/Paginacao'
+                - type: object
+                  properties:
+                    leituras:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Leitura'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/leituras/{id}:
+    get:
+      tags:
+      - Leituras
+      summary: Consulta uma leitura
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Leitura.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leitura'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags:
+      - Leituras
+      summary: Remove uma leitura
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Leitura removida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/leituras/{id}/avaliar:
+    post:
+      tags:
+      - Leituras
+      summary: Avalia uma leitura
+      description: 'Avaliação entre 0 e 5, com resenha opcional.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                avaliacao:
+                  type: number
+                  minimum: 0
+                  maximum: 5
+                resenha:
+                  type: string
+              required:
+              - avaliacao
+      responses:
+        '200':
+          description: Leitura avaliada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  leitura:
+                    $ref: '#/components/schemas/Leitura'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/leituras/{id}/progresso:
+    put:
+      tags:
+      - Leituras
+      summary: Atualiza o progresso ou o status de uma leitura
+      description: 'Atingir a última página conclui a leitura; marcar como lido ajusta a página atual e a data de
+        conclusão.
+
+
+        Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pagina_atual:
+                  type: integer
+                status:
+                  type: string
+                  enum:
+                  - nao_lido
+                  - quero_ler
+                  - lendo
+                  - lido
+                  - abandonado
+                  - relendo
+              description: Informe ao menos um dos campos.
+      responses:
+        '200':
+          description: Leitura atualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  leitura:
+                    $ref: '#/components/schemas/Leitura'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/sessoes:
+    get:
+      tags:
+      - Sessões de leitura
+      summary: Lista as sessões de leitura do usuário
+      responses:
+        '200':
+          description: Sessões do usuário.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessoes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessaoComLeitura'
+                  total_sessoes:
+                    type: integer
+                  total_minutos:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    post:
+      tags:
+      - Sessões de leitura
+      summary: Registra uma sessão de leitura
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_leitura:
+                  type: integer
+                data:
+                  type: string
+                  format: date
+                pagina_inicial:
+                  type: integer
+                pagina_final:
+                  type: integer
+                duracao_minutos:
+                  type: integer
+              required:
+              - id_leitura
+      responses:
+        '201':
+          description: Sessão registrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  sessao:
+                    $ref: '#/components/schemas/SessaoLeitura'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/sessoes/leitura/{id}:
+    get:
+      tags:
+      - Sessões de leitura
+      summary: Lista as sessões de uma leitura
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Sessões da leitura.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessoes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessaoLeitura'
+                  total_sessoes:
+                    type: integer
+                  total_minutos:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/sessoes/{id}:
+    delete:
+      tags:
+      - Sessões de leitura
+      summary: Remove uma sessão
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da sessão.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Sessão removida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/anotacoes:
+    post:
+      tags:
+      - Anotações
+      summary: Cria uma anotação em uma leitura
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_leitura:
+                  type: integer
+                pagina:
+                  type: integer
+                titulo:
+                  type: string
+                conteudo:
+                  type: string
+              required:
+              - id_leitura
+              - conteudo
+      responses:
+        '201':
+          description: Anotação criada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  anotacao:
+                    $ref: '#/components/schemas/Anotacao'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/anotacoes/leitura/{id_leitura}:
+    get:
+      tags:
+      - Anotações
+      summary: Lista as anotações de uma leitura
+      parameters:
+      - name: id_leitura
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Anotações da leitura.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  anotacoes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anotacao'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/anotacoes/leitura/{id_leitura}/pagina/{pagina}:
+    get:
+      tags:
+      - Anotações
+      summary: Lista as anotações de uma página da leitura
+      parameters:
+      - name: id_leitura
+        in: path
+        required: true
+        description: Identificador da leitura.
+        schema:
+          type: integer
+      - name: pagina
+        in: path
+        required: true
+        description: Número da página.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Anotações da página.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagina:
+                    type: integer
+                  total:
+                    type: integer
+                  anotacoes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anotacao'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/anotacoes/{id}:
+    put:
+      tags:
+      - Anotações
+      summary: Atualiza uma anotação
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da anotação.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pagina:
+                  type: integer
+                titulo:
+                  type: string
+                conteudo:
+                  type: string
+      responses:
+        '200':
+          description: Anotação atualizada.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+    delete:
+      tags:
+      - Anotações
+      summary: Remove uma anotação
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da anotação.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Anotação removida.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/metas:
+    post:
+      tags:
+      - Metas de leitura
+      summary: Cria ou atualiza a meta de um ano
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ano:
+                  type: integer
+                qtd_livros_alvo:
+                  type: integer
+                qtd_paginas_alvo:
+                  type: integer
+              required:
+              - ano
+      responses:
+        '201':
+          description: Meta salva.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/MetaLeitura'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+    get:
+      tags:
+      - Metas de leitura
+      summary: Lista as metas do usuário, com o progresso de cada uma
+      responses:
+        '200':
+          description: Metas do usuário, com o progresso de cada uma.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        meta:
+                          $ref: '#/components/schemas/MetaLeitura'
+                        progresso:
+                          $ref: '#/components/schemas/ProgressoMeta'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/metas/{ano}:
+    get:
+      tags:
+      - Metas de leitura
+      summary: Consulta a meta de um ano
+      parameters:
+      - name: ano
+        in: path
+        required: true
+        description: Ano da meta.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Meta e progresso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/MetaLeitura'
+                  progresso:
+                    $ref: '#/components/schemas/ProgressoMeta'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags:
+      - Metas de leitura
+      summary: Remove a meta de um ano
+      parameters:
+      - name: ano
+        in: path
+        required: true
+        description: Ano da meta.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Meta removida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+      description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
+        para o Conquistas Service. Conquistas novas são consultadas em
+        `GET /api/conquistas/novas`.
+  /api/lista-desejos:
+    post:
+      tags:
+      - Lista de desejos
+      summary: Adiciona um livro à lista de desejos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_livro:
+                  type: integer
+              required:
+              - id_livro
+      responses:
+        '201':
+          description: Livro adicionado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  item:
+                    type: object
+                    properties:
+                      id_usuario:
+                        type: integer
+                      id_livro:
+                        type: integer
+                      data_adicao:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: O livro já está na lista de desejos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+    get:
+      tags:
+      - Lista de desejos
+      summary: Lista os livros da lista de desejos
+      responses:
+        '200':
+          description: Lista de desejos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  lista_desejos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        data_adicao:
+                          type: string
+                          format: date-time
+                        livro:
+                          $ref: '#/components/schemas/Livro'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/lista-desejos/{id_livro}:
+    delete:
+      tags:
+      - Lista de desejos
+      summary: Remove um livro da lista de desejos
+      parameters:
+      - name: id_livro
+        in: path
+        required: true
+        description: Identificador do livro.
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Livro removido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/conquistas:
+    get:
+      tags:
+      - Conquistas
+      summary: Lista as conquistas desbloqueadas pelo usuário
+      description: Atendido pelo Conquistas Service (NestJS), roteado pelo Nginx.
+      responses:
+        '200':
+          description: Conquistas desbloqueadas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conquistas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id_conquista:
+                          type: integer
+                        data_conquista:
+                          type: string
+                          format: date
+                        conquista:
+                          $ref: '#/components/schemas/Conquista'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/novas:
+    get:
+      tags:
+      - Conquistas
+      summary: Conquistas ganhas que o leitor ainda não viu
+      description: Devolve as concessões com `visualizada = 0` e as marca como vistas na mesma transação; a segunda
+        chamada devolve lista vazia. O app chama esta rota 0,8 s e 2,5 s depois de cada escrita para mostrar a celebração.
+      responses:
+        '200':
+          description: Conquistas novas (pode ser vazia).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conquistas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConquistaNova'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/catalogo:
+    get:
+      tags:
+      - Conquistas
+      summary: Lista todas as conquistas indicando as desbloqueadas pelo usuário
+      responses:
+        '200':
+          description: Catálogo de conquistas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conquistas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConquistaDoCatalogo'
+                  total:
+                    type: integer
+                  total_desbloqueadas:
+                    type: integer
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/XCache'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+      description: Cache-aside no Redis por leitor, com TTL (`CACHE_TTL_SEGUNDOS`). Invalidado quando o leitor ganha
+        conquista, quando chegam estatísticas novas ou quando o admin altera o catálogo.
+  /api/conquistas/admin/tipos:
+    get:
+      tags:
+      - Administração
+      summary: Lista os tipos de critério disponíveis e exemplos
+      description: Exige token JWT e perfil de administrador.
+      responses:
+        '200':
+          description: Tipos de critério.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tipos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        tipo:
+                          type: string
+                        exemplo:
+                          type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/admin/todas:
+    get:
+      tags:
+      - Administração
+      summary: Lista todas as conquistas (administração)
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Conquistas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conquistas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conquista'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/admin:
+    post:
+      tags:
+      - Administração
+      summary: Cria uma conquista
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: &id001
+                nome:
+                  type: string
+                  maxLength: 150
+                descricao:
+                  type: string
+                icone:
+                  type: string
+                tipo:
+                  $ref: '#/components/schemas/TipoConquista'
+                valor_alvo:
+                  type: integer
+                  minimum: 1
+                id_genero:
+                  type: integer
+                  minimum: 1
+                  description: Obrigatório para LIVROS_GENERO.
+                nome_genero:
+                  type: string
+                  maxLength: 100
+                criterio:
+                  type: string
+                  description: Obrigatório para MANUAL (texto do critério); nos demais tipos é gerado automaticamente.
+              required:
+              - nome
+      description: Exige perfil de administrador.
+      responses:
+        '201':
+          description: Conquista criada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  conquista:
+                    $ref: '#/components/schemas/Conquista'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/admin/{id}:
+    put:
+      tags:
+      - Administração
+      summary: Edita uma conquista
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da conquista.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: *id001
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Conquista atualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  conquista:
+                    $ref: '#/components/schemas/Conquista'
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+    delete:
+      tags:
+      - Administração
+      summary: Remove uma conquista
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da conquista.
+        schema:
+          type: integer
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Conquista removida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/conquistas/admin/{id}/conceder:
+    post:
+      tags:
+      - Administração
+      summary: Concede uma conquista a um usuário
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador da conquista.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_usuario:
+                  type: integer
+              required:
+              - id_usuario
+      description: Exige perfil de administrador.
+      responses:
+        '201':
+          description: Conquista concedida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: O usuário já possui esta conquista.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+        '503':
+          $ref: '#/components/responses/ServicoIndisponivel'
+  /api/admin/autores:
+    get:
+      tags:
+      - Administração
+      summary: Lista autores
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Lista.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/autores/{id}:
+    put:
+      tags:
+      - Administração
+      summary: Edita um autor
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                bio:
+                  type: string
+                nacionalidade:
+                  type: string
+                data_nascimento:
+                  type: string
+                  format: date
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Atualizado.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags:
+      - Administração
+      summary: Remove um autor
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Removido.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: 'Não é possível remover: existem livros associados.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/admin/autores/mesclar:
+    post:
+      tags:
+      - Administração
+      summary: Mescla autores duplicados
+      description: Une o registro de origem ao de destino, em transação. Exige perfil de administrador.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_origem:
+                  type: integer
+                id_destino:
+                  type: integer
+              required:
+              - id_origem
+              - id_destino
+      responses:
+        '200':
+          description: Mesclagem concluída.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/editoras:
+    get:
+      tags:
+      - Administração
+      summary: Lista editoras
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Lista.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/editoras/{id}:
+    put:
+      tags:
+      - Administração
+      summary: Edita uma editora
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                pais:
+                  type: string
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Atualizado.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags:
+      - Administração
+      summary: Remove uma editora
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Removido.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: 'Não é possível remover: existem livros associados.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/admin/editoras/mesclar:
+    post:
+      tags:
+      - Administração
+      summary: Mescla editoras duplicados
+      description: Une o registro de origem ao de destino, em transação. Exige perfil de administrador.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_origem:
+                  type: integer
+                id_destino:
+                  type: integer
+              required:
+              - id_origem
+              - id_destino
+      responses:
+        '200':
+          description: Mesclagem concluída.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/generos:
+    get:
+      tags:
+      - Administração
+      summary: Lista gêneros
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Lista.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/generos/{id}:
+    put:
+      tags:
+      - Administração
+      summary: Edita um gênero
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Atualizado.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags:
+      - Administração
+      summary: Remove um gênero
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador.
+        schema:
+          type: integer
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Removido.
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+        '409':
+          description: 'Não é possível remover: existem livros associados.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+  /api/admin/generos/mesclar:
+    post:
+      tags:
+      - Administração
+      summary: Mescla gêneros duplicados
+      description: Une o registro de origem ao de destino, em transação. Exige perfil de administrador.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_origem:
+                  type: integer
+                id_destino:
+                  type: integer
+              required:
+              - id_origem
+              - id_destino
+      responses:
+        '200':
+          description: Mesclagem concluída.
+        '400':
+          $ref: '#/components/responses/RequisicaoInvalida'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/usuarios:
+    get:
+      tags:
+      - Administração
+      summary: Lista os usuários
+      description: Exige perfil de administrador.
+      responses:
+        '200':
+          description: Usuários.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuarios:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UsuarioAdmin'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/usuarios/{id}/promover:
+    put:
+      tags:
+      - Administração
+      summary: Promove um usuário a administrador
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador do usuário.
+        schema:
+          type: integer
+      description: 'Exige perfil de administrador.
+
+
+        Publica `usuario.permissao_alterada`; o Conquistas Service passa a recusar (401) os tokens desse usuário
+        emitidos antes da mudança. O usuário precisa fazer login de novo.'
+      responses:
+        '200':
+          description: Usuário promovido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioAdmin'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+  /api/admin/usuarios/{id}/rebaixar:
+    put:
+      tags:
+      - Administração
+      summary: Rebaixa um administrador a usuário comum
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador do usuário.
+        schema:
+          type: integer
+      description: 'Exige perfil de administrador.
+
+
+        Publica `usuario.permissao_alterada`; o Conquistas Service passa a recusar (401) os tokens desse usuário
+        emitidos antes da mudança. O usuário precisa fazer login de novo.'
+      responses:
+        '200':
+          description: Usuário rebaixado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem:
+                    type: string
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioAdmin'
+        '401':
+          $ref: '#/components/responses/NaoAutenticado'
+        '403':
+          $ref: '#/components/responses/SemPermissao'
+        '404':
+          $ref: '#/components/responses/NaoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Erro:
+      type: object
+      properties:
+        erro:
+          type: string
+        statusCode:
+          type: integer
+          description: Código HTTP repetido no corpo (Express, Conquistas Service e Nginx).
+        detalhes:
+          type: array
+          items:
+            type: string
+          description: Campos inválidos, em erros de validação do banco.
+      required:
+      - erro
+    UsuarioResumo:
+      type: object
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        tipo_usuario:
+          type: string
+          enum:
+          - usuario
+          - admin
+      description: Resumo do usuário. Podem existir campos adicionais.
+    Livro:
+      type: object
+      properties:
+        id_livro:
+          type: integer
+        id_google:
+          type: string
+        titulo:
+          type: string
+        subtitulo:
+          type: string
+        tipo_obra:
+          type: string
+          enum:
+          - unico
+          - trilogia
+          - serie
+          - colecao
+        ano_publicacao:
+          type: integer
+        num_paginas:
+          type: integer
+        capa:
+          type: string
+        editora:
+          type: string
+        autores:
+          type: array
+          items:
+            type: string
+        generos:
+          type: array
+          items:
+            type: string
+        avaliacao_media:
+          type: number
+      description: Formato resumido; os campos exatos variam conforme a rota.
+    Leitura:
+      type: object
+      properties:
+        id_leitura:
+          type: integer
+        id_livro:
+          type: integer
+        status:
+          type: string
+          enum:
+          - nao_lido
+          - quero_ler
+          - lendo
+          - lido
+          - abandonado
+          - relendo
+        data_inicio:
+          type: string
+          format: date
+        data_conclusao:
+          type: string
+          format: date
+        avaliacao:
+          type: number
+          minimum: 0
+          maximum: 5
+        resenha:
+          type: string
+        pagina_atual:
+          type: integer
+        vezes_lido:
+          type: integer
+        livro:
+          $ref: '#/components/schemas/Livro'
+    SessaoLeitura:
+      type: object
+      properties:
+        id_sessao:
+          type: integer
+        id_leitura:
+          type: integer
+        data:
+          type: string
+          format: date
+        pagina_inicial:
+          type: integer
+        pagina_final:
+          type: integer
+        duracao_minutos:
+          type: integer
+    Anotacao:
+      type: object
+      properties:
+        id_anotacao:
+          type: integer
+        id_leitura:
+          type: integer
+        pagina:
+          type: integer
+        titulo:
+          type: string
+        conteudo:
+          type: string
+    MetaLeitura:
+      type: object
+      properties:
+        id_meta:
+          type: integer
+        ano:
+          type: integer
+        qtd_livros_alvo:
+          type: integer
+        qtd_paginas_alvo:
+          type: integer
+    Conquista:
+      type: object
+      properties:
+        id_conquista:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        icone:
+          type: string
+          nullable: true
+        criterio:
+          type: string
+          nullable: true
+          description: Texto de exibição gerado a partir do critério estruturado.
+        tipo:
+          $ref: '#/components/schemas/TipoConquista'
+        valor_alvo:
+          type: integer
+          minimum: 1
+        id_genero:
+          type: integer
+          nullable: true
+          description: Só para LIVROS_GENERO.
+        nome_genero:
+          type: string
+          nullable: true
+          description: Nome do gênero guardado na conquista (sem FK entre schemas).
+    ConquistaDoCatalogo:
+      type: object
+      properties:
+        id_conquista:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        criterio:
+          type: string
+          nullable: true
+        icone:
+          type: string
+          nullable: true
+        tipo:
+          $ref: '#/components/schemas/TipoConquista'
+        valor_alvo:
+          type: integer
+        progresso:
+          type: integer
+          nullable: true
+          description: Quanto o leitor já tem do valor-alvo; null para MANUAL.
+        desbloqueada:
+          type: boolean
+        data_conquista:
+          type: string
+          format: date
+          nullable: true
+    Paginacao:
+      type: object
+      properties:
+        total:
+          type: integer
+        pagina:
+          type: integer
+        totalPaginas:
+          type: integer
+    ProgressoMeta:
+      type: object
+      properties:
+        livros_lidos:
+          type: integer
+        paginas_lidas:
+          type: integer
+      description: Livros e páginas lidos no ano da meta.
+    UsuarioAdmin:
+      type: object
+      properties:
+        id_usuario:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        tipo_usuario:
+          type: string
+          enum:
+          - usuario
+          - admin
+    SessaoComLeitura:
+      allOf:
+      - $ref: '#/components/schemas/SessaoLeitura'
+      - type: object
+        properties:
+          leitura:
+            type: object
+            properties:
+              id_leitura:
+                type: integer
+              id_livro:
+                type: integer
+              status:
+                type: string
+              pagina_atual:
+                type: integer
+    TipoConquista:
+      type: string
+      enum:
+      - MANUAL
+      - LIVROS_LIDOS
+      - LIVROS_CADASTRADOS
+      - PAGINAS_LIDAS
+      - SESSOES
+      - ANOTACOES
+      - AVALIACOES
+      - GENEROS_DISTINTOS
+      - LIVROS_GENERO
+      - POSSUI_META
+    ConquistaNova:
+      type: object
+      properties:
+        id_conquista:
+          type: integer
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        icone:
+          type: string
+          nullable: true
+        data_conquista:
+          type: string
+          format: date
+          nullable: true
+  responses:
+    RequisicaoInvalida:
+      description: Dados inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    NaoAutenticado:
+      description: Token ausente, inválido ou expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    SemPermissao:
+      description: O usuário não tem perfil de administrador.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    NaoEncontrado:
+      description: Recurso não encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    ErroInterno:
+      description: Erro interno do servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    ServicoIndisponivel:
+      description: Conquistas Service fora do ar (resposta do Nginx) ou, em rotas de admin, Redis indisponível para
+        checar a revogação do token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+  headers:
+    XCache:
+      description: 'Origem da resposta: HIT (Redis), MISS (banco, guardado no cache) ou SEM_CACHE (Redis indisponível).'
+      schema:
+        type: string
+        enum:
+        - HIT
+        - MISS
+        - SEM_CACHE

@@ -1,5 +1,4 @@
 import { api } from './api';
-import { ConquistaDesbloqueada } from '../utils/celebrarConquistas';
 
 export interface Meta {
   id_meta: number;
@@ -30,13 +29,13 @@ export const metasService = {
     }
   },
 
-  async salvar(ano: number, qtdLivrosAlvo?: number, qtdPaginasAlvo?: number): Promise<{ meta: Meta; novasConquistas: ConquistaDesbloqueada[] }> {
+  async salvar(ano: number, qtdLivrosAlvo?: number, qtdPaginasAlvo?: number): Promise<Meta> {
     const { data } = await api.post('/metas', {
       ano,
       qtd_livros_alvo: qtdLivrosAlvo,
       qtd_paginas_alvo: qtdPaginasAlvo,
     });
-    return { meta: data.meta, novasConquistas: data.novasConquistas ?? [] };
+    return data.meta;
   },
 
   async deletar(ano: number): Promise<void> {

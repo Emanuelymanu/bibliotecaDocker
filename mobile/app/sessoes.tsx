@@ -21,7 +21,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Brand } from '@/constants/Brand';
 import { sessoesService, Sessao } from '@/src/services/sessoesService';
 import { leiturasService, LeituraItem } from '@/src/services/leiturasService';
-import { celebrarConquistas } from '@/src/utils/celebrarConquistas';
 
 const CHAVE_SESSAO_ATIVA = '@estante:sessaoAtiva';
 
@@ -137,7 +136,7 @@ export default function SessoesScreen() {
     if (!sessaoAtiva) return;
     const duracaoMinutos = Math.max(1, Math.round((Date.now() - sessaoAtiva.iniciadaEm) / 60000));
     try {
-      const { novasConquistas } = await sessoesService.registrar({
+      await sessoesService.registrar({
         id_leitura: sessaoAtiva.id_leitura,
         data: hojeISO(),
         pagina_inicial: sessaoAtiva.pagina_inicial,
@@ -147,7 +146,6 @@ export default function SessoesScreen() {
       await AsyncStorage.removeItem(CHAVE_SESSAO_ATIVA);
       setSessaoAtiva(null);
       await carregar();
-      celebrarConquistas(novasConquistas);
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível registrar a sessão.');
       console.error(e);

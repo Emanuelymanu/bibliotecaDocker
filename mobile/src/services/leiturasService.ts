@@ -1,5 +1,4 @@
 import { api } from './api';
-import { ConquistaDesbloqueada } from '../utils/celebrarConquistas';
 
 export interface LeituraItem {
   id_leitura: number;
@@ -25,15 +24,12 @@ export const leiturasService = {
     return data.leituras ?? [];
   },
 
-  async atualizarStatus(idLeitura: number, status: string): Promise<ConquistaDesbloqueada[]> {
-    const { data } = await api.put(`/leituras/${idLeitura}/progresso`, { status });
-    return data.novasConquistas ?? [];
+  async atualizarStatus(idLeitura: number, status: string): Promise<void> {
+    await api.put(`/leituras/${idLeitura}/progresso`, { status });
   },
 
-
-  async atualizarProgresso(idLeitura: number, dados: { status?: string; pagina_atual?: number }): Promise<ConquistaDesbloqueada[]> {
-    const { data } = await api.put(`/leituras/${idLeitura}/progresso`, dados);
-    return data.novasConquistas ?? [];
+  async atualizarProgresso(idLeitura: number, dados: { status?: string; pagina_atual?: number }): Promise<void> {
+    await api.put(`/leituras/${idLeitura}/progresso`, dados);
   },
 
   async avaliar(idLeitura: number, avaliacao: number): Promise<void> {

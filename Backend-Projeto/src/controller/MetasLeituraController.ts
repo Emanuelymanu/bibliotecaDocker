@@ -3,7 +3,7 @@ import { metas_leituras } from '../models-auto/metas_leituras';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { Op, Sequelize } from 'sequelize';
-import { verificarConquistas } from './ConquistasController';
+import { logErro } from '../logger';
 
 export class MetasLeituraController {
 
@@ -37,11 +37,9 @@ export class MetasLeituraController {
             if (qtd_paginas_alvo !== undefined) meta.qtd_paginas_alvo = qtd_paginas_alvo;
             await meta.save();
 
-            const novasConquistas = await verificarConquistas(usuarioId);
-
-            return res.status(201).json({ mensagem: 'Meta salva com sucesso', meta, novasConquistas });
+            return res.status(201).json({ mensagem: 'Meta salva com sucesso', meta });
         } catch (error) {
-            console.error('Erro ao salvar meta:', error);
+            logErro(req, 'Erro ao salvar meta', error);
             return res.status(500).json({ erro: 'Erro interno ao salvar meta' });
         }
     }
@@ -68,7 +66,7 @@ export class MetasLeituraController {
 
             return res.json({ meta, progresso });
         } catch (error) {
-            console.error('Erro ao buscar meta:', error);
+            logErro(req, 'Erro ao buscar meta', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar meta' });
         }
     }
@@ -92,7 +90,7 @@ export class MetasLeituraController {
 
             return res.json({ metas: metasComProgresso });
         } catch (error) {
-            console.error('Erro ao listar metas:', error);
+            logErro(req, 'Erro ao listar metas', error);
             return res.status(500).json({ erro: 'Erro interno ao listar metas' });
         }
     }
@@ -119,7 +117,7 @@ export class MetasLeituraController {
 
             return res.json({ mensagem: 'Meta removida com sucesso' });
         } catch (error) {
-            console.error('Erro ao remover meta:', error);
+            logErro(req, 'Erro ao remover meta', error);
             return res.status(500).json({ erro: 'Erro interno ao remover meta' });
         }
     }

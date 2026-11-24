@@ -50,6 +50,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY}
       REDIS_URL: redis://redis:6379
+      CACHE_DASHBOARD_TTL: ${CACHE_DASHBOARD_TTL:-300}
     depends_on:
       banco:
         condition: service_healthy

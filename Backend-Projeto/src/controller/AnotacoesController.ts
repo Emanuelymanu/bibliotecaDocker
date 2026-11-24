@@ -3,7 +3,7 @@ import { anotacoes } from '../models-auto/anotacoes';
 import { leituras } from '../models-auto/leituras';
 import { livros } from '../models-auto/livros';
 import { Op } from 'sequelize';
-import { verificarConquistas } from './ConquistasController';
+import { logErro } from '../logger';
 
 export class AnotacoesController {
     async criarAnotacao(req: Request, res: Response): Promise<Response> {
@@ -80,15 +80,12 @@ export class AnotacoesController {
                 }]
             });
 
-            const novasConquistas = await verificarConquistas(usuarioId);
-
             return res.status(201).json({
                 mensagem: 'Anotação criada com sucesso',
-                anotacao: anotacaoCompleta,
-                novasConquistas
+                anotacao: anotacaoCompleta
             });
         } catch (error) {
-            console.error('Erro ao criar anotação:', error);
+            logErro(req, 'Erro ao criar anotação', error);
             return res.status(500).json({
                 erro: 'Erro interno ao criar anotação'
             });
@@ -125,7 +122,7 @@ export class AnotacoesController {
                 anotacoes: anotacoesLista
             });
         } catch (error) {
-            console.error('Erro ao buscar anotações por leitura:', error);
+            logErro(req, 'Erro ao buscar anotações por leitura', error);
             return res.status(500).json({ erro: 'Erro interno ao buscar anotações' });
         }
     }
@@ -162,7 +159,7 @@ export class AnotacoesController {
                 mensagem: 'Anotação deletada com sucesso'
             });
         } catch (error) {
-            console.error('Erro ao deletar anotação', error);
+            logErro(req, 'Erro ao deletar anotação', error);
             return res.status(500).json({
                 erro: 'Erro interno ao deletar anotação'
             });
@@ -209,7 +206,7 @@ export class AnotacoesController {
             });
 
         } catch (error) {
-            console.error('Erro ao buscar anotações por páginas:', error);
+            logErro(req, 'Erro ao buscar anotações por páginas', error);
             return res.status(500).json({
                 erro: 'Erro interno'
             });

@@ -7,6 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Brand } from '@/constants/Brand';
 import { conquistasService, ConquistaCatalogo } from '@/src/services/conquistasService';
 import { iconeConquista } from '@/src/utils/iconeConquista';
+import { avisarConquistasNovas } from '@/src/services/avisoConquistas';
 
 
 function progressoDoCard(c: ConquistaCatalogo): { atual: number; alvo: number } | null {
@@ -38,6 +39,8 @@ export default function ConquistasScreen() {
   useFocusEffect(
     useCallback(() => {
       carregar();
+      // GDL-72: conquista que chegou depois do aviso automático aparece ao abrir a tela
+      void avisarConquistasNovas([0]);
     }, [carregar])
   );
 

@@ -9,6 +9,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,7 +25,8 @@ export default function BuscaScreen() {
   const [resultados, setResultados] = useState<Livro[]>([]);
   const [carregando, setCarregando] = useState<boolean>(false);
   const [ultimaBusca, setUltimaBusca] = useState<string>('');
-  const [adicionando, setAdicionando] = useState<string | null>(null); 
+  const [adicionando, setAdicionando] = useState<string | null>(null);
+  const [livroSelecionado, setLivroSelecionado] = useState<Livro | null>(null);
 
   const handleBuscar = async (): Promise<void> => {
     if (!termoBusca.trim()) {
@@ -100,7 +104,7 @@ export default function BuscaScreen() {
   }
 
   const renderItem = ({ item }: { item: Livro }) => (
-    <TouchableOpacity style={styles.livroCard} onPress={() => console.log('Abrir detalhes do:', item.titulo)}>
+    <TouchableOpacity style={styles.livroCard} onPress={() => setLivroSelecionado(item)}>
       <Image
         source={{ uri: item.capa || 'https://via.placeholder.com/80x120/cccccc/666666?text=Sem+Capa' }}
         style={styles.capa}
@@ -184,6 +188,88 @@ export default function BuscaScreen() {
           windowSize={5}
         />
       )}
+
+      <Modal
+        visible={!!livroSelecionado}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLivroSelecionado(null)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setLivroSelecionado(null)} />
+        {livroSelecionado && (
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              {livroSelecionado.capa ? (
+                <Image source={{ uri: livroSelecionado.capa }} style={styles.sheetCapa} />
+              ) : (
+                <View style={[styles.sheetCapa, styles.sheetCapaVazia]}>
+                  <Ionicons name="book" size={28} color="#999" />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitulo}>{livroSelecionado.titulo}</Text>
+                {!!livroSelecionado.subtitulo && (
+                  <Text style={styles.sheetSubtitulo}>{livroSelecionado.subtitulo}</Text>
+                )}
+                <Text style={styles.sheetMeta}>{livroSelecionado.autores.join(', ')}</Text>
+                <Text style={styles.sheetMeta}>
+                  {[
+                    livroSelecionado.editora,
+                    livroSelecionado.ano_publicacao,
+                    livroSelecionado.num_paginas ? `${livroSelecionado.num_paginas} páginas` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+                {!!livroSelecionado.avaliacao_media && (
+                  <View style={styles.sheetNotaRow}>
+                    <Ionicons name="star" size={14} color="#fbbf24" />
+                    <Text style={styles.sheetNota}>{Number(livroSelecionado.avaliacao_media).toFixed(1)}</Text>
+                    {!!livroSelecionado.total_avaliacoes && (
+                      <Text style={styles.sheetMeta}> ({livroSelecionado.total_avaliacoes})</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {!!livroSelecionado.generos?.length && (
+              <View style={styles.sheetGenerosRow}>
+                {livroSelecionado.generos.map((g) => (
+                  <View key={g} style={styles.sheetGeneroTag}>
+                    <Text style={styles.sheetGeneroTexto}>{g}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {livroSelecionado.descricao ? (
+              <ScrollView style={styles.sheetDescricaoBox}>
+                <Text style={styles.sheetDescricao}>{livroSelecionado.descricao}</Text>
+              </ScrollView>
+            ) : (
+              <Text style={styles.sheetMeta}>Sem sinopse disponível.</Text>
+            )}
+
+            <View style={styles.sheetBotoes}>
+              <TouchableOpacity style={styles.sheetFechar} onPress={() => setLivroSelecionado(null)}>
+                <Text style={styles.sheetFecharTexto}>Fechar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetAdicionar}
+                onPress={() => {
+                  const livro = livroSelecionado;
+                  setLivroSelecionado(null);
+                  // Espera o modal fechar: no iOS um Alert aberto durante a animação não aparece.
+                  setTimeout(() => handleAdicionar(livro), 350);
+                }}
+              >
+                <Text style={styles.sheetAdicionarTexto}>Adicionar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -311,5 +397,114 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 12,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: '85%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 28,
+    gap: 16,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  sheetCapa: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+  },
+  sheetCapaVazia: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetTitulo: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+  },
+  sheetSubtitulo: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 2,
+  },
+  sheetMeta: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+  },
+  sheetNotaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+  },
+  sheetNota: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+  },
+  sheetGenerosRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sheetGeneroTag: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  sheetGeneroTexto: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#555',
+  },
+  sheetDescricaoBox: {
+    maxHeight: 220,
+  },
+  sheetDescricao: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#444',
+  },
+  sheetBotoes: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sheetFechar: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#f5f5f5',
+  },
+  sheetFecharTexto: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+  },
+  sheetAdicionar: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#3b82f6',
+  },
+  sheetAdicionarTexto: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
 });
