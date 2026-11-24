@@ -6,7 +6,7 @@ Verificações repetíveis que impedem regressões arquiteturais. Todas as marca
 |---|---|---|
 | Os serviços compilam | `npm run build` (Express, Nest, front) | No CI |
 | Regras de conquistas corretas | `conquistas.regras.spec.ts`, `montar-criterio.spec.ts` | No CI |
-| Cache-aside (HIT/MISS/fallback/invalidação) | `cache-catalogo.service.spec.ts`, `cacheDashboard.test.ts` | No CI |
+| Cache-aside (HIT/MISS/fallback/invalidação) | `cache-catalogo.service.spec.ts` | No CI |
 | Contrato do evento entre serviços | `estatisticas-atualizadas.spec.ts` (consumidor) e `estatisticasLeitor.test.ts` (publicador, "no formato do conquistas-service") | No CI |
 | Fluxo ponta a ponta por eventos | `fluxo-eventos.e2e-spec.ts` com Redis e MySQL reais | No CI |
 | Idempotência e ordem dos eventos | `eventos.banco-spec.ts` | No CI |

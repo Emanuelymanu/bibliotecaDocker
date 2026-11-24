@@ -43,12 +43,12 @@ Com a mesma pessoa como PO, Scrum Master e desenvolvedora, há menos separação
 | Sprint 4 — Nest e Cache | 27/10 – 02/11 | Conquistas servidas pelo NestJS (banco próprio, JWT e módulo) com cache-aside e invalidação | GDL-10, 11, 66, 67, 68, 19, 20, 21–25 |
 | Sprint 5 — Eventos | 03/11 – 09/11 | Monólito publica eventos e o serviço consome; serviço no Compose e no Nginx; revogação de admin; CI/CD; modelo de domínio e OpenAPI | GDL-16, 17, 18, 27–30, 39, 40, 41, 57, 58, 60, 70, 71, 73, 74, 79 |
 | Sprint 6 — Migração | 09/11 – 20/11 | Código antigo removido; sistema resiliente com o serviço fora; teste do fluxo; qualidade, SLO, observabilidade | GDL-26, 31, 32, 33, 51, 54, 69, 72, 75, 76, 77 |
-| Sprint 7 — Finalização | 20/11 – 23/11 | Logger, tratamento central de erros, cache da dashboard, apresentação | GDL-34, GDL-12, GDL-35, GDL-80, GDL-32 (implementação) e GDL-42 |
+| Sprint 7 — Finalização | 20/11 – 23/11 | Logger, tratamento central de erros, apresentação | GDL-34, GDL-12, GDL-35, GDL-80, GDL-32 (implementação) e GDL-42 |
 
 Na Sprint 6 o time não fechou GDL-34, GDL-35, GDL-12 e GDL-42; eles foram levados para a Sprint 7 (replanejamento registrado no Jira). Na revisão final, o time encontrou o GDL-32 (Sprint 6) marcado como Feito sem código e implementou a resiliência na Sprint 7 (PR #51) — exemplo de inspeção e adaptação.
 
 ## Concluído na Sprint 7
-GDL-34 (logger, PR #47), GDL-35 (tratamento de erros, PR #50), GDL-80 (documentação, PR #49), GDL-12 (cache da dashboard, PR #48), GDL-32 (resiliência do Google Books, PR #51) e GDL-42 (apresentação final).
+GDL-34 (logger, PR #47), GDL-35 (tratamento de erros, PR #50), GDL-80 (documentação, PR #49), GDL-12 (PR #48), GDL-32 (resiliência do Google Books, PR #51) e GDL-42 (apresentação final).
 
 ## Cancelado
 GDL-61 (ConquistaService no Express): fechado como Feito com o título "[Cancelado]", porque foi substituído pela extração da Gamificação para o NestJS.

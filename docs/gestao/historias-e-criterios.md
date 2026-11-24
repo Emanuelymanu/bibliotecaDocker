@@ -38,9 +38,3 @@ As histórias ficam no Jira no formato **Como** [persona], **quero** [capacidade
 - Promover/rebaixar publica `usuario.permissao_alterada` com `{ usuarioId, tipo_usuario, alteradoEm }`.
 - O serviço grava `auth:revogado:<id>` com TTL de 5 h e recusa com 401 tokens emitidos antes da mudança.
 - Redis fora: rotas de leitor seguem; rotas de admin respondem 503.
-
-## GDL-12 — Cache da dashboard do usuário (Sprint 7)
-**Como** leitor, **quero** que meu dashboard abra rapidamente **para** acompanhar meu progresso.
-- Dashboard usa cache-aside com chave por usuário.
-- TTL definido.
-- Cache invalidado ao iniciar uma nova leitura.

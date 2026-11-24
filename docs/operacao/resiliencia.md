@@ -3,7 +3,7 @@
 ## Implementado
 | Estratégia | Onde | Issue |
 |---|---|---|
-| Fallback do cache para o banco | Catálogo de conquistas (Nest) e dashboard (Express) | GDL-10, GDL-12 |
+| Fallback do cache para o banco | Catálogo de conquistas (Nest) | GDL-10 |
 | Timeout de 300 ms nas operações de cache | `CacheCatalogoService` | GDL-10 |
 | Publicação que não quebra a requisição | `publicadorEventos.ts`: `disableOfflineQueue`, timeout de conexão 2 s, falha só vai para o log | GDL-70 |
 | Reconexão com backoff | Clientes Redis (até 5 s entre tentativas); Nest reassina sozinho quando o Redis volta | GDL-70, GDL-71 |

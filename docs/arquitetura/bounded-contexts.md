@@ -7,7 +7,7 @@
 **Responsabilidade:** livros, autores, editoras e gêneros. Integra Google Books. `googleBooksService.ts` normaliza URLs de imagem; o mapeamento ainda usa a estrutura externa `volumeInfo`, sem ACL completa.
 
 ## Acompanhamento de Leitura (Core)
-**Responsabilidade:** leituras por usuário, progresso, sessões, anotações, metas, avaliações e dashboard. É o **publicador** de `estatisticas.atualizadas`: depois de cada escrita bem-sucedida, monta o snapshot das estatísticas do leitor (`eventos/estatisticasLeitor.ts`). A dashboard usa cache-aside no Redis por leitor (GDL-12).
+**Responsabilidade:** leituras por usuário, progresso, sessões, anotações, metas e avaliações. É o **publicador** de `estatisticas.atualizadas`: depois de cada escrita bem-sucedida, monta o snapshot das estatísticas do leitor (`eventos/estatisticasLeitor.ts`).
 
 ## Gamificação
 **Responsabilidade:** catálogo de conquistas, critério, progresso e concessão. Fica inteiro no `conquistas-service` (NestJS), com schema próprio `gamificacao`. Entidades TypeORM: `Conquista`, `ConquistaDoUsuario`, `EstatisticasLeitorEntity`. Não consulta o banco do Express: recebe as estatísticas só pelo evento. O código antigo do Express foi removido (GDL-75).

@@ -7,7 +7,7 @@ O `CHANGELOG.md` segue Keep a Changelog e Versionamento Semântico. Cada versão
 | **1.0.0** | 19/10/2026 | Primeira versão estável: o MVP (histórias GDL-43 a GDL-50) |
 | **1.1.0** | 27/10/2026 | Serviço NestJS iniciado, schema `gamificacao`, critérios estruturados, Redis no Compose, testes e correções |
 | **1.2.0** | 09/11/2026 | JWT e módulo de conquistas no NestJS, cache do catálogo, Compose e Nginx com o serviço, CI/CD, eventos Redis Pub/Sub, revogação de admin, app com conquistas estruturadas |
-| **1.3.0** (próxima) | fim da Sprint 7 | `nome_genero`, remoção das conquistas do Express, `/api/conquistas/novas`, resiliência com o serviço fora, teste do fluxo de eventos, logger estruturado, cache da dashboard, tratamento central de erros, resiliência do Google Books (timeout, retry e circuit breaker) |
+| **1.3.0** (próxima) | fim da Sprint 7 | `nome_genero`, remoção das conquistas do Express, `/api/conquistas/novas`, resiliência com o serviço fora, teste do fluxo de eventos, logger estruturado, tratamento central de erros, resiliência do Google Books (timeout, retry e circuit breaker) |
 
 ## Fluxo
 `feature/GDL-XX-...` → PR para `dev` → `release/x.y.z` (CHANGELOG) → PR para `main` → tag `vx.y.z`.

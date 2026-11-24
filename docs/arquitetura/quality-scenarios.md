@@ -5,9 +5,9 @@ Os cenários diferenciam comportamento implementado (com evidência) de metas pr
 | ID | Atributo | Estímulo → resposta esperada | Evidência / situação |
 |---|---|---|---|
 | QS-01 | Desempenho | Requisição HTTP responde dentro do orçamento | Log por requisição com duração (pino) e Nginx com `$request_time`; sem série de medições sob carga |
-| QS-02 | Desempenho | Consultas repetidas ao catálogo de conquistas e à dashboard usam cache | **Implementado:** cache-aside com TTL e `X-Cache: HIT/MISS` (catálogo: GDL-10/11; dashboard: GDL-12) |
+| QS-02 | Desempenho | Consultas repetidas ao catálogo de conquistas usam cache | **Implementado:** cache-aside com TTL e `X-Cache: HIT/MISS` (GDL-10/11) |
 | QS-03 | Disponibilidade | Conquistas Service fora do ar | **Implementado:** Nginx responde 503 JSON só para `/api/conquistas`; Express continua; eventos ficam no hash de pendentes e são processados quando o serviço volta (GDL-76) |
-| QS-04 | Resiliência | Redis indisponível | **Implementado:** catálogo e dashboard vão ao banco; publicação falha sem quebrar a requisição; Nest reassina sozinho; log avisa queda e volta uma vez |
+| QS-04 | Resiliência | Redis indisponível | **Implementado:** catálogo vai ao banco; publicação falha sem quebrar a requisição; Nest reassina sozinho; log avisa queda e volta uma vez |
 | QS-05 | Consistência | Evento repetido ou fora de ordem | **Implementado:** upsert condicional por `gerado_em` e PK composta na concessão; testes em `eventos.banco-spec.ts` |
 | QS-06 | Segurança | Admin rebaixado tenta usar token antigo | **Implementado:** evento `usuario.permissao_alterada` → 401; com Redis fora, rotas de admin respondem 503 (GDL-79) |
 | QS-07 | Recuperação | Container cai | `restart: always`; healthcheck no MySQL, Redis e conquistas-service (`/health`) |

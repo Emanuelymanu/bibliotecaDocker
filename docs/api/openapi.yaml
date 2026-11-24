@@ -45,8 +45,6 @@ tags:
   description: Meta anual de livros e páginas.
 - name: Lista de desejos
   description: Livros que o usuário deseja ler.
-- name: Dashboard
-  description: Estatísticas do usuário.
 - name: Conquistas
   description: Conquistas do usuário. Atendidas pelo Conquistas Service (NestJS).
 - name: Administração
@@ -869,7 +867,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
       requestBody:
         required: true
         content:
@@ -944,7 +942,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.
 
 
         Mesma implementação de `POST /api/livros/cadastrar`.'
@@ -1084,7 +1082,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
   /api/livros/deletar/{id}:
     delete:
       tags:
@@ -1123,7 +1121,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
   /upload/capa/{arquivo}:
     get:
       tags:
@@ -1192,7 +1190,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/leituras/listar:
     get:
@@ -1300,7 +1298,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/leituras/{id}/avaliar:
     post:
@@ -1311,7 +1309,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
       parameters:
       - name: id
         in: path
@@ -1364,7 +1362,7 @@ paths:
 
 
         Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub) para o
-        Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
+        Conquistas Service. Conquistas novas são consultadas em `GET /api/conquistas/novas`.'
       parameters:
       - name: id
         in: path
@@ -1481,7 +1479,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/sessoes/leitura/{id}:
     get:
@@ -1546,7 +1544,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/anotacoes:
     post:
@@ -1592,7 +1590,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/anotacoes/leitura/{id_leitura}:
     get:
@@ -1703,7 +1701,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
     delete:
       tags:
@@ -1726,7 +1724,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/metas:
     post:
@@ -1767,7 +1765,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
     get:
       tags:
@@ -1852,7 +1850,7 @@ paths:
         '500':
           $ref: '#/components/responses/ErroInterno'
       description: Depois de uma resposta 2xx, o backend publica o evento `estatisticas.atualizadas` (Redis Pub/Sub)
-        para o Conquistas Service e invalida o cache da dashboard do leitor. Conquistas novas são consultadas em
+        para o Conquistas Service. Conquistas novas são consultadas em
         `GET /api/conquistas/novas`.
   /api/lista-desejos:
     post:
@@ -1960,60 +1958,6 @@ paths:
           $ref: '#/components/responses/NaoEncontrado'
         '500':
           $ref: '#/components/responses/ErroInterno'
-  /api/dashboard:
-    get:
-      tags:
-      - Dashboard
-      summary: Obtém as estatísticas do usuário
-      responses:
-        '200':
-          description: Dashboard do usuário.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  estatisticas:
-                    type: object
-                    properties:
-                      total_usuarios:
-                        type: integer
-                      total_livros:
-                        type: integer
-                      total_leituras:
-                        type: integer
-                      total_paginas_lidas:
-                        type: integer
-                      livros_lidos:
-                        type: integer
-                      livros_lendo:
-                        type: integer
-                      livros_quero_ler:
-                        type: integer
-                  ultimos_livros:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Livro'
-                  generos_mais_lidos:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        genero:
-                          type: string
-                        quantidade:
-                          type: integer
-                  avaliacao_media:
-                    type: number
-          headers:
-            X-Cache:
-              $ref: '#/components/headers/XCache'
-        '401':
-          $ref: '#/components/responses/NaoAutenticado'
-        '500':
-          $ref: '#/components/responses/ErroInterno'
-      description: Cache-aside no Redis por leitor (`dashboard:usuario:<id>`), TTL `CACHE_DASHBOARD_TTL` (padrão
-        300 s). Invalidado por qualquer escrita 2xx do leitor. Com Redis fora, responde direto do banco.
   /api/conquistas:
     get:
       tags:
@@ -3111,8 +3055,7 @@ components:
             $ref: '#/components/schemas/Erro'
   headers:
     XCache:
-      description: 'Origem da resposta: HIT (Redis), MISS (banco, guardado no cache) ou SEM_CACHE (Redis indisponível;
-        só no catálogo de conquistas).'
+      description: 'Origem da resposta: HIT (Redis), MISS (banco, guardado no cache) ou SEM_CACHE (Redis indisponível).'
       schema:
         type: string
         enum:

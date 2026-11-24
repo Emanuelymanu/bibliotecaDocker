@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Identidade e Acesso | Genérico | Cadastro, JWT, perfil e autorização | Express |
 | Catálogo de Livros | Suporte | Livros, autores, editoras, gêneros e Google Books | Express |
-| Acompanhamento de Leitura | Core | Leituras, progresso, sessões, anotações, metas, avaliações, dashboard | Express |
+| Acompanhamento de Leitura | Core | Leituras, progresso, sessões, anotações, metas, avaliações | Express |
 | Gamificação | Suporte | Critérios, catálogo, progresso e concessão de conquistas | conquistas-service (NestJS) |
 | Google Books | Externo | Fonte de dados bibliográficos | API externa |
 
