@@ -5,6 +5,41 @@ Todas as mudanças relevantes deste projeto são documentadas neste arquivo.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-11-24
+
+### Adicionado
+- **conquistas-service**: conquista por gênero guarda também o nome do gênero (`nome_genero`),
+  já que o schema `gamificacao` não tem FK para o banco principal (GDL-69).
+- **conquistas-service**: `GET /api/conquistas/novas` devolve as conquistas que o leitor ainda
+  não viu e as marca como vistas na mesma transação; o app consulta logo depois das escritas e
+  mostra a celebração (GDL-72).
+- **Eventos**: quando o `conquistas-service` está fora do ar, o backend guarda o último snapshot
+  de cada leitor no Redis (`eventos:pendentes:estatisticas.atualizadas`) e o serviço processa
+  esses eventos ao subir e a cada 30 s (GDL-76).
+- **Testes**: teste e2e do fluxo completo Redis → conquistas → `/novas`, rodando no CI com
+  MySQL e Redis reais (GDL-77).
+- **Logs**: logger estruturado (pino) no backend e no `conquistas-service`, com uma linha por
+  requisição, cabeçalho `X-Request-Id` e níveis configuráveis por `LOG_NIVEL` e `LOG_FORMATO`
+  (GDL-34).
+- **Backend**: middleware central de tratamento de erros com resposta padronizada
+  `{ erro, statusCode }`, 404 em JSON para rotas `/api` inexistentes e 500 genérico sem expor
+  detalhes internos (GDL-35).
+- **Backend**: integração com o Google Books com timeout, nova tentativa em falha temporária e
+  circuit breaker; quando o Google não responde, a busca devolve uma mensagem amigável e as
+  listagens mostram só os livros locais (GDL-32).
+- **Documentação** em `docs/`: C4, Context Map, Bounded Contexts, modelo de domínio, ADRs com
+  alternativas, OpenAPI 1.3.0, cenários de qualidade, SLI/SLO, observabilidade, resiliência,
+  runbook, CI/CD, deploy e gestão do projeto (GDL-80).
+
+### Alterado
+- **App e site**: as mensagens de erro passam a ser lidas do campo `erro` da resposta (GDL-35).
+
+### Removido
+- **Backend**: todo o código de conquistas do monólito (controllers, rotas, modelos e regras);
+  o `conquistas-service` passa a ser o único responsável (GDL-75).
+- **Backend**: o campo `novasConquistas` das respostas de leituras, sessões, anotações e metas;
+  o app usa `GET /api/conquistas/novas` (GDL-72, GDL-75).
+
 ## [1.2.0] - 2026-11-09
 
 ### Adicionado
@@ -68,6 +103,7 @@ e o projeto adota o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 - Primeira versão estável.
 
+[1.3.0]: https://github.com/Emanuelymanu/bibliotecaDocker/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Emanuelymanu/bibliotecaDocker/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Emanuelymanu/bibliotecaDocker/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Emanuelymanu/bibliotecaDocker/releases/tag/v1.0.0
