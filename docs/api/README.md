@@ -13,7 +13,7 @@ Servidor local: `https://estantedigital.local`.
 - Removido `novasConquistas` das respostas de leituras, sessões, anotações e metas (GDL-75).
 - Nova rota `GET /api/conquistas/novas` (GDL-72).
 - Conquista com `tipo`, `valor_alvo`, `id_genero` e `nome_genero` (GDL-68, GDL-69); catálogo com `progresso` e `total`.
-- Cabeçalho `X-Cache` no catálogo e na dashboard (GDL-10, GDL-12); `X-Request-Id` em todas as respostas (GDL-34).
+- Cabeçalho `X-Cache` no catálogo (GDL-10); `X-Request-Id` em todas as respostas (GDL-34).
 - Resposta 503 nas rotas de conquistas; promover/rebaixar documentam a revogação do token (GDL-79).
 - Erros tratados pelo middleware central respondem `{ erro, statusCode, detalhes? }` (GDL-35); controllers antigos ainda respondem 500 com `{ erro }`. Busca no Google com 503/429 amigáveis, sem expor a mensagem interna (GDL-32).
 - Rotas que faltavam: `GET /api/livros`, `POST /api/livros/cadastrar-com-google`, `/api/auth/perfil`.

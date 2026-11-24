@@ -11,7 +11,7 @@
 | Atraso da conquista | Horário da escrita × `recebido` no serviço | p95 do atraso |
 
 ## SLOs propostos (ainda não medidos)
-- p95 menor que 500 ms nos endpoints críticos (login, listar livros, dashboard, catálogo) sob a carga da apresentação.
+- p95 menor que 500 ms nos endpoints críticos (login, listar livros, catálogo) sob a carga da apresentação.
 - Taxa de 5xx menor que 1%.
 - 99% dos eventos de estatísticas consumidos em até 5 s.
 - Conquista aparece no app em até 3 s depois da escrita (o app consulta em 0,8 s e 2,5 s).

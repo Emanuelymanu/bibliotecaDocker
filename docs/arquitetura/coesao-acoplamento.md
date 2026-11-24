@@ -5,9 +5,9 @@ Esta análise aplica as aulas ao código atual. Não afirma que o sistema implem
 ## Evidências positivas
 - NestJS separa módulos, controllers, services, DTOs, entities, cache, auth, eventos e banco.
 - Regras de critério são funções puras com testes.
-- `CacheCatalogoService` (Nest) e `cacheDashboard.ts` (Express) encapsulam o acesso ao cache.
+- `CacheCatalogoService` (Nest) encapsula o acesso ao cache.
 - **Baixo acoplamento entre serviços:** Express e NestJS não se chamam por HTTP; falam só pelo contrato do evento. Um pode ficar fora do ar sem derrubar o outro.
-- Publicação e invalidação ficam em middlewares pós-escrita, sem alterar cada controller.
+- A publicação de eventos fica em um middleware pós-escrita, sem alterar cada controller.
 - `googleBooksService.ts` centraliza a chamada à API externa.
 
 ## Acoplamentos identificados
@@ -25,6 +25,6 @@ Esta análise aplica as aulas ao código atual. Não afirma que o sistema implem
 ## Padrões aplicados
 - MVC/Controllers + ORM no Express.
 - Módulos, providers e injeção de dependência no NestJS.
-- Cache-aside (catálogo de conquistas e dashboard).
+- Cache-aside (catálogo de conquistas).
 - Publish/Subscribe com Redis e snapshot cumulativo como evento.
 - Strangler fig: a Gamificação saiu do monólito em etapas, até a remoção do código antigo (GDL-75).

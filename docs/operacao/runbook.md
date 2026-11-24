@@ -17,7 +17,7 @@
 ## Redis indisponível
 1. `docker compose logs --tail=200 redis`.
 2. Verificar `docker compose exec redis redis-cli ping`.
-3. Esperado: catálogo responde com `X-Cache: SEM_CACHE`, dashboard com `X-Cache: MISS`; eventos não são publicados (log `falha ao publicar`); rotas de admin do serviço de conquistas respondem 503.
+3. Esperado: catálogo responde com `X-Cache: SEM_CACHE`; eventos não são publicados (log `falha ao publicar`); rotas de admin do serviço de conquistas respondem 503.
 4. Depois que o Redis voltar, os logs mostram `Redis disponível de novo` nos dois serviços. Conquistas atrasadas aparecem na próxima escrita do leitor.
 5. Registrar bug se algum fallback não ocorrer.
 

@@ -9,7 +9,7 @@ A Estante Digital permite organizar a biblioteca pessoal, acompanhar leituras, r
 |---|---|---|---|
 | Frontend web | React + Vite | Interface web | No Compose |
 | Mobile | Expo / React Native | Interface móvel; avisa conquistas novas | No repositório |
-| Backend Principal | Express 5 + TypeScript + Sequelize | Identidade, catálogo, leituras, sessões, anotações, metas, dashboard, administração; **publica eventos** | No Compose |
+| Backend Principal | Express 5 + TypeScript + Sequelize | Identidade, catálogo, leituras, sessões, anotações, metas, administração; **publica eventos** | No Compose |
 | Conquistas Service | NestJS + TypeORM | Catálogo, progresso, concessão e administração de conquistas; **consome eventos** | No Compose, sem porta exposta |
 | MySQL | MySQL 8 | Schemas `projeto5p` e `gamificacao` | No Compose (porta só em `127.0.0.1`) |
 | Redis | Redis 7 | Cache, Pub/Sub, eventos pendentes, revogação de tokens | No Compose |
