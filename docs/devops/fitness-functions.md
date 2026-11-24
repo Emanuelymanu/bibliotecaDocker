@@ -11,6 +11,8 @@ Verificações repetíveis que impedem regressões arquiteturais. Todas as marca
 | Fluxo ponta a ponta por eventos | `fluxo-eventos.e2e-spec.ts` com Redis e MySQL reais | No CI |
 | Idempotência e ordem dos eventos | `eventos.banco-spec.ts` | No CI |
 | Revogação de token | `jwt-auth.guard.spec.ts`, `auth.e2e-spec.ts` | No CI |
+| Resiliência do Google Books (timeout, retry, circuit breaker, fallback) | `googleBooksService.test.ts` | No CI |
+| Tratamento central de erros (formato, 4xx/5xx, sem vazar detalhe interno) | `tratarErros.test.ts` | No CI |
 | Compose válido e imagens constroem | `docker compose config` + `docker compose build` | No CI |
 | Mensagem de commit no padrão | commitlint (Husky) | Local |
 | Contrato OpenAPI válido | `npx @redocly/cli lint docs/api/openapi.yaml` | Manual |

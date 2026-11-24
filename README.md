@@ -1,4 +1,8 @@
 # Biblioteca Docker - Guia Rapido de Setup
+
+>  **Documentação do projeto:** [docs/README.md](docs/README.md) — arquitetura (C4, DDD, ADRs), API (OpenAPI), operação, CI/CD e gestão.
+>
+
 CI/CD
 Este README centraliza o passo a passo para rodar o projeto em ambiente de desenvolvimento com Docker.
 

@@ -8,4 +8,3 @@
 | [ADR-004](ADR-004-eventos-entre-servicos.md) | Eventos entre Acompanhamento e Gamificação | Implementada (revisada: evento único com snapshot) | GDL-24 |
 | [ADR-005](ADR-005-criterios-estruturados.md) | Critérios estruturados de conquistas | Implementada | GDL-25 |
 
-Atualize status, data e consequências no mesmo PR que mudar a implementação.

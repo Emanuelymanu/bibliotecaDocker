@@ -25,7 +25,7 @@ Há partes em outros domínios, mas elas não representam o projeto inteiro:
 
 ## Abordagem: **adaptativa (Scrum)** com restrições preditivas
 - Sprints curtas (cerca de uma semana) com objetivo de sprint no Jira, backlog priorizado e replanejamento quando a sprint não fecha.
-- Fluxo A fazer → Fazendo → Em revisão → Feito; toda mudança passa por PR revisado.
+- Fluxo A fazer → Fazendo → Em revisão → Feito; toda mudança passa por PR com CI.
 - Incremento entregue por release versionada (1.0.0, 1.1.0, 1.2.0).
 - Restrições fixas da disciplina (prazo final e rubrica) funcionam como marcos preditivos; o escopo dentro delas é adaptado a cada sprint.
 

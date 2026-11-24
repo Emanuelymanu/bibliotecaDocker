@@ -12,4 +12,4 @@ Cada diagrama existe em dois formatos:
 | Context Map | [context-map.md](context-map.md) | [png](context-map.png) |
 | Modelo de domínio da Gamificação | [modelo-dominio-gamificacao.md](modelo-dominio-gamificacao.md) | [png](modelo-dominio-gamificacao.png) |
 
-C4 Contexto e Containers são os diagramas exigidos pela rubrica.
+
